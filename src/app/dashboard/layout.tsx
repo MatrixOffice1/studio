@@ -7,7 +7,7 @@ import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
 import { UserSettingsProvider, useUserSettings } from '@/providers/user-settings-provider';
 import { Loader2 } from 'lucide-react';
 
-function ProtectedLayout({ children }: { children: React.ReactNode }) {
+function DashboardContent({ children }: { children: React.ReactNode }) {
   const { user, loading } = useUserSettings();
   const router = useRouter();
 
@@ -41,9 +41,9 @@ function ProtectedLayout({ children }: { children: React.ReactNode }) {
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
     <UserSettingsProvider>
-      <ProtectedLayout>
+      <DashboardContent>
         {children}
-      </ProtectedLayout>
+      </DashboardContent>
     </UserSettingsProvider>
   );
 }
