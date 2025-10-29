@@ -28,9 +28,8 @@ export function ProfessionalAvailability({ currentDate }: ProfessionalAvailabili
   const webhookUrl = settings?.availability_webhook_url;
 
   useEffect(() => {
-    // Reset availability when the date or settings change
     setAvailability({});
-  }, [currentDate, settings]);
+  }, [currentDate]);
 
   const handleToggle = async (professionalName: string) => {
     if (!webhookUrl) {
@@ -44,25 +43,20 @@ export function ProfessionalAvailability({ currentDate }: ProfessionalAvailabili
 
     setLoading(prev => ({ ...prev, [professionalName]: true }));
 
-    const isCurrentlyPresent = availability[professionalName] !== false; // Default to present
+    const isCurrentlyPresent = availability[professionalName] !== false;
     const newStatus = isCurrentlyPresent ? 'absent' : 'present';
 
     try {
-      const response = await fetch(webhookUrl, {
+      const urlWithParams = new URL(webhookUrl);
+      urlWithParams.searchParams.append('professional', professionalName);
+      urlWithParams.searchParams.append('date', currentDate.toISODate() as string);
+      urlWithParams.searchParams.append('status', newStatus);
+
+      await fetch(urlWithParams.toString(), {
         method: 'POST',
-        mode: 'no-cors', // Set mode to no-cors to prevent CORS preflight issues
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          professional: professionalName,
-          date: currentDate.toISODate(),
-          status: newStatus,
-        }),
+        mode: 'no-cors',
       });
 
-      // NOTE: With 'no-cors', we cannot check response.ok or read the response body.
-      // We will proceed with the UI update optimistically.
-
-      // Update UI state optimistically since we can't read the response
       setAvailability(prev => ({ ...prev, [professionalName]: newStatus === 'present' }));
 
       toast({
