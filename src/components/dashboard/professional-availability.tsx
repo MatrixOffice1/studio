@@ -105,7 +105,8 @@ export function ProfessionalAvailability({ currentDate }: ProfessionalAvailabili
               onClick={() => handleToggle(prof.name)}
               disabled={isLoading || isFeatureDisabled}
               variant="outline"
-              className="transition-all duration-200"
+              className="transition-all duration-200 border-2"
+              style={{ borderColor: prof.color }}
             >
               {isLoading ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -118,7 +119,7 @@ export function ProfessionalAvailability({ currentDate }: ProfessionalAvailabili
                  />
               )}
               <span style={{ color: prof.color }} className="font-bold">{prof.name}:</span>
-              <span className={cn("ml-1", isPresent ? "text-green-600" : "text-red-600")}>
+              <span className={cn("ml-1 font-semibold", isPresent ? "text-green-600" : "text-red-600")}>
                 {isPresent ? 'Presente' : 'Ausente'}
               </span>
             </Button>
