@@ -8,7 +8,7 @@
  */
 
 import { ai } from '@/ai/genkit';
-import { z } from 'genkit';
+import { z } from 'zod';
 
 const GenerateConversationSummaryInputSchema = z.object({
   messages: z.array(z.string()).describe('An array of WhatsApp messages in the format "sender: content".'),
