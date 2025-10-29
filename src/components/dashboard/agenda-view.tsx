@@ -40,7 +40,14 @@ export function AgendaView() {
   const [currentDate, setCurrentDate] = useState(DateTime.now().setZone('Europe/Madrid'));
   const [agendaLoading, setAgendaLoading] = useState(false);
   const [agendaError, setAgendaError] = useState<string | null>(null);
-  const [isAutoSyncEnabled, setIsAutoSyncEnabled] = useState(false);
+  const [isAutoSyncEnabled, setIsAutoSyncEnabled] = useState(() => {
+    // Check localStorage only on the client-side
+    if (typeof window !== 'undefined') {
+      const savedState = localStorage.getItem('isAutoSyncEnabled');
+      return savedState ? JSON.parse(savedState) : false;
+    }
+    return false;
+  });
   const [activeFilter, setActiveFilter] = useState('Todos');
   const [isSyncing, setIsSyncing] = useState(false);
   const [analysisResult, setAnalysisResult] = useState('');
@@ -108,6 +115,13 @@ export function AgendaView() {
   useEffect(() => {
     fetchCalendarEvents(true);
   }, [settings?.n8n_webhook_url]); // Fetch on initial load/webhook URL change
+
+  // Persist the auto-sync state to localStorage
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('isAutoSyncEnabled', JSON.stringify(isAutoSyncEnabled));
+    }
+  }, [isAutoSyncEnabled]);
 
   useEffect(() => {
     let intervalId: NodeJS.Timeout | null = null;
