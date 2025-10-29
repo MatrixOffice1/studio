@@ -23,10 +23,17 @@ function classifyMessage(message: string): string {
 }
 
 async function getAnalyticsData() {
-  const { data, error } = await supabase.from('chats_v').select('*');
+  const sevenDaysAgo = format(subDays(new Date(), 7), 'yyyy-MM-dd');
 
-  if (error) {
-    console.error('Error fetching Supabase data:', error);
+  const { data: dailyData, error: dailyError } = await supabase
+    .from('messages_daily_v')
+    .select('*')
+    .gte('day', sevenDaysAgo);
+    
+  const { data: chatsData, error: chatsError } = await supabase.from('chats_v').select('*');
+
+  if (dailyError || chatsError) {
+    console.error('Error fetching Supabase data:', dailyError || chatsError);
     return {
       kpiData: {
         totalMessages: 0,
@@ -38,29 +45,21 @@ async function getAnalyticsData() {
     };
   }
   
-  // Filter out chats that don't have a created_at value.
-  const chats = data.filter(chat => chat.created_at);
+  const chats = chatsData.filter(chat => chat.created_at);
 
+  const totalMessages = dailyData.reduce((acc, row) => acc + row.total, 0);
+  const totalInbound = dailyData.reduce((acc, row) => acc + row.inbound, 0);
+  
+  const incomingPercentage = totalMessages > 0 ? Math.round((totalInbound / totalMessages) * 100) : 0;
+  const avgDailyComm = dailyData.length > 0 ? Math.round(totalMessages / dailyData.length) : 0;
 
-  const totalMessages = chats.length;
-
-  const incomingMessages = chats.filter(c => c.direction === 'incoming').length;
-  const incomingPercentage = totalMessages > 0 ? Math.round((incomingMessages / totalMessages) * 100) : 0;
-
-  const today = new Date();
   const dateMap = new Map<string, number>();
-  
-  chats.forEach(chat => {
-    const chatDate = format(parseISO(chat.created_at), 'yyyy-MM-dd');
-    dateMap.set(chatDate, (dateMap.get(chatDate) || 0) + 1);
+  dailyData.forEach(row => {
+    dateMap.set(row.day, row.total);
   });
-  
-  const totalDays = dateMap.size;
-  const avgDailyComm = totalDays > 0 ? Math.round(totalMessages / totalDays) : 0;
-
 
   const last7DaysTrend = Array.from({ length: 7 }).map((_, i) => {
-    const date = subDays(today, i);
+    const date = subDays(new Date(), i);
     const dayKey = format(date, 'yyyy-MM-dd');
     const dayName = format(date, 'EEE', { locale: es });
     return {
@@ -138,7 +137,7 @@ export default async function AnalyticsPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{kpiData.totalMessages}</div>
-            <p className="text-xs text-muted-foreground">+20.1% from last month</p>
+            <p className="text-xs text-muted-foreground">Last 7 days</p>
           </CardContent>
         </Card>
         <Card>
@@ -148,7 +147,7 @@ export default async function AnalyticsPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{kpiData.avgDailyComm}</div>
-            <p className="text-xs text-muted-foreground">+12% from last week</p>
+            <p className="text-xs text-muted-foreground">Last 7 days</p>
           </CardContent>
         </Card>
         <Card>
