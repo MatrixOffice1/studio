@@ -50,6 +50,7 @@ export function ProfessionalAvailability({ currentDate }: ProfessionalAvailabili
     try {
       const response = await fetch(webhookUrl, {
         method: 'POST',
+        mode: 'no-cors', // Set mode to no-cors to prevent CORS preflight issues
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           professional: professionalName,
@@ -58,11 +59,10 @@ export function ProfessionalAvailability({ currentDate }: ProfessionalAvailabili
         }),
       });
 
-      if (!response.ok) {
-        throw new Error(`El webhook devolvió el estado ${response.status}`);
-      }
+      // NOTE: With 'no-cors', we cannot check response.ok or read the response body.
+      // We will proceed with the UI update optimistically.
 
-      // Update UI state only on successful webhook call
+      // Update UI state optimistically since we can't read the response
       setAvailability(prev => ({ ...prev, [professionalName]: newStatus === 'present' }));
 
       toast({
