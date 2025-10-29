@@ -16,7 +16,7 @@ const GenerateConversationSummaryInputSchema = z.object({
 export type GenerateConversationSummaryInput = z.infer<typeof GenerateConversationSummaryInputSchema>;
 
 const GenerateConversationSummaryOutputSchema = z.object({
-  summary: z.string().describe('A concise summary of the conversation, extracting key information like customer name, requested service, and appointment details if available.'),
+  summary: z.string().describe('Un resumen conciso de la conversación, extrayendo información clave como el nombre del cliente, el servicio solicitado y los detalles de la cita, si están disponibles.'),
 });
 export type GenerateConversationSummaryOutput = z.infer<typeof GenerateConversationSummaryOutputSchema>;
 
@@ -35,15 +35,15 @@ const prompt = ai.definePrompt({
   output: {
     schema: GenerateConversationSummaryOutputSchema,
   },
-  prompt: `You are an expert assistant for a salon. Your task is to summarize a WhatsApp conversation.
+  prompt: `Eres un asistente experto para un salón de belleza. Tu tarea es resumir una conversación de WhatsApp en español.
 
-Analyze the following messages and provide a concise summary. Extract key information such as:
-- Customer Name
-- Requested Service(s)
-- Appointment date and time, if mentioned
-- Any important questions or confirmations.
+Analiza los siguientes mensajes y proporciona un resumen conciso en español. Extrae información clave como:
+- Nombre del Cliente
+- Servicio(s) Solicitado(s)
+- Fecha y hora de la cita, si se menciona
+- Cualquier pregunta o confirmación importante.
 
-Conversation:
+Conversación:
 {{#each messages}}
 - {{{this}}}
 {{/each}}
