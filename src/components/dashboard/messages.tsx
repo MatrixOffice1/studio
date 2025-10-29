@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
-import { Search, Send, Sparkles, Loader2, Bot, User, PersonStanding } from 'lucide-react';
+import { Search, Send, Sparkles, Loader2, Bot, User } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,7 +10,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { generateConversationSummary } from '@/ai/flows/generate-conversation-summary';
-import { format, formatDistanceToNowStrict, isToday, isYesterday, parseISO } from 'date-fns';
+import { format, isToday, isYesterday, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 
 type Chat = {
@@ -68,7 +68,6 @@ export function Messages() {
       
       if (avatarsError) {
         console.error('Error fetching avatars:', avatarsError.message);
-        // Non-critical, so just log it
       }
 
       if (chatsData) {
@@ -82,7 +81,7 @@ export function Messages() {
         
         const chatsWithAvatars = validChats.map(chat => ({
             ...chat,
-            avatar_type: avatarsMap[chat.chat_id] || 'man' // Default to 'man'
+            avatar_type: avatarsMap[chat.chat_id] || 'man'
         }));
 
         setChats(chatsWithAvatars);
@@ -164,9 +163,32 @@ export function Messages() {
     const currentType = avatarTypes[chatId] || 'man';
     const newType = currentType === 'man' ? 'woman' : 'man';
 
-    const { error } = await supabase
+    // 1. Check if a row already exists
+    const { data: existing, error: selectError } = await supabase
+      .from('chat_avatars')
+      .select('chat_id')
+      .eq('chat_id', chatId)
+      .maybeSingle();
+
+    if (selectError) {
+      console.error("Error checking avatar:", selectError.message);
+      toast({ variant: "destructive", title: "Error", description: `No se pudo verificar el avatar: ${selectError.message}` });
+      return;
+    }
+
+    let error;
+    if (existing) {
+      // 2. If it exists, update it
+      ({ error } = await supabase
         .from('chat_avatars')
-        .upsert({ chat_id: chatId, avatar_type: newType }, { onConflict: 'chat_id' });
+        .update({ avatar_type: newType })
+        .eq('chat_id', chatId));
+    } else {
+      // 3. If it doesn't exist, insert it
+      ({ error } = await supabase
+        .from('chat_avatars')
+        .insert({ chat_id: chatId, avatar_type: newType }));
+    }
 
     if (error) {
         console.error("Error updating avatar:", error.message);
@@ -340,7 +362,3 @@ export function Messages() {
     </div>
   );
 }
-
-    
-
-    
