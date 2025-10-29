@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/providers/auth-provider';
 import { Search, Sparkles, Loader2, Bot, MessageSquare } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -56,37 +57,85 @@ export function Messages() {
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const [avatars, setAvatars] = useState<Record<string, 'man' | 'woman'>>({});
   const [isSummaryDialogOpen, setIsSummaryDialogOpen] = useState(false);
+  const { user } = useAuth();
   
-  const handleAvatarToggle = (e: React.MouseEvent, chatId: string) => {
+  const handleAvatarToggle = async (e: React.MouseEvent, chatId: string) => {
     e.stopPropagation();
+    if (!user) return;
+  
+    const newAvatarType = (avatars[chatId] || 'man') === 'woman' ? 'man' : 'woman';
+    
+    // Optimistically update the UI
     setAvatars(prev => ({
         ...prev,
-        [chatId]: prev[chatId] === 'woman' ? 'man' : 'woman'
+        [chatId]: newAvatarType
     }));
+
+    // Upsert the change to Supabase
+    const { error } = await supabase
+      .from('chat_avatars')
+      .upsert({ 
+        chat_id: chatId, 
+        user_id: user.id, 
+        avatar_type: newAvatarType 
+      }, { onConflict: 'chat_id, user_id' });
+
+    if (error) {
+        console.error('Error saving avatar preference:', error);
+        toast({
+            variant: 'destructive',
+            title: 'Error',
+            description: 'No se pudo guardar la preferencia de avatar.'
+        });
+        // Revert optimistic update on error
+        setAvatars(prev => ({
+            ...prev,
+            [chatId]: prev[chatId] === 'woman' ? 'man' : 'woman'
+        }));
+    }
   };
 
   useEffect(() => {
-    const fetchChats = async () => {
+    const fetchChatsAndAvatars = async () => {
       setLoadingChats(true);
-      const { data, error } = await supabase
+      
+      const { data: chatsData, error: chatsError } = await supabase
         .from('chats_v')
         .select('*')
         .order('last_message_at', { ascending: false });
 
-      if (error) {
-        console.error('Error fetching chats:', error.message);
-        toast({ variant: 'destructive', title: 'Error', description: `No se pudieron cargar los chats: ${error.message}` });
-      } else if (data) {
-        const validChats = data.filter(chat => chat.last_message_at);
+      if (chatsError) {
+        console.error('Error fetching chats:', chatsError.message);
+        toast({ variant: 'destructive', title: 'Error', description: `No se pudieron cargar los chats: ${chatsError.message}` });
+      } else if (chatsData) {
+        const validChats = chatsData.filter(chat => chat.last_message_at);
         setChats(validChats);
         if (validChats.length > 0 && !selectedChat) {
           setSelectedChat(validChats[0]);
         }
       }
+
+      if (user) {
+          const { data: avatarsData, error: avatarsError } = await supabase
+            .from('chat_avatars')
+            .select('chat_id, avatar_type')
+            .eq('user_id', user.id);
+          
+          if (avatarsError) {
+              console.error('Error fetching avatars:', avatarsError.message);
+          } else if (avatarsData) {
+              const avatarMap = avatarsData.reduce((acc, item) => {
+                  acc[item.chat_id] = item.avatar_type;
+                  return acc;
+              }, {} as Record<string, 'man' | 'woman'>);
+              setAvatars(avatarMap);
+          }
+      }
+      
       setLoadingChats(false);
     };
-    fetchChats();
-  }, [toast]);
+    fetchChatsAndAvatars();
+  }, [toast, user, selectedChat]);
   
   useEffect(() => {
     const fetchMessages = async () => {
