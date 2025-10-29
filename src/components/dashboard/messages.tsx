@@ -2,8 +2,8 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
-import { Search, Send, Sparkles, Loader2, Bot, MessageSquare } from 'lucide-react';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Search, Send, Sparkles, Loader2, Bot, MessageSquare, Lightbulb } from 'lucide-react';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -12,6 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 import { generateConversationSummary } from '@/ai/flows/generate-conversation-summary';
 import { format, isToday, isYesterday, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '@/components/ui/dialog';
 
 type Chat = {
   chat_id: string;
@@ -58,10 +59,11 @@ export function Messages() {
   const [isSummarizing, setIsSummarizing] = useState(false);
   const { toast } = useToast();
   const scrollAreaRef = useRef<HTMLDivElement>(null);
-  const [avatarTypes, setAvatarTypes] = useState<Record<string, 'man' | 'woman'>>({});
+  const [avatars, setAvatars] = useState<Record<string, 'man' | 'woman'>>({});
+  const [isSummaryDialogOpen, setIsSummaryDialogOpen] = useState(false);
 
   const handleAvatarToggle = (chatId: string) => {
-    setAvatarTypes(prev => ({
+    setAvatars(prev => ({
         ...prev,
         [chatId]: prev[chatId] === 'woman' ? 'man' : 'woman'
     }));
@@ -81,10 +83,6 @@ export function Messages() {
       } else if (data) {
         const validChats = data.filter(chat => chat.last_message_at);
         setChats(validChats);
-        if (validChats.length > 0) {
-            // Don't autoselect a chat
-            // setSelectedChat(validChats[0]);
-        }
       }
       setLoadingChats(false);
     };
@@ -97,7 +95,6 @@ export function Messages() {
 
       setLoadingMessages(true);
       setMessages([]);
-      setSummary('');
 
       const { data, error } = await supabase
         .from('messages_v')
@@ -135,6 +132,7 @@ export function Messages() {
                 const otherChats = currentChats.filter(c => c.chat_id !== newMessage.chat_id);
                 return [updatedChat, ...otherChats].sort((a, b) => parseISO(b.last_message_at).getTime() - parseISO(a.last_message_at).getTime());
             }
+            // If chat is new, it will be added on next full fetch
             return currentChats;
         });
     };
@@ -164,12 +162,21 @@ export function Messages() {
     try {
       const result = await generateConversationSummary({ messages: messages.map(m => `${m.sender}: ${m.text_display}`) });
       setSummary(result.summary);
+      setIsSummaryDialogOpen(true);
     } catch (error) {
       console.error('Error generating summary:', error);
       toast({ variant: 'destructive', title: 'Error al resumir', description: 'No se pudo generar el resumen. Por favor, inténtalo de nuevo.' });
     } finally {
       setIsSummarizing(false);
     }
+  };
+  
+    const handleSuggestReplies = () => {
+    // Placeholder function for suggesting replies
+    toast({
+        title: 'Próximamente',
+        description: 'La función para sugerir respuestas con IA estará disponible pronto.',
+    });
   };
 
   const formatTimestamp = (timestamp: string) => {
@@ -189,16 +196,19 @@ export function Messages() {
 
   const formatMessageText = (text: string) => {
     if (typeof text !== 'string') return '';
+    // This regex looks for the user message and strips the AI prompt context
     const match = text.match(/Mensaje del usuario:\s*(.*?)\s*-\s*La fecha de hoy es/s);
     if (match && match[1]) {
       return match[1].trim();
     }
+    // Fallback for other unwanted text
     return text.replace('vuelve a intentarlo', '').trim();
   };
   
   return (
-    <div className="h-full flex">
-      <div className="w-1/3 border-r flex flex-col">
+    <div className="h-full flex flex-col md:flex-row">
+      {/* Left Panel: Chat List */}
+      <div className="w-full md:w-1/3 border-r flex flex-col bg-background">
         <div className="p-4 border-b">
           <div className="relative">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -208,7 +218,7 @@ export function Messages() {
         <ScrollArea className="flex-grow">
           {loadingChats ? (
             <div className="p-4 space-y-4">
-              {[...Array(5)].map((_, i) => (
+              {[...Array(8)].map((_, i) => (
                 <div key={i} className="flex items-center gap-3 p-3 animate-pulse">
                   <div className="h-10 w-10 bg-muted rounded-full"></div>
                   <div className='w-full space-y-2'>
@@ -220,11 +230,7 @@ export function Messages() {
             </div>
           ) : (
             chats.map((chat) => {
-              const avatarType = avatarTypes[chat.chat_id] || 'man';
-              const lastMessageInChat = messages.filter(m => m.chat_id === chat.chat_id).pop();
-              const lastText = lastMessageInChat ? lastMessageInChat.text_display : chat.last_text;
-              const lastDirection = lastMessageInChat ? lastMessageInChat.direction : chat.direction;
-
+              const avatarType = avatars[chat.chat_id] || 'man';
               return (
               <div
                 key={chat.chat_id}
@@ -243,58 +249,57 @@ export function Messages() {
                     <p className="font-semibold truncate">{`+${chat.chat_id}`}</p>
                     <p className="text-xs text-muted-foreground flex-shrink-0">{formatTimestamp(chat.last_message_at)}</p>
                   </div>
-                  <div className="w-full overflow-hidden whitespace-nowrap text-ellipsis">
-                    <p className="text-sm text-muted-foreground">
-                      {lastDirection === 'outbound' ? 'Tú: ' : ''}
-                      {formatMessageText(lastText)}
-                    </p>
-                  </div>
+                  <p className="text-sm text-muted-foreground truncate">
+                    {chat.direction === 'outbound' ? 'Tú: ' : ''}
+                    {formatMessageText(chat.last_text)}
+                  </p>
                 </div>
               </div>
             )})
           )}
         </ScrollArea>
       </div>
-      <div className="w-2/3 flex flex-col bg-card">
+
+      {/* Right Panel: Chat View */}
+      <div className="w-full md:w-2/3 flex flex-col bg-card h-full">
         {selectedChat ? (
           <>
-            <div className="p-4 border-b flex items-center justify-between gap-3">
+            <div className="p-3 border-b flex items-center justify-between gap-3">
               <div className="flex items-center gap-3">
                  <Avatar className="h-10 w-10">
                     <AvatarFallback className="bg-muted text-muted-foreground">
-                        {avatarTypes[selectedChat.chat_id] === 'woman' ? <AvatarWomanIcon className="w-full h-full" /> : <AvatarManIcon className="w-full h-full" />}
+                        {avatars[selectedChat.chat_id] === 'woman' ? <AvatarWomanIcon className="w-full h-full" /> : <AvatarManIcon className="w-full h-full" />}
                     </AvatarFallback>
                 </Avatar>
                 <div>
-                  <h2 className="text-lg font-semibold">{selectedChat.contact_name}</h2>
-                  <p className="text-sm text-muted-foreground">{`+${selectedChat.chat_id}`}</p>
+                  <h2 className="text-lg font-semibold">{`+${selectedChat.chat_id}`}</h2>
+                  <p className="text-sm text-muted-foreground">En línea</p>
                 </div>
               </div>
-              <Button onClick={handleSummary} disabled={isSummarizing || loadingMessages} size="sm">
-                {isSummarizing ? (<><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Resumiendo...</>) : (<><Sparkles className="mr-2 h-4 w-4" /> Resumir</>)}
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button onClick={handleSummary} disabled={isSummarizing || loadingMessages} size="sm" variant="outline">
+                    {isSummarizing ? (<><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Resumiendo...</>) : (<><Sparkles className="mr-2 h-4 w-4" /> Resumir</>)}
+                </Button>
+                <Button onClick={handleSuggestReplies} size="sm" variant="outline">
+                    <Lightbulb className="mr-2 h-4 w-4" /> Sugerir
+                </Button>
+              </div>
             </div>
             <ScrollArea className="flex-grow p-4" viewportRef={scrollAreaRef}>
               {loadingMessages ? (
                 <div className="flex items-center justify-center h-full"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>
               ) : (
                 <div className="space-y-4">
-                  {summary && (
-                    <div className="w-full p-4 border rounded-lg bg-background my-4">
-                      <h4 className="font-semibold mb-2 flex items-center gap-2"><Sparkles className="text-accent h-4 w-4" /> Resumen IA</h4>
-                      <p className="text-sm text-muted-foreground whitespace-pre-wrap">{summary}</p>
-                    </div>
-                  )}
                   {messages.map((msg) => (
                     <div key={msg.id} className={cn('flex items-end gap-2', msg.sender === 'ai' ? 'justify-end' : 'justify-start')}>
                       {msg.sender === 'human' && (
                         <Avatar className="h-8 w-8 bg-muted text-muted-foreground">
                           <AvatarFallback>
-                            {avatarTypes[selectedChat.chat_id] === 'woman' ? <AvatarWomanIcon className="w-6 h-6" /> : <AvatarManIcon className="w-6 h-6" />}
+                            {avatars[selectedChat.chat_id] === 'woman' ? <AvatarWomanIcon className="w-6 h-6" /> : <AvatarManIcon className="w-6 h-6" />}
                           </AvatarFallback>
                         </Avatar>
                       )}
-                      <div className={cn('max-w-xs md:max-w-md lg:max-w-lg rounded-lg px-4 py-2 shadow-md', msg.sender === 'ai' ? 'bg-primary text-primary-foreground rounded-br-none' : 'bg-card border-border border rounded-bl-none')}>
+                      <div className={cn('max-w-xs md:max-w-md lg:max-w-lg rounded-lg px-4 py-2 shadow-md', msg.sender === 'ai' ? 'bg-primary text-primary-foreground rounded-br-none' : 'bg-background border-border border rounded-bl-none')}>
                         <p className="text-sm">{formatMessageText(msg.text_display)}</p>
                         <p className="text-xs text-right mt-1 opacity-70">{new Date(msg.timestamp).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}</p>
                       </div>
@@ -318,18 +323,33 @@ export function Messages() {
               </div>
             </div>
           </>
-        ) : (!loadingChats && 
-              <div className='w-full h-full flex flex-col items-center justify-center text-center p-4'>
+        ) : (
+            <div className='w-full h-full flex flex-col items-center justify-center text-center p-4'>
                 <div className='w-24 h-24 rounded-full bg-muted flex items-center justify-center'>
                     <MessageSquare className='w-12 h-12 text-muted-foreground' />
                 </div>
-                <h2 className='text-2xl font-bold font-headline mt-4'>Bienvenido al Dashboard</h2>
-                <p>Selecciona un chat para ver los mensajes.</p>
+                <h2 className='text-2xl font-bold font-headline mt-4'>Bienvenido al Dashboard de Mensajes</h2>
+                <p className="text-muted-foreground">Selecciona una conversación de la lista para empezar a chatear.</p>
             </div>
         )}
       </div>
+
+        <Dialog open={isSummaryDialogOpen} onOpenChange={setIsSummaryDialogOpen}>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle className="flex items-center gap-2"><Sparkles className="text-accent" /> Resumen de la IA</DialogTitle>
+                     <DialogDescription>
+                        Este es un resumen de la conversación actual generado por IA.
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="py-4 text-sm text-muted-foreground whitespace-pre-wrap">
+                    {summary || "No se pudo generar un resumen."}
+                </div>
+                 <div className="flex justify-end">
+                    <Button onClick={() => setIsSummaryDialogOpen(false)}>Cerrar</Button>
+                </div>
+            </DialogContent>
+        </Dialog>
     </div>
   );
 }
-
-    
