@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
-import { Search, Send, Sparkles, Loader2 } from 'lucide-react';
+import { Search, Send, Sparkles, Loader2, Bot, User } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -55,12 +55,13 @@ export function Messages() {
         toast({
           variant: 'destructive',
           title: 'Error',
-          description: `Could not load chats: ${error.message}`,
+          description: `No se pudieron cargar los chats: ${error.message}`,
         });
       } else if (data) {
-        setChats(data);
-        if (data.length > 0) {
-          setSelectedChat(data[0]);
+        const validChats = data.filter(chat => chat.last_message_at);
+        setChats(validChats);
+        if (validChats.length > 0) {
+          setSelectedChat(validChats[0]);
         }
       }
       setLoadingChats(false);
@@ -89,7 +90,7 @@ export function Messages() {
         toast({
           variant: 'destructive',
           title: 'Error',
-          description: `Could not load messages for this chat: ${error.message}`,
+          description: `No se pudieron cargar los mensajes para este chat: ${error.message}`,
         });
       } else {
         setMessages(data || []);
@@ -115,7 +116,10 @@ export function Messages() {
                 .from('chats_v')
                 .select('*')
                 .order('last_message_at', { ascending: false });
-              if(data) setChats(data);
+              if(data) {
+                const validChats = data.filter(chat => chat.last_message_at);
+                setChats(validChats);
+              }
             };
             fetchChats();
         }
@@ -167,8 +171,8 @@ export function Messages() {
       console.error('Error generating summary:', error);
       toast({
         variant: 'destructive',
-        title: 'Summary Failed',
-        description: 'Could not generate AI summary. Please try again.',
+        title: 'Error al resumir',
+        description: 'No se pudo generar el resumen de IA. Por favor, inténtalo de nuevo.',
       });
     } finally {
       setIsSummarizing(false);
@@ -180,7 +184,7 @@ export function Messages() {
         const date = parseISO(timestamp);
         return formatDistanceToNowStrict(date, { addSuffix: true, locale: es });
     } catch (error) {
-        return "Invalid date";
+        return "Fecha inválida";
     }
   }
 
@@ -190,7 +194,7 @@ export function Messages() {
         <div className="p-4 border-b">
           <div className="relative">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input placeholder="Search conversations..." className="pl-8" />
+            <Input placeholder="Buscar conversaciones..." className="pl-8" />
           </div>
         </div>
         <ScrollArea className="flex-grow">
@@ -247,12 +251,12 @@ export function Messages() {
                 {isSummarizing ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Summarizing...
+                    Resumiendo...
                   </>
                 ) : (
                   <>
                     <Sparkles className="mr-2 h-4 w-4" />
-                    Summarize
+                    Resumir
                   </>
                 )}
               </Button>
@@ -266,7 +270,7 @@ export function Messages() {
                 <div className="space-y-4">
                   {summary && (
                     <div className="w-full p-4 border rounded-lg bg-background my-4">
-                        <h4 className="font-semibold mb-2 flex items-center gap-2"><Sparkles className="text-accent h-4 w-4"/> AI Summary</h4>
+                        <h4 className="font-semibold mb-2 flex items-center gap-2"><Sparkles className="text-accent h-4 w-4"/> Resumen IA</h4>
                         <p className="text-sm text-muted-foreground whitespace-pre-wrap">{summary}</p>
                     </div>
                   )}
@@ -279,26 +283,24 @@ export function Messages() {
                       )}
                     >
                       {msg.sender === 'human' && (
-                        <Avatar className="h-8 w-8">
-                          <AvatarImage src={`https://picsum.photos/seed/${selectedChat.contact_name}/40/40`} alt={selectedChat.contact_name} data-ai-hint="person face" />
-                          <AvatarFallback>{selectedChat.contact_name[0]}</AvatarFallback>
+                        <Avatar className="h-8 w-8 bg-muted text-muted-foreground">
+                          <User className="m-auto h-5 w-5" />
                         </Avatar>
                       )}
                       <div
                         className={cn(
-                          'max-w-xs md:max-w-md lg:max-w-lg rounded-lg px-4 py-2',
+                          'max-w-xs md:max-w-md lg:max-w-lg rounded-lg px-4 py-2 shadow-md',
                           msg.sender === 'ai'
                             ? 'bg-primary text-primary-foreground rounded-br-none'
-                            : 'bg-muted rounded-bl-none'
+                            : 'bg-card border-border border rounded-bl-none'
                         )}
                       >
                         <p className="text-sm">{msg.text_display}</p>
                         <p className="text-xs text-right mt-1 opacity-70">{format(parseISO(msg.timestamp), 'p')}</p>
                       </div>
                       {msg.sender === 'ai' && (
-                        <Avatar className="h-8 w-8">
-                           <AvatarImage src="https://picsum.photos/seed/sofia/40/40" alt="Sofia" data-ai-hint="professional headshot" />
-                           <AvatarFallback>S</AvatarFallback>
+                         <Avatar className="h-8 w-8 bg-accent text-accent-foreground">
+                           <Bot className="m-auto h-5 w-5" />
                         </Avatar>
                       )}
                     </div>
@@ -308,7 +310,7 @@ export function Messages() {
             </ScrollArea>
             <div className="p-4 border-t bg-background">
               <div className="relative">
-                <Input placeholder="Type a message..." className="pr-12" />
+                <Input placeholder="Escribe un mensaje..." className="pr-12" />
                 <Button size="icon" className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8">
                   <Send className="h-4 w-4" />
                 </Button>
@@ -318,7 +320,7 @@ export function Messages() {
         ) : (
           !loadingChats && (
             <div className="flex-grow flex items-center justify-center text-muted-foreground">
-              <p>Select a conversation to start chatting</p>
+              <p>Selecciona una conversación para empezar a chatear</p>
             </div>
           )
         )}
