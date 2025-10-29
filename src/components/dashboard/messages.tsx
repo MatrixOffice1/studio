@@ -163,11 +163,18 @@ export function Messages() {
     const currentType = avatarTypes[chatId] || 'man';
     const newType = currentType === 'man' ? 'woman' : 'man';
 
-    // 1. Check if a row already exists
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+        toast({ variant: "destructive", title: "Error", description: "Debes iniciar sesión para cambiar el avatar." });
+        return;
+    }
+
     const { data: existing, error: selectError } = await supabase
       .from('chat_avatars')
       .select('chat_id')
       .eq('chat_id', chatId)
+      .eq('user_id', user.id)
       .maybeSingle();
 
     if (selectError) {
@@ -178,16 +185,15 @@ export function Messages() {
 
     let error;
     if (existing) {
-      // 2. If it exists, update it
       ({ error } = await supabase
         .from('chat_avatars')
         .update({ avatar_type: newType })
-        .eq('chat_id', chatId));
+        .eq('chat_id', chatId)
+        .eq('user_id', user.id));
     } else {
-      // 3. If it doesn't exist, insert it
       ({ error } = await supabase
         .from('chat_avatars')
-        .insert({ chat_id: chatId, avatar_type: newType }));
+        .insert({ chat_id: chatId, avatar_type: newType, user_id: user.id }));
     }
 
     if (error) {
