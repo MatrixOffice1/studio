@@ -3,8 +3,8 @@
 
 import { useState, useEffect, useCallback, ReactNode } from 'react';
 import { supabase } from '@/lib/supabase';
-import { User } from '@supabase/supabase-js';
-import { UserSettings, UserSettingsContext } from '@/hooks/use-user-settings';
+import type { User } from '@supabase/supabase-js';
+import { UserSettingsContext, type UserSettings } from '@/hooks/use-user-settings';
 
 export function UserSettingsProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -49,9 +49,9 @@ export function UserSettingsProvider({ children }: { children: ReactNode }) {
       } finally {
         setLoading(false);
       }
-    } else if (!user) {
+    } else {
         setLoading(false);
-        setSettings({}); // If no user, settings are empty.
+        setSettings(null); // If no user, settings are null.
     }
   }, [user]);
 

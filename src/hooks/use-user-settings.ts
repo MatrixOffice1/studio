@@ -1,9 +1,8 @@
 
 "use client";
 
-import { useState, useEffect, useCallback, createContext, useContext, ReactNode } from 'react';
-import { supabase } from '@/lib/supabase';
-import { User } from '@supabase/supabase-js';
+import { createContext, useContext } from 'react';
+import type { User } from '@supabase/supabase-js';
 
 export type UserSettings = {
   aiProvider?: 'gemini' | 'openai';
