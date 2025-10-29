@@ -1,0 +1,275 @@
+{
+  "entities": {
+    "WhatsAppMessage": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "WhatsAppMessage",
+      "type": "object",
+      "description": "Represents a WhatsApp message stored in the system.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the WhatsApp message."
+        },
+        "timestamp": {
+          "type": "string",
+          "description": "Timestamp of when the message was sent or received.",
+          "format": "date-time"
+        },
+        "sender": {
+          "type": "string",
+          "description": "The sender of the message (e.g., phone number or contact name)."
+        },
+        "receiver": {
+          "type": "string",
+          "description": "The recipient of the message (e.g., phone number or contact name)."
+        },
+        "messageText": {
+          "type": "string",
+          "description": "The content of the WhatsApp message."
+        },
+        "direction": {
+          "type": "string",
+          "description": "Direction of the message: 'incoming' or 'outgoing'."
+        },
+        "agentId": {
+          "type": "string",
+          "description": "Reference to the Agent who handled this message. (Relationship: Agent 1:N WhatsAppMessage)"
+        },
+        "clientId": {
+          "type": "string",
+          "description": "Reference to the Client associated with this message. (Relationship: Client 1:N WhatsAppMessage)"
+        }
+      },
+      "required": [
+        "id",
+        "timestamp",
+        "sender",
+        "receiver",
+        "messageText",
+        "direction",
+        "agentId",
+        "clientId"
+      ]
+    },
+    "Appointment": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Appointment",
+      "type": "object",
+      "description": "Represents a scheduled appointment or event.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the appointment."
+        },
+        "startTime": {
+          "type": "string",
+          "description": "The starting date and time of the appointment.",
+          "format": "date-time"
+        },
+        "endTime": {
+          "type": "string",
+          "description": "The ending date and time of the appointment.",
+          "format": "date-time"
+        },
+        "description": {
+          "type": "string",
+          "description": "A description of the appointment or event."
+        },
+        "clientId": {
+          "type": "string",
+          "description": "Reference to the Client who scheduled the appointment. (Relationship: Client 1:N Appointment)"
+        },
+        "agentId": {
+          "type": "string",
+          "description": "Reference to the Agent assigned to the appointment. (Relationship: Agent 1:N Appointment)"
+        }
+      },
+      "required": [
+        "id",
+        "startTime",
+        "endTime",
+        "description",
+        "clientId",
+        "agentId"
+      ]
+    },
+    "Client": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Client",
+      "type": "object",
+      "description": "Represents a client or customer.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the client."
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the client."
+        },
+        "phoneNumber": {
+          "type": "string",
+          "description": "The client's phone number."
+        },
+        "email": {
+          "type": "string",
+          "description": "The client's email address.",
+          "format": "email"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "phoneNumber"
+      ]
+    },
+    "Agent": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Agent",
+      "type": "object",
+      "description": "Represents an agent or employee.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the agent."
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the agent."
+        },
+        "email": {
+          "type": "string",
+          "description": "The agent's email address.",
+          "format": "email"
+        }
+      },
+      "required": [
+        "id",
+        "name"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/agents/{agentId}",
+        "definition": {
+          "entityName": "Agent",
+          "schema": {
+            "$ref": "#/backend/entities/Agent"
+          },
+          "description": "Stores agent profile information.",
+          "params": [
+            {
+              "name": "agentId",
+              "description": "The unique identifier for the agent."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/agents/{agentId}/whatsapp_messages/{messageId}",
+        "definition": {
+          "entityName": "WhatsAppMessage",
+          "schema": {
+            "$ref": "#/backend/entities/WhatsAppMessage"
+          },
+          "description": "Stores WhatsApp messages associated with a specific agent. Includes denormalized agentId and clientId for authorization independence.",
+          "params": [
+            {
+              "name": "agentId",
+              "description": "The unique identifier for the agent."
+            },
+            {
+              "name": "messageId",
+              "description": "The unique identifier for the WhatsApp message."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/agents/{agentId}/appointments/{appointmentId}",
+        "definition": {
+          "entityName": "Appointment",
+          "schema": {
+            "$ref": "#/backend/entities/Appointment"
+          },
+          "description": "Stores appointments associated with a specific agent. Includes denormalized agentId and clientId for authorization independence.",
+          "params": [
+            {
+              "name": "agentId",
+              "description": "The unique identifier for the agent."
+            },
+            {
+              "name": "appointmentId",
+              "description": "The unique identifier for the appointment."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/clients/{clientId}",
+        "definition": {
+          "entityName": "Client",
+          "schema": {
+            "$ref": "#/backend/entities/Client"
+          },
+          "description": "Stores client profile information.",
+          "params": [
+            {
+              "name": "clientId",
+              "description": "The unique identifier for the client."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/clients/{clientId}/whatsapp_messages/{messageId}",
+        "definition": {
+          "entityName": "WhatsAppMessage",
+          "schema": {
+            "$ref": "#/backend/entities/WhatsAppMessage"
+          },
+          "description": "Stores WhatsApp messages associated with a specific client. Includes denormalized agentId and clientId for authorization independence.",
+          "params": [
+            {
+              "name": "clientId",
+              "description": "The unique identifier for the client."
+            },
+            {
+              "name": "messageId",
+              "description": "The unique identifier for the WhatsApp message."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/clients/{clientId}/appointments/{appointmentId}",
+        "definition": {
+          "entityName": "Appointment",
+          "schema": {
+            "$ref": "#/backend/entities/Appointment"
+          },
+          "description": "Stores appointments associated with a specific client. Includes denormalized agentId and clientId for authorization independence.",
+          "params": [
+            {
+              "name": "clientId",
+              "description": "The unique identifier for the client."
+            },
+            {
+              "name": "appointmentId",
+              "description": "The unique identifier for the appointment."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore structure is designed to support the PeluFlow application, focusing on WhatsApp message analytics and appointment scheduling. The structure emphasizes authorization independence via denormalization and structural segregation to meet the QAPs.  Since the user wants to display analytics for messages associated with Agents and Clients, the WhatsAppMessage collection is nested under the Agent document, and the Client documents. This allows efficient querying and authorization for analytics dashboards, as well as ensures scalability as the number of messages increases.  The same principle applies to Appointments, where the subcollection is nested under the Agent and Client documents."
+  }
+}

@@ -1,0 +1,143 @@
+/**
+ * @description This ruleset enforces a strict user-ownership model for Agents and Clients,
+ *              allowing only authenticated users to manage their own profiles and associated data.
+ *              WhatsApp messages and Appointments are secured under both Agent and Client paths,
+ *              with each entity requiring the `agentId` and `clientId` to match the path.
+ * @dataStructure
+ *   - `/agents/{agentId}`: Stores Agent profile information.
+ *   - `/agents/{agentId}/whatsapp_messages/{messageId}`: Stores WhatsApp messages associated with a specific agent.
+ *   - `/agents/{agentId}/appointments/{appointmentId}`: Stores Appointments associated with a specific agent.
+ *   - `/clients/{clientId}`: Stores Client profile information.
+ *   - `/clients/{clientId}/whatsapp_messages/{messageId}`: Stores WhatsApp messages associated with a specific client.
+ *   - `/clients/{clientId}/appointments/{appointmentId}`: Stores Appointments associated with a specific client.
+ * @keySecurityDecisions
+ *   - Only authenticated users can manage Agents or Clients and their associated WhatsApp messages and Appointments.
+ *   - Data is nested under both Agent and Client documents to allow for easy querying and authorization.
+ *   - All operations require the user to be authenticated.
+ *   - No public listing of agents or clients is allowed.
+ */
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    /**
+     * @description Allows authenticated users to manage their own Agent profile.
+     * @path /agents/{agentId}
+     * @allow (create) User with UID 'agent123' can create a new agent profile if request.auth.uid == 'agent123'.
+     * @allow (get) User with UID 'agent123' can get their own agent profile if request.auth.uid == 'agent123'.
+     * @allow (update) User with UID 'agent123' can update their own agent profile if request.auth.uid == 'agent123'.
+     * @allow (delete) User with UID 'agent123' can delete their own agent profile if request.auth.uid == 'agent123'.
+     * @deny User with UID 'agent456' cannot create/get/update/delete agent profile 'agent123' because they are not the owner.
+     * @principle Enforces document ownership for writes.
+     */
+    match /agents/{agentId} {
+      allow get: if isSignedIn() && isOwner(agentId);
+      allow list: if false;
+      allow create: if isSignedIn() && isOwner(agentId);
+      allow update: if isSignedIn() && isExistingOwner(agentId);
+      allow delete: if isSignedIn() && isExistingOwner(agentId);
+    }
+
+    /**
+     * @description Allows authenticated users to manage WhatsApp messages associated with their Agent profile.
+     * @path /agents/{agentId}/whatsapp_messages/{messageId}
+     * @allow (create) User with UID 'agent123' can create a WhatsApp message under their agent profile if request.auth.uid == 'agent123' and request.resource.data.agentId == 'agent123'.
+     * @allow (get) User with UID 'agent123' can get a WhatsApp message under their agent profile if request.auth.uid == 'agent123'.
+     * @allow (update) User with UID 'agent123' can update a WhatsApp message under their agent profile if request.auth.uid == 'agent123'.
+     * @allow (delete) User with UID 'agent123' can delete a WhatsApp message under their agent profile if request.auth.uid == 'agent123'.
+     * @deny User with UID 'agent456' cannot create/get/update/delete WhatsApp messages under agent profile 'agent123' because they are not the owner.
+     * @principle Enforces document ownership for writes and validates relational integrity (agentId).
+     */
+    match /agents/{agentId}/whatsapp_messages/{messageId} {
+      allow get: if isSignedIn() && isOwner(agentId);
+      allow list: if isSignedIn() && isOwner(agentId);
+      allow create: if isSignedIn() && request.resource.data.agentId == agentId;
+      allow update: if isSignedIn() && isExistingOwner(agentId) && resource.data.agentId == agentId;
+      allow delete: if isSignedIn() && isExistingOwner(agentId) && resource.data.agentId == agentId;
+    }
+
+    /**
+     * @description Allows authenticated users to manage Appointments associated with their Agent profile.
+     * @path /agents/{agentId}/appointments/{appointmentId}
+     * @allow (create) User with UID 'agent123' can create an Appointment under their agent profile if request.auth.uid == 'agent123' and request.resource.data.agentId == 'agent123'.
+     * @allow (get) User with UID 'agent123' can get an Appointment under their agent profile if request.auth.uid == 'agent123'.
+     * @allow (update) User with UID 'agent123' can update an Appointment under their agent profile if request.auth.uid == 'agent123'.
+     * @allow (delete) User with UID 'agent123' can delete an Appointment under their agent profile if request.auth.uid == 'agent123'.
+     * @deny User with UID 'agent456' cannot create/get/update/delete Appointments under agent profile 'agent123' because they are not the owner.
+     * @principle Enforces document ownership for writes and validates relational integrity (agentId).
+     */
+    match /agents/{agentId}/appointments/{appointmentId} {
+      allow get: if isSignedIn() && isOwner(agentId);
+      allow list: if isSignedIn() && isOwner(agentId);
+      allow create: if isSignedIn() && request.resource.data.agentId == agentId;
+      allow update: if isSignedIn() && isExistingOwner(agentId) && resource.data.agentId == agentId;
+      allow delete: if isSignedIn() && isExistingOwner(agentId) && resource.data.agentId == agentId;
+    }
+
+    /**
+     * @description Allows authenticated users to manage their own Client profile.
+     * @path /clients/{clientId}
+     * @allow (create) User with UID 'client123' can create a new client profile if request.auth.uid == 'client123'.
+     * @allow (get) User with UID 'client123' can get their own client profile if request.auth.uid == 'client123'.
+     * @allow (update) User with UID 'client123' can update their own client profile if request.auth.uid == 'client123'.
+     * @allow (delete) User with UID 'client123' can delete their own client profile if request.auth.uid == 'client123'.
+     * @deny User with UID 'client456' cannot create/get/update/delete client profile 'client123' because they are not the owner.
+     * @principle Enforces document ownership for writes.
+     */
+    match /clients/{clientId} {
+      allow get: if isSignedIn() && isOwner(clientId);
+      allow list: if false;
+      allow create: if isSignedIn() && isOwner(clientId);
+      allow update: if isSignedIn() && isExistingOwner(clientId);
+      allow delete: if isSignedIn() && isExistingOwner(clientId);
+    }
+
+    /**
+     * @description Allows authenticated users to manage WhatsApp messages associated with their Client profile.
+     * @path /clients/{clientId}/whatsapp_messages/{messageId}
+     * @allow (create) User with UID 'client123' can create a WhatsApp message under their client profile if request.auth.uid == 'client123' and request.resource.data.clientId == 'client123'.
+     * @allow (get) User with UID 'client123' can get a WhatsApp message under their client profile if request.auth.uid == 'client123'.
+     * @allow (update) User with UID 'client123' can update a WhatsApp message under their client profile if request.auth.uid == 'client123'.
+     * @allow (delete) User with UID 'client123' can delete a WhatsApp message under their client profile if request.auth.uid == 'client123'.
+     * @deny User with UID 'client456' cannot create/get/update/delete WhatsApp messages under client profile 'client123' because they are not the owner.
+     * @principle Enforces document ownership for writes and validates relational integrity (clientId).
+     */
+    match /clients/{clientId}/whatsapp_messages/{messageId} {
+      allow get: if isSignedIn() && isOwner(clientId);
+      allow list: if isSignedIn() && isOwner(clientId);
+      allow create: if isSignedIn() && request.resource.data.clientId == clientId;
+      allow update: if isSignedIn() && isExistingOwner(clientId) && resource.data.clientId == clientId;
+      allow delete: if isSignedIn() && isExistingOwner(clientId) && resource.data.clientId == clientId;
+    }
+
+    /**
+     * @description Allows authenticated users to manage Appointments associated with their Client profile.
+     * @path /clients/{clientId}/appointments/{appointmentId}
+     * @allow (create) User with UID 'client123' can create an Appointment under their client profile if request.auth.uid == 'client123' and request.resource.data.clientId == 'client123'.
+     * @allow (get) User with UID 'client123' can get an Appointment under their client profile if request.auth.uid == 'client123'.
+     * @allow (update) User with UID 'client123' can update an Appointment under their client profile if request.auth.uid == 'client123'.
+     * @allow (delete) User with UID 'client123' can delete an Appointment under their client profile if request.auth.uid == 'client123'.
+     * @deny User with UID 'client456' cannot create/get/update/delete Appointments under client profile 'client123' because they are not the owner.
+     * @principle Enforces document ownership for writes and validates relational integrity (clientId).
+     */
+    match /clients/{clientId}/appointments/{appointmentId} {
+      allow get: if isSignedIn() && isOwner(clientId);
+      allow list: if isSignedIn() && isOwner(clientId);
+      allow create: if isSignedIn() && request.resource.data.clientId == clientId;
+      allow update: if isSignedIn() && isExistingOwner(clientId) && resource.data.clientId == clientId;
+      allow delete: if isSignedIn() && isExistingOwner(clientId) && resource.data.clientId == clientId;
+    }
+  }
+
+  function isSignedIn() {
+    return request.auth != null;
+  }
+
+  function isOwner(userId) {
+    return request.auth.uid == userId;
+  }
+
+  function isExistingOwner(userId) {
+    return isOwner(userId) && resource != null;
+  }
+}
