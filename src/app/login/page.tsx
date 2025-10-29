@@ -28,13 +28,13 @@ export default function LoginPage() {
     if (error) {
       toast({
         variant: 'destructive',
-        title: 'Login Failed',
-        description: error.message,
+        title: 'Error de inicio de sesión',
+        description: 'El correo electrónico o la contraseña son incorrectos.',
       });
     } else {
       toast({
-        title: 'Login Successful',
-        description: 'Redirecting to your dashboard...',
+        title: 'Inicio de sesión exitoso',
+        description: 'Redirigiendo a tu dashboard...',
       });
       router.push('/dashboard');
     }
@@ -47,8 +47,8 @@ export default function LoginPage() {
         <Image
           src="https://i.postimg.cc/kGtCyQCD/logo2.png"
           alt="Logo"
-          width={100}
-          height={100}
+          width={150}
+          height={150}
           className="mx-auto mb-4 rounded-full"
         />
         <h2 className="text-xl font-semibold text-muted-foreground tracking-wider">
@@ -56,11 +56,11 @@ export default function LoginPage() {
         </h2>
         <form onSubmit={handleLogin} className="mt-8 space-y-6 text-left">
           <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
+            <Label htmlFor="email">Correo electrónico</Label>
             <Input
               id="email"
               type="email"
-              placeholder="you@example.com"
+              placeholder="tu@ejemplo.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
@@ -68,7 +68,7 @@ export default function LoginPage() {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="password">Password</Label>
+            <Label htmlFor="password">Contraseña</Label>
             <Input
               id="password"
               type="password"
@@ -81,7 +81,7 @@ export default function LoginPage() {
           </div>
           <Button type="submit" className="w-full" disabled={isLoading}>
             {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Sign In
+            Iniciar sesión
           </Button>
         </form>
       </div>
