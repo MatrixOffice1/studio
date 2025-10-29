@@ -10,6 +10,7 @@ export type UserSettings = {
   gemini_api_key?: string;
   agenda_webhook_url?: string;
   availability_webhook_url?: string;
+  citas_webhook_url?: string;
   sync_interval?: number;
   [key: string]: any; // Allow other string keys
 };

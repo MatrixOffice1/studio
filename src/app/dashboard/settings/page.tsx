@@ -27,6 +27,7 @@ export default function SettingsPage() {
   const [apiKey, setApiKey] = useState('');
   const [agendaWebhook, setAgendaWebhook] = useState('');
   const [availabilityWebhook, setAvailabilityWebhook] = useState('');
+  const [citasWebhook, setCitasWebhook] = useState('');
   const [syncInterval, setSyncInterval] = useState('5');
   const [isSaving, setIsSaving] = useState(false);
   const { toast } = useToast();
@@ -37,6 +38,7 @@ export default function SettingsPage() {
       setApiKey(settings.gemini_api_key || '');
       setAgendaWebhook(settings.agenda_webhook_url || '');
       setAvailabilityWebhook(settings.availability_webhook_url || 'https://n8n.srv1002935.hstgr.cloud/webhook/calendar-tony-airmate');
+      setCitasWebhook(settings.citas_webhook_url || 'https://n8n.srv1002935.hstgr.cloud/webhook-test/calendar-citas-modf');
       setSyncInterval(String(settings.sync_interval || '5'));
     }
   }, [settings]);
@@ -58,6 +60,7 @@ export default function SettingsPage() {
       gemini_api_key: apiKey,
       agenda_webhook_url: agendaWebhook,
       availability_webhook_url: availabilityWebhook,
+      citas_webhook_url: citasWebhook,
       sync_interval: parseInt(syncInterval, 10) || 5,
     };
 
@@ -135,7 +138,7 @@ export default function SettingsPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="agenda-webhook">URL del Webhook de Agenda</Label>
+              <Label htmlFor="agenda-webhook">URL del Webhook de Sincronización de Agenda</Label>
               <Input
                 id="agenda-webhook"
                 placeholder="https://n8n.example.com/webhook/..."
@@ -150,6 +153,15 @@ export default function SettingsPage() {
                 placeholder="https://n8n.example.com/webhook/..."
                 value={availabilityWebhook}
                 onChange={(e) => setAvailabilityWebhook(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="citas-webhook">URL del Webhook de Crear/Eliminar Cita</Label>
+              <Input
+                id="citas-webhook"
+                placeholder="https://n8n.example.com/webhook/..."
+                value={citasWebhook}
+                onChange={(e) => setCitasWebhook(e.target.value)}
               />
             </div>
             <div className="space-y-2">

@@ -3,9 +3,7 @@
 import type { CalendarEvent } from './agenda-view';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
-import { Phone, User, Calendar, Clock, Info, StickyNote } from 'lucide-react';
-import { format } from 'date-fns';
-import { es } from 'date-fns/locale';
+import { Phone, User, Calendar, Clock, Info, StickyNote, Tag } from 'lucide-react';
 import { DateTime } from 'luxon';
 
 interface AppointmentDetailsProps {
@@ -47,6 +45,11 @@ export function AppointmentDetails({ event }: AppointmentDetailsProps) {
           <User className="h-4 w-4 text-muted-foreground" />
           <span className="font-semibold">Cliente:</span>
           <span>{clientName || 'No especificado'}</span>
+        </div>
+        <div className="flex items-center gap-3">
+          <Tag className="h-4 w-4 text-muted-foreground" />
+          <span className="font-semibold">Servicio:</span>
+          <span>{service || title}</span>
         </div>
         <div className="flex items-center gap-3">
           <Phone className="h-4 w-4 text-muted-foreground" />

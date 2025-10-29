@@ -8,14 +8,15 @@ import { AgendaKpiCards } from './agenda-kpi-cards';
 import { AgendaTimeline } from './agenda-timeline';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, Sparkles } from 'lucide-react';
+import { Loader2, Sparkles, Trash2 } from 'lucide-react';
 import { generateAgendaAnalysis } from '@/ai/flows/generate-agenda-analysis';
 import { AnalysisParser } from './analysis-parser';
 import { useToast } from '@/hooks/use-toast';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { AppointmentDetails } from './appointment-details';
 import { AppointmentCard } from './appointment-card';
 import { ProfessionalAvailability } from './professional-availability';
+import { AppointmentForm } from './appointment-form';
 
 
 export type CalendarEvent = {
@@ -31,7 +32,7 @@ export type CalendarEvent = {
   description?: string;
 };
 
-const PROFESSIONALS = ['Ana', 'Joana', 'Maria'];
+export const PROFESSIONALS = ['Ana', 'Joana', 'Maria'];
 
 export function AgendaView() {
   const { settings } = useUserSettings();
@@ -39,10 +40,9 @@ export function AgendaView() {
   
   const [allEvents, setAllEvents] = useState<CalendarEvent[]>([]);
   const [currentDate, setCurrentDate] = useState(DateTime.now().setZone('Europe/Madrid'));
-  const [agendaLoading, setAgendaLoading] = useState(false);
+  const [agendaLoading, setAgendaLoading] = useState(true);
   const [agendaError, setAgendaError] = useState<string | null>(null);
   const [isAutoSyncEnabled, setIsAutoSyncEnabled] = useState(() => {
-    // Check localStorage only on the client-side
     if (typeof window !== 'undefined') {
       const savedState = localStorage.getItem('isAutoSyncEnabled');
       return savedState ? JSON.parse(savedState) : false;
@@ -55,6 +55,8 @@ export function AgendaView() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isAnalysisModalOpen, setIsAnalysisModalOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
+  const [isAppointmentFormOpen, setIsAppointmentFormOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
 
   const fetchCalendarEvents = useCallback(async (isManualSync = false) => {
@@ -62,6 +64,7 @@ export function AgendaView() {
 
     if (!webhookUrl) {
       setAgendaError("Por favor, configure una URL de Webhook para la agenda en la sección de Ajustes.");
+      setAgendaLoading(false);
       return;
     }
 
@@ -114,10 +117,11 @@ export function AgendaView() {
   }, [settings, isSyncing, toast]);
   
   useEffect(() => {
-    fetchCalendarEvents(true);
+    if (settings) {
+        fetchCalendarEvents(true);
+    }
   }, [settings?.agenda_webhook_url]); // Fetch on initial load/webhook URL change
 
-  // Persist the auto-sync state to localStorage
   useEffect(() => {
     if (typeof window !== 'undefined') {
       localStorage.setItem('isAutoSyncEnabled', JSON.stringify(isAutoSyncEnabled));
@@ -134,7 +138,7 @@ export function AgendaView() {
     return () => {
         if (intervalId) clearInterval(intervalId);
     };
-}, [isAutoSyncEnabled, settings?.sync_interval, fetchCalendarEvents]);
+  }, [isAutoSyncEnabled, settings?.sync_interval, fetchCalendarEvents]);
 
 
   const eventsForSelectedDay = useMemo(() => {
@@ -215,9 +219,57 @@ export function AgendaView() {
     }
   };
 
+  const handleAppointmentCreated = (newEvent: Omit<CalendarEvent, 'uid' | 'status'>) => {
+    const fullEvent: CalendarEvent = {
+        ...newEvent,
+        uid: `temp-${Date.now()}`,
+        status: 'Confirmed'
+    };
+    setAllEvents(prev => [...prev, fullEvent].sort((a,b) => a.start.toMillis() - b.start.toMillis()));
+    setIsAppointmentFormOpen(false);
+    toast({
+      title: 'Cita Creada',
+      description: 'La cita ha sido añadida a la agenda.',
+    });
+  };
+
+  const handleDeleteAppointment = async () => {
+    if (!selectedEvent || !settings?.citas_webhook_url) {
+      toast({ variant: 'destructive', title: 'Error', description: 'No se puede eliminar la cita. Falta información o configuración del webhook.' });
+      return;
+    }
+    setIsDeleting(true);
+    try {
+      await fetch(settings.citas_webhook_url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'delete',
+          event: {
+            ...selectedEvent,
+            start: selectedEvent.start.toISO(),
+            end: selectedEvent.end.toISO(),
+          }
+        }),
+      });
+
+      setAllEvents(prev => prev.filter(e => e.uid !== selectedEvent.uid));
+      toast({ title: 'Cita Eliminada', description: 'La cita se ha eliminado correctamente.' });
+      setSelectedEvent(null);
+
+    } catch (error: any) {
+       toast({
+        variant: 'destructive',
+        title: 'Error al Eliminar',
+        description: `No se pudo eliminar la cita: ${error.message}`
+      });
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 space-y-6 flex flex-col h-full bg-muted/20">
+    <div className="p-4 sm:p-6 lg:p-8 space-y-6 flex flex-col h-full">
       <AgendaHeader 
         currentDate={currentDate}
         setCurrentDate={setCurrentDate}
@@ -225,6 +277,7 @@ export function AgendaView() {
         setIsAutoSyncEnabled={setIsAutoSyncEnabled}
         onSync={() => fetchCalendarEvents(true)}
         isSyncing={isSyncing}
+        onAddAppointment={() => setIsAppointmentFormOpen(true)}
       />
       
       <ProfessionalAvailability currentDate={currentDate} />
@@ -274,7 +327,7 @@ export function AgendaView() {
          </div>
       ) : agendaError ? (
         <Card className="flex-1 flex items-center justify-center">
-            <CardContent className="text-center text-destructive">
+            <CardContent className="text-center text-destructive p-6">
                 <CardTitle>Error</CardTitle>
                 <p>{agendaError}</p>
             </CardContent>
@@ -345,11 +398,22 @@ export function AgendaView() {
                 <DialogTitle>Detalles de la Cita</DialogTitle>
             </DialogHeader>
             <AppointmentDetails event={selectedEvent} />
-            <div className="flex justify-end">
+            <DialogFooter className="sm:justify-between gap-2 pt-4">
+                <Button variant="destructive" onClick={handleDeleteAppointment} disabled={isDeleting}>
+                  {isDeleting ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Trash2 className="mr-2 h-4 w-4" />}
+                  Eliminar Cita
+                </Button>
                 <Button variant="outline" onClick={() => setSelectedEvent(null)}>Cerrar</Button>
-            </div>
+            </DialogFooter>
         </DialogContent>
       </Dialog>
+      
+      <AppointmentForm
+        isOpen={isAppointmentFormOpen}
+        onOpenChange={setIsAppointmentFormOpen}
+        onAppointmentCreated={handleAppointmentCreated}
+        currentDate={currentDate}
+      />
     </div>
   );
 }
