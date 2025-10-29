@@ -112,7 +112,7 @@ export function ProfessionalAvailability({ currentDate }: ProfessionalAvailabili
                     )}
                  />
               )}
-              <span style={{ color: prof.color }} className="font-bold">{prof.name}:</span>
+              <span className="font-bold text-foreground">{prof.name}:</span>
               <span className={cn("ml-1 font-semibold", isPresent ? "text-green-600" : "text-red-600")}>
                 {isPresent ? 'Presente' : 'Ausente'}
               </span>
