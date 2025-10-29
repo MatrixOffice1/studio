@@ -23,7 +23,7 @@ export type CalendarEvent = {
   title: string;
   clientName?: string;
   clientPhone?: string;
-a  status: string;
+  status: string;
   service?: string;
   professional: string;
   description?: string;
