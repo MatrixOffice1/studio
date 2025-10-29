@@ -9,6 +9,7 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { es } from 'date-fns/locale';
 
 type AgendaHeaderProps = {
   currentDate: DateTime;
@@ -72,7 +73,7 @@ export function AgendaHeader({
               selected={currentDate.toJSDate()}
               onSelect={handleDateSelect}
               initialFocus
-              locale={require('date-fns/locale/es')}
+              locale={es}
             />
           </PopoverContent>
         </Popover>
