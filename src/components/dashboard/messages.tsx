@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
-import { Search, Send, Sparkles, Loader2, Bot, User, PersonStanding, Woman } from 'lucide-react';
+import { Search, Send, Sparkles, Loader2, Bot, User, PersonStanding } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -19,6 +19,7 @@ type Chat = {
   last_message: string;
   last_message_at: string;
   avatar_type?: 'man' | 'woman';
+  contact_phone: string;
 };
 
 type Message = {
@@ -39,7 +40,7 @@ export function Messages() {
   const [chats, setChats] = useState<Chat[]>([]);
   const [messages, setMessages] = useState<Message[]>([]);
   const [selectedChat, setSelectedChat] = useState<Chat | null>(null);
-  const [loadingChats, setLoadingChats] = useState(true);
+  const [loadingChats, setLoadingChats]_ = useState(true);
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [summary, setSummary] = useState('');
   const [isSummarizing, setIsSummarizing] = useState(false);
@@ -207,7 +208,7 @@ export function Messages() {
   };
 
   const AvatarIcon = ({ type }: { type?: 'man' | 'woman' }) => {
-    if (type === 'woman') return <Woman className="m-auto h-5 w-5" />;
+    if (type === 'woman') return <User className="m-auto h-5 w-5" />;
     return <PersonStanding className="m-auto h-5 w-5" />;
   };
 
@@ -252,6 +253,7 @@ export function Messages() {
                     <p className="font-semibold truncate">{chat.contact_name}</p>
                     <p className="text-xs text-muted-foreground flex-shrink-0">{formatTimestamp(chat.last_message_at)}</p>
                   </div>
+                  <p className="text-sm text-muted-foreground truncate">{`+${chat.contact_phone}`}</p>
                   <p className="text-sm text-muted-foreground truncate">{chat.last_message}</p>
                 </div>
               </div>
@@ -269,7 +271,10 @@ export function Messages() {
                         <AvatarIcon type={avatarTypes[selectedChat.chat_id]} />
                     </AvatarFallback>
                 </Avatar>
-                <h2 className="text-lg font-semibold">{selectedChat.contact_name}</h2>
+                <div>
+                  <h2 className="text-lg font-semibold">{selectedChat.contact_name}</h2>
+                  <p className="text-sm text-muted-foreground">{`+${selectedChat.contact_phone}`}</p>
+                </div>
               </div>
               <Button onClick={handleSummary} disabled={isSummarizing || loadingMessages} size="sm">
                 {isSummarizing ? (<><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Resumiendo...</>) : (<><Sparkles className="mr-2 h-4 w-4" /> Resumir</>)}
