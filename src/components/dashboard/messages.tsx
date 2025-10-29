@@ -121,21 +121,30 @@ export function Messages() {
   }, [selectedChat, toast]);
 
   useEffect(() => {
-    const chatSubscription = supabase
-      .channel('public:chats_v')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'chats_v' }, (payload) => {
+    const handleNewMessage = (payload: any) => {
+        const newMessage = payload.new as Message;
+        if(newMessage.chat_id === selectedChat?.chat_id) {
+            setMessages(currentMessages => [...currentMessages, newMessage]);
+        }
         setChats(currentChats => {
-            const newChat = payload.new as Chat;
-            const updatedChats = currentChats.filter(c => c.chat_id !== newChat.chat_id);
-            return [newChat, ...updatedChats].sort((a, b) => parseISO(b.last_message_at).getTime() - parseISO(a.last_message_at).getTime());
+            const chatIndex = currentChats.findIndex(c => c.chat_id === newMessage.chat_id);
+            if (chatIndex > -1) {
+                const updatedChat = {
+                    ...currentChats[chatIndex],
+                    last_text: newMessage.text_display,
+                    last_message_at: newMessage.timestamp,
+                };
+                const otherChats = currentChats.filter(c => c.chat_id !== newMessage.chat_id);
+                return [updatedChat, ...otherChats].sort((a, b) => parseISO(b.last_message_at).getTime() - parseISO(a.last_message_at).getTime());
+            }
+            return currentChats;
         });
-      }).subscribe();
-      
+    };
+    
     const messageSubscription = supabase
-      .channel(`public:messages_v:${selectedChat?.chat_id}`)
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages_v', filter: `chat_id=eq.${selectedChat?.chat_id}` }, (payload) => {
-        setMessages(currentMessages => [...currentMessages, payload.new as Message]);
-      }).subscribe();
+      .channel(`public:messages_v:${selectedChat?.chat_id || '*'}`)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages_v' }, handleNewMessage)
+      .subscribe();
 
     const avatarSubscription = supabase
       .channel('public:chat_avatars')
@@ -148,7 +157,6 @@ export function Messages() {
       }).subscribe();
 
     return () => {
-      supabase.removeChannel(chatSubscription);
       supabase.removeChannel(messageSubscription);
       supabase.removeChannel(avatarSubscription);
     };
@@ -235,13 +243,19 @@ export function Messages() {
     }
   };
 
-  const formatMessageText = (text: string) => {
+  const formatMessageText = (text: string, direction?: 'inbound' | 'outbound' ) => {
     if (typeof text !== 'string') return '';
+    let cleanedText = text;
     if (text.startsWith("Mensaje del usuario:")) {
       const match = text.match(/Mensaje del usuario: (.*?)\s*-\s*La fecha de hoy es/s);
-      return match && match[1] ? match[1].trim() : text;
+      cleanedText = match && match[1] ? match[1].trim() : text;
     }
-    return text;
+    
+    if (direction) {
+        const prefix = direction === 'outbound' ? 'Tú: ' : 'Cliente: ';
+        return prefix + cleanedText;
+    }
+    return cleanedText;
   };
   
   const UserIcon = () => (
@@ -303,7 +317,7 @@ export function Messages() {
                     <p className="text-xs text-muted-foreground flex-shrink-0">{formatTimestamp(chat.last_message_at)}</p>
                   </div>
                   <p className="text-sm text-muted-foreground truncate">{`+${chat.chat_id}`}</p>
-                  <p className="text-sm text-muted-foreground truncate">{formatMessageText(chat.last_text)}</p>
+                  <p className="text-sm text-muted-foreground truncate">{formatMessageText(chat.last_text, chat.chat_id === messages.slice(-1)[0]?.chat_id ? messages.slice(-1)[0]?.direction : undefined)}</p>
                 </div>
               </div>
             ))
