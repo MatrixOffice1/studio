@@ -16,10 +16,9 @@ import { es } from 'date-fns/locale';
 type Chat = {
   chat_id: string;
   contact_name: string;
-  last_message: string;
+  last_text: string;
   last_message_at: string;
   avatar_type?: 'man' | 'woman';
-  contact_phone: string;
 };
 
 type Message = {
@@ -238,6 +237,7 @@ export function Messages() {
   };
 
   const formatMessageText = (text: string) => {
+      if (typeof text !== 'string') return '';
       if (text.startsWith("Mensaje del usuario:")) {
           const match = text.match(/Mensaje del usuario: (.*?)\s*-\s*La fecha de hoy es/);
           return match ? match[1].trim() : text;
@@ -246,12 +246,12 @@ export function Messages() {
   };
 
   const AvatarIcon = ({ type }: { type?: 'man' | 'woman' }) => {
-      const WomanIcon = () => (
-        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 0 0-16 0"/></svg>
-      );
-      const ManIcon = () => (
-         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-      );
+    const WomanIcon = () => (
+      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+    );
+    const ManIcon = () => (
+       <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 0 0-16 0"/></svg>
+    );
 
     if (type === 'woman') return <WomanIcon />;
     return <ManIcon />;
@@ -298,8 +298,8 @@ export function Messages() {
                     <p className="font-semibold truncate">{chat.contact_name}</p>
                     <p className="text-xs text-muted-foreground flex-shrink-0">{formatTimestamp(chat.last_message_at)}</p>
                   </div>
-                  <p className="text-sm text-muted-foreground truncate">{`+${chat.contact_phone}`}</p>
-                  <p className="text-sm text-muted-foreground truncate">{chat.last_message}</p>
+                  <p className="text-sm text-muted-foreground truncate">{`+${chat.chat_id}`}</p>
+                  <p className="text-sm text-muted-foreground truncate">{formatMessageText(chat.last_text)}</p>
                 </div>
               </div>
             ))
@@ -318,7 +318,7 @@ export function Messages() {
                 </Avatar>
                 <div>
                   <h2 className="text-lg font-semibold">{selectedChat.contact_name}</h2>
-                  <p className="text-sm text-muted-foreground">{`+${selectedChat.contact_phone}`}</p>
+                  <p className="text-sm text-muted-foreground">{`+${selectedChat.chat_id}`}</p>
                 </div>
               </div>
               <Button onClick={handleSummary} disabled={isSummarizing || loadingMessages} size="sm">
