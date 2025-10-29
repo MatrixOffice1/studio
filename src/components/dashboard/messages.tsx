@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
-import { Search, Send, Sparkles, Loader2, Bot, User } from 'lucide-react';
+import { Search, Send, Sparkles, Loader2, Bot, User, PersonStanding, Woman } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,15 +10,15 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { generateConversationSummary } from '@/ai/flows/generate-conversation-summary';
-import { format, parseISO, formatDistanceToNowStrict } from 'date-fns';
+import { formatDistanceToNowStrict, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 
-// Types based on Supabase views
 type Chat = {
   chat_id: string;
   contact_name: string;
   last_message: string;
   last_message_at: string;
+  avatar_type?: 'man' | 'woman';
 };
 
 type Message = {
@@ -28,6 +28,11 @@ type Message = {
   direction: 'inbound' | 'outbound';
   sender: 'human' | 'ai';
   timestamp: string;
+};
+
+type ChatAvatar = {
+    chat_id: string;
+    avatar_type: 'man' | 'woman';
 };
 
 export function Messages() {
@@ -40,44 +45,64 @@ export function Messages() {
   const [isSummarizing, setIsSummarizing] = useState(false);
   const { toast } = useToast();
   const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const [avatarTypes, setAvatarTypes] = useState<Record<string, 'man' | 'woman'>>({});
 
-  // Fetch initial chats
   useEffect(() => {
-    const fetchChats = async () => {
+    const fetchChatsAndAvatars = async () => {
       setLoadingChats(true);
-      const { data, error } = await supabase
+      
+      const { data: chatsData, error: chatsError } = await supabase
         .from('chats_v')
         .select('*')
         .order('last_message_at', { ascending: false });
 
-      if (error) {
-        console.error('Error fetching chats:', error.message);
-        toast({
-          variant: 'destructive',
-          title: 'Error',
-          description: `No se pudieron cargar los chats: ${error.message}`,
-        });
-      } else if (data) {
-        const validChats = data.filter(chat => chat.last_message_at);
-        setChats(validChats);
-        if (validChats.length > 0) {
-          setSelectedChat(validChats[0]);
+      const { data: avatarsData, error: avatarsError } = await supabase
+        .from('chat_avatars')
+        .select('chat_id, avatar_type');
+
+      if (chatsError) {
+        console.error('Error fetching chats:', chatsError.message);
+        toast({ variant: 'destructive', title: 'Error', description: `No se pudieron cargar los chats: ${chatsError.message}` });
+      }
+      
+      if (avatarsError) {
+        console.error('Error fetching avatars:', avatarsError.message);
+        // Non-critical, so just log it
+      }
+
+      if (chatsData) {
+        const validChats = chatsData.filter(chat => chat.last_message_at);
+        const avatarsMap: Record<string, 'man' | 'woman'> = {};
+        if (avatarsData) {
+            avatarsData.forEach(avatar => {
+                avatarsMap[avatar.chat_id] = avatar.avatar_type;
+            });
+        }
+        
+        const chatsWithAvatars = validChats.map(chat => ({
+            ...chat,
+            avatar_type: avatarsMap[chat.chat_id] || 'man' // Default to 'man'
+        }));
+
+        setChats(chatsWithAvatars);
+        setAvatarTypes(avatarsMap);
+        if (chatsWithAvatars.length > 0) {
+            setSelectedChat(chatsWithAvatars[0]);
         }
       }
       setLoadingChats(false);
     };
 
-    fetchChats();
+    fetchChatsAndAvatars();
   }, [toast]);
-
-  // Fetch messages for the selected chat
+  
   useEffect(() => {
     const fetchMessages = async () => {
       if (!selectedChat) return;
 
       setLoadingMessages(true);
       setMessages([]);
-      setSummary(''); // Clear previous summary
+      setSummary('');
 
       const { data, error } = await supabase
         .from('messages_v')
@@ -87,11 +112,7 @@ export function Messages() {
 
       if (error) {
         console.error('Error fetching messages:', error.message);
-        toast({
-          variant: 'destructive',
-          title: 'Error',
-          description: `No se pudieron cargar los mensajes para este chat: ${error.message}`,
-        });
+        toast({ variant: 'destructive', title: 'Error', description: `No se pudieron cargar los mensajes: ${error.message}` });
       } else {
         setMessages(data || []);
       }
@@ -101,79 +122,69 @@ export function Messages() {
     fetchMessages();
   }, [selectedChat, toast]);
 
-  // Subscribe to real-time updates
   useEffect(() => {
     const chatSubscription = supabase
       .channel('public:chats_v')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'chats_v' },
-        (payload) => {
-          console.log('Chat change received!', payload);
-          // Simple refetch for now
-           const fetchChats = async () => {
-              const { data, error } = await supabase
-                .from('chats_v')
-                .select('*')
-                .order('last_message_at', { ascending: false });
-              if(data) {
-                const validChats = data.filter(chat => chat.last_message_at);
-                setChats(validChats);
-              }
-            };
-            fetchChats();
-        }
-      )
-      .subscribe();
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'chats_v' }, (payload) => {
+        setChats(currentChats => {
+            const newChat = payload.new as Chat;
+            const updatedChats = currentChats.filter(c => c.chat_id !== newChat.chat_id);
+            return [newChat, ...updatedChats].sort((a, b) => parseISO(b.last_message_at).getTime() - parseISO(a.last_message_at).getTime());
+        });
+      }).subscribe();
       
     const messageSubscription = supabase
       .channel(`public:messages_v:${selectedChat?.chat_id}`)
-      .on(
-        'postgres_changes',
-        { 
-            event: 'INSERT', 
-            schema: 'public', 
-            table: 'messages_v', 
-            filter: `chat_id=eq.${selectedChat?.chat_id}` 
-        },
-        (payload) => {
-          console.log('New message received!', payload);
-          setMessages(currentMessages => [...currentMessages, payload.new as Message]);
-        }
-      )
-      .subscribe();
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages_v', filter: `chat_id=eq.${selectedChat?.chat_id}` }, (payload) => {
+        setMessages(currentMessages => [...currentMessages, payload.new as Message]);
+      }).subscribe();
 
+    const avatarSubscription = supabase
+      .channel('public:chat_avatars')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'chat_avatars' }, (payload) => {
+          const { chat_id, avatar_type } = payload.new as ChatAvatar;
+          setAvatarTypes(prev => ({...prev, [chat_id]: avatar_type}));
+      }).subscribe();
 
     return () => {
       supabase.removeChannel(chatSubscription);
       supabase.removeChannel(messageSubscription);
+      supabase.removeChannel(avatarSubscription);
     };
   }, [selectedChat]);
-  
-    useEffect(() => {
-        if (scrollAreaRef.current) {
-            scrollAreaRef.current.scrollTo(0, scrollAreaRef.current.scrollHeight);
-        }
-    }, [messages]);
 
+  useEffect(() => {
+    if (scrollAreaRef.current) {
+      scrollAreaRef.current.scrollTo(0, scrollAreaRef.current.scrollHeight);
+    }
+  }, [messages]);
+
+  const handleAvatarClick = async (chatId: string) => {
+    const currentType = avatarTypes[chatId] || 'man';
+    const newType = currentType === 'man' ? 'woman' : 'man';
+
+    const { error } = await supabase
+        .from('chat_avatars')
+        .upsert({ chat_id: chatId, avatar_type: newType }, { onConflict: 'chat_id' });
+
+    if (error) {
+        console.error("Error updating avatar:", error);
+        toast({ variant: "destructive", title: "Error", description: "No se pudo cambiar el avatar." });
+    } else {
+        setAvatarTypes(prev => ({...prev, [chatId]: newType}));
+    }
+  };
 
   const handleSummary = async () => {
     if (!selectedChat || messages.length === 0) return;
-
     setIsSummarizing(true);
     setSummary('');
     try {
-      const result = await generateConversationSummary({
-        messages: messages.map(m => `${m.sender}: ${m.text_display}`),
-      });
+      const result = await generateConversationSummary({ messages: messages.map(m => `${m.sender}: ${m.text_display}`) });
       setSummary(result.summary);
     } catch (error) {
       console.error('Error generating summary:', error);
-      toast({
-        variant: 'destructive',
-        title: 'Error al resumir',
-        description: 'No se pudo generar el resumen de IA. Por favor, inténtalo de nuevo.',
-      });
+      toast({ variant: 'destructive', title: 'Error al resumir', description: 'No se pudo generar el resumen. Por favor, inténtalo de nuevo.' });
     } finally {
       setIsSummarizing(false);
     }
@@ -181,12 +192,24 @@ export function Messages() {
 
   const formatTimestamp = (timestamp: string) => {
     try {
-        const date = parseISO(timestamp);
-        return formatDistanceToNowStrict(date, { addSuffix: true, locale: es });
+      return formatDistanceToNowStrict(parseISO(timestamp), { addSuffix: true, locale: es });
     } catch (error) {
-        return "Fecha inválida";
+      return "Fecha inválida";
     }
-  }
+  };
+
+  const formatMessageText = (text: string) => {
+      if (text.startsWith("Mensaje del usuario:")) {
+          const match = text.match(/Mensaje del usuario: (.*?)\s*-\s*La fecha de hoy es/);
+          return match ? match[1].trim() : text;
+      }
+      return text;
+  };
+
+  const AvatarIcon = ({ type }: { type?: 'man' | 'woman' }) => {
+    if (type === 'woman') return <Woman className="m-auto h-5 w-5" />;
+    return <PersonStanding className="m-auto h-5 w-5" />;
+  };
 
   return (
     <div className="h-full flex">
@@ -201,29 +224,29 @@ export function Messages() {
           {loadingChats ? (
             <div className="p-4 space-y-4">
               {[...Array(5)].map((_, i) => (
-                  <div key={i} className="flex items-center gap-3 p-3">
-                      <Avatar className="h-10 w-10 skeleton-bg"><AvatarFallback></AvatarFallback></Avatar>
-                      <div className='w-full space-y-2'>
-                        <div className="h-4 w-1/2 skeleton-bg rounded-md"></div>
-                        <div className="h-3 w-full skeleton-bg rounded-md"></div>
-                      </div>
+                <div key={i} className="flex items-center gap-3 p-3 animate-pulse">
+                  <div className="h-10 w-10 bg-muted rounded-full"></div>
+                  <div className='w-full space-y-2'>
+                    <div className="h-4 w-1/2 bg-muted rounded-md"></div>
+                    <div className="h-3 w-full bg-muted rounded-md"></div>
                   </div>
+                </div>
               ))}
             </div>
           ) : (
             chats.map((chat) => (
               <div
                 key={chat.chat_id}
-                className={cn(
-                  'flex items-center gap-3 p-3 cursor-pointer hover:bg-muted',
-                  selectedChat?.chat_id === chat.chat_id && 'bg-accent hover:bg-accent'
-                )}
+                className={cn('flex items-start gap-3 p-3 cursor-pointer hover:bg-muted', selectedChat?.chat_id === chat.chat_id && 'bg-accent hover:bg-accent')}
                 onClick={() => setSelectedChat(chat)}
               >
-                <Avatar className="h-10 w-10">
-                  <AvatarImage src={`https://picsum.photos/seed/${chat.contact_name}/40/40`} alt={chat.contact_name} data-ai-hint="person face" />
-                  <AvatarFallback>{chat.contact_name ? chat.contact_name[0] : '?'}</AvatarFallback>
-                </Avatar>
+                <div className="cursor-pointer" onClick={(e) => {e.stopPropagation(); handleAvatarClick(chat.chat_id)}}>
+                    <Avatar className="h-10 w-10 border-2 border-transparent hover:border-primary transition-colors">
+                        <AvatarFallback className="bg-muted text-muted-foreground">
+                            <AvatarIcon type={avatarTypes[chat.chat_id]} />
+                        </AvatarFallback>
+                    </Avatar>
+                </div>
                 <div className="flex-1 overflow-hidden">
                   <div className="flex justify-between items-center">
                     <p className="font-semibold truncate">{chat.contact_name}</p>
@@ -241,66 +264,42 @@ export function Messages() {
           <>
             <div className="p-4 border-b flex items-center justify-between gap-3">
               <div className="flex items-center gap-3">
-                <Avatar className="h-10 w-10">
-                  <AvatarImage src={`https://picsum.photos/seed/${selectedChat.contact_name}/40/40`} alt={selectedChat.contact_name} data-ai-hint="person face" />
-                  <AvatarFallback>{selectedChat.contact_name ? selectedChat.contact_name[0] : '?'}</AvatarFallback>
+                 <Avatar className="h-10 w-10">
+                    <AvatarFallback className="bg-muted text-muted-foreground">
+                        <AvatarIcon type={avatarTypes[selectedChat.chat_id]} />
+                    </AvatarFallback>
                 </Avatar>
                 <h2 className="text-lg font-semibold">{selectedChat.contact_name}</h2>
               </div>
               <Button onClick={handleSummary} disabled={isSummarizing || loadingMessages} size="sm">
-                {isSummarizing ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Resumiendo...
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="mr-2 h-4 w-4" />
-                    Resumir
-                  </>
-                )}
+                {isSummarizing ? (<><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Resumiendo...</>) : (<><Sparkles className="mr-2 h-4 w-4" /> Resumir</>)}
               </Button>
             </div>
             <ScrollArea className="flex-grow p-4" viewportRef={scrollAreaRef}>
               {loadingMessages ? (
-                <div className="flex items-center justify-center h-full">
-                    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-                </div>
+                <div className="flex items-center justify-center h-full"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>
               ) : (
                 <div className="space-y-4">
                   {summary && (
                     <div className="w-full p-4 border rounded-lg bg-background my-4">
-                        <h4 className="font-semibold mb-2 flex items-center gap-2"><Sparkles className="text-accent h-4 w-4"/> Resumen IA</h4>
-                        <p className="text-sm text-muted-foreground whitespace-pre-wrap">{summary}</p>
+                      <h4 className="font-semibold mb-2 flex items-center gap-2"><Sparkles className="text-accent h-4 w-4" /> Resumen IA</h4>
+                      <p className="text-sm text-muted-foreground whitespace-pre-wrap">{summary}</p>
                     </div>
                   )}
                   {messages.map((msg) => (
-                    <div
-                      key={msg.id}
-                      className={cn(
-                        'flex items-end gap-2',
-                        msg.sender === 'ai' ? 'justify-end' : 'justify-start'
-                      )}
-                    >
+                    <div key={msg.id} className={cn('flex items-end gap-2', msg.sender === 'ai' ? 'justify-end' : 'justify-start')}>
                       {msg.sender === 'human' && (
                         <Avatar className="h-8 w-8 bg-muted text-muted-foreground">
-                          <User className="m-auto h-5 w-5" />
+                          <AvatarFallback><User className="m-auto h-5 w-5" /></AvatarFallback>
                         </Avatar>
                       )}
-                      <div
-                        className={cn(
-                          'max-w-xs md:max-w-md lg:max-w-lg rounded-lg px-4 py-2 shadow-md',
-                          msg.sender === 'ai'
-                            ? 'bg-primary text-primary-foreground rounded-br-none'
-                            : 'bg-card border-border border rounded-bl-none'
-                        )}
-                      >
-                        <p className="text-sm">{msg.text_display}</p>
-                        <p className="text-xs text-right mt-1 opacity-70">{format(parseISO(msg.timestamp), 'p')}</p>
+                      <div className={cn('max-w-xs md:max-w-md lg:max-w-lg rounded-lg px-4 py-2 shadow-md', msg.sender === 'ai' ? 'bg-primary text-primary-foreground rounded-br-none' : 'bg-card border-border border rounded-bl-none')}>
+                        <p className="text-sm">{formatMessageText(msg.text_display)}</p>
+                        <p className="text-xs text-right mt-1 opacity-70">{new Date(msg.timestamp).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}</p>
                       </div>
                       {msg.sender === 'ai' && (
-                         <Avatar className="h-8 w-8 bg-accent text-accent-foreground">
-                           <Bot className="m-auto h-5 w-5" />
+                        <Avatar className="h-8 w-8 bg-accent text-accent-foreground">
+                           <AvatarFallback><Bot className="m-auto h-5 w-5" /></AvatarFallback>
                         </Avatar>
                       )}
                     </div>
@@ -317,13 +316,7 @@ export function Messages() {
               </div>
             </div>
           </>
-        ) : (
-          !loadingChats && (
-            <div className="flex-grow flex items-center justify-center text-muted-foreground">
-              <p>Selecciona una conversación para empezar a chatear</p>
-            </div>
-          )
-        )}
+        ) : (!loadingChats && <div className="flex-grow flex items-center justify-center text-muted-foreground"><p>Selecciona una conversación para empezar a chatear</p></div>)}
       </div>
     </div>
   );
