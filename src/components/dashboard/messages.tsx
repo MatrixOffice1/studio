@@ -18,6 +18,7 @@ type Chat = {
   contact_name: string;
   last_text: string;
   last_message_at: string;
+  direction: 'inbound' | 'outbound';
 };
 
 type Message = {
@@ -238,8 +239,9 @@ export function Messages() {
                     <p className="font-semibold truncate">{chat.contact_name}</p>
                     <p className="text-xs text-muted-foreground flex-shrink-0">{formatTimestamp(chat.last_message_at)}</p>
                   </div>
-                  <p className="text-sm text-muted-foreground">{`+${chat.chat_id}`}</p>
+                  <p className="text-sm text-muted-foreground truncate">{`+${chat.chat_id}`}</p>
                    <p className="text-sm text-muted-foreground truncate">
+                    {chat.direction === 'outbound' ? 'Tú: ' : ''}
                     {formatMessageText(chat.last_text)}
                   </p>
                 </div>
