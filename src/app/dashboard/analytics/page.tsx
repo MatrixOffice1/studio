@@ -1,9 +1,9 @@
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { kpiData, dailyActivity } from '@/lib/placeholder-data';
 import { TrendingUp, MessageSquare, Users, Percent } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { AnalyticsClient } from '@/components/dashboard/analytics-client';
+import { TrendsChart } from '@/components/dashboard/trends-chart';
 
 const activityColors: { [key: string]: string } = {
   confirmation: 'bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-300',
@@ -68,22 +68,7 @@ export default function AnalyticsPage() {
             <CardTitle>Last 7 Days Trend</CardTitle>
           </CardHeader>
           <CardContent className="h-[300px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={kpiData.last7DaysTrend}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                <XAxis dataKey="day" tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }} tickLine={false} axisLine={false} />
-                <YAxis tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }} tickLine={false} axisLine={false} />
-                <Tooltip
-                  cursor={{ fill: 'hsl(var(--accent))', opacity: 0.3 }}
-                  contentStyle={{
-                    background: 'hsl(var(--background))',
-                    borderColor: 'hsl(var(--border))',
-                    borderRadius: 'var(--radius)'
-                  }}
-                />
-                <Bar dataKey="messages" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+            <TrendsChart />
           </CardContent>
         </Card>
 
