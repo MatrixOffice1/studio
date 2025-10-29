@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
-import { Search, Send, Sparkles, Loader2, Bot, MessageSquare, Lightbulb } from 'lucide-react';
+import { Search, Sparkles, Loader2, Bot, MessageSquare } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -84,6 +84,9 @@ export function Messages() {
       } else if (data) {
         const validChats = data.filter(chat => chat.last_message_at);
         setChats(validChats);
+        if (validChats.length > 0 && !selectedChat) {
+          setSelectedChat(validChats[0]);
+        }
       }
       setLoadingChats(false);
     };
@@ -133,7 +136,6 @@ export function Messages() {
                 const otherChats = currentChats.filter(c => c.chat_id !== newMessage.chat_id);
                 return [updatedChat, ...otherChats].sort((a, b) => parseISO(b.last_message_at).getTime() - parseISO(a.last_message_at).getTime());
             }
-            // If chat is new, it will be added on next full fetch
             return currentChats;
         });
     };
@@ -197,7 +199,7 @@ export function Messages() {
   };
   
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 h-full">
+    <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 h-full">
       {/* Left Panel: Chat List */}
       <div className="col-span-1 border-r flex flex-col bg-background h-full">
         <div className="p-4 border-b">
@@ -236,7 +238,7 @@ export function Messages() {
                     </Avatar>
                 </div>
                 <div className="flex-1 overflow-hidden">
-                  <div className="flex justify-between items-center">
+                  <div className="flex justify-between items-baseline">
                     <p className="font-semibold truncate">{`+${chat.chat_id}`}</p>
                     <p className="text-xs text-muted-foreground flex-shrink-0">{formatTimestamp(chat.last_message_at)}</p>
                   </div>
@@ -254,7 +256,7 @@ export function Messages() {
       </div>
 
       {/* Right Panel: Chat View */}
-      <div className="col-span-1 md:col-span-2 flex flex-col bg-card h-full">
+      <div className="col-span-1 md:col-span-2 lg:col-span-3 flex flex-col bg-card h-full">
         {selectedChat ? (
           <>
             <div className="p-3 border-b flex items-center justify-between gap-3">
@@ -266,12 +268,11 @@ export function Messages() {
                 </Avatar>
                 <div>
                   <h2 className="text-lg font-semibold">{`+${selectedChat.chat_id}`}</h2>
-                  <p className="text-sm text-muted-foreground">En línea</p>
                 </div>
               </div>
               <div className="flex items-center gap-2">
                 <Button onClick={handleSummary} disabled={isSummarizing || loadingMessages} size="sm" variant="outline">
-                    {isSummarizing ? (<><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Resumiendo...</>) : (<><Sparkles className="mr-2 h-4 w-4" /> Resumir</>)}
+                    {isSummarizing ? (<><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Resumiendo...</>) : (<><Sparkles className="mr-2 h-4 w-4" /> Resumir chat con IA</>)}
                 </Button>
               </div>
             </div>
