@@ -125,49 +125,49 @@ export default async function AnalyticsPage() {
   return (
     <div className="p-4 sm:p-6 lg:p-8 space-y-8">
       <header>
-        <h1 className="text-2xl sm:text-3xl font-headline font-bold">Analytics</h1>
+        <h1 className="text-2xl sm:text-3xl font-headline font-bold">Analíticas</h1>
         <p className="text-muted-foreground">Insights sobre la comunicación con tus clientes.</p>
       </header>
 
       <section className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Messages</CardTitle>
+            <CardTitle className="text-sm font-medium">Mensajes Totales</CardTitle>
             <MessageSquare className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{kpiData.totalMessages}</div>
-            <p className="text-xs text-muted-foreground">Last 7 days</p>
+            <p className="text-xs text-muted-foreground">Últimos 7 días</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Avg. Daily Comm.</CardTitle>
+            <CardTitle className="text-sm font-medium">Prom. Com. Diaria</CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{kpiData.avgDailyComm}</div>
-            <p className="text-xs text-muted-foreground">Last 7 days</p>
+            <p className="text-xs text-muted-foreground">Últimos 7 días</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Incoming %</CardTitle>
+            <CardTitle className="text-sm font-medium">% Entrantes</CardTitle>
             <Percent className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{kpiData.incomingPercentage}%</div>
-            <p className="text-xs text-muted-foreground">vs {100 - kpiData.incomingPercentage}% Outgoing</p>
+            <p className="text-xs text-muted-foreground">vs {100 - kpiData.incomingPercentage}% Salientes</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">7-Day Trend</CardTitle>
+            <CardTitle className="text-sm font-medium">Tendencia 7 Días</CardTitle>
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600 dark:text-green-400">Positive</div>
-            <p className="text-xs text-muted-foreground">Activity is increasing</p>
+            <div className="text-2xl font-bold text-green-600 dark:text-green-400">Positiva</div>
+            <p className="text-xs text-muted-foreground">La actividad aumenta</p>
           </CardContent>
         </Card>
       </section>
@@ -175,7 +175,7 @@ export default async function AnalyticsPage() {
       <div className="grid gap-8 lg:grid-cols-5">
         <Card className="lg:col-span-3">
           <CardHeader>
-            <CardTitle>Last 7 Days Trend</CardTitle>
+            <CardTitle>Tendencia de los últimos 7 días</CardTitle>
           </CardHeader>
           <CardContent className="h-[300px]">
             <TrendsChart data={kpiData.last7DaysTrend} />
@@ -184,7 +184,7 @@ export default async function AnalyticsPage() {
 
         <Card className="lg:col-span-2">
           <CardHeader>
-            <CardTitle>Daily Activity Feed</CardTitle>
+            <CardTitle>Feed de Actividad Diaria</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">

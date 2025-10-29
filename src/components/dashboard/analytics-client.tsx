@@ -25,8 +25,8 @@ export function AnalyticsClient() {
       console.error('Error generating analysis:', error);
       toast({
         variant: "destructive",
-        title: "Analysis Failed",
-        description: "Could not generate AI analysis. Please try again.",
+        title: "Falló el Análisis",
+        description: "No se pudo generar el análisis de IA. Por favor, inténtalo de nuevo.",
       });
     } finally {
       setIsLoading(false);
@@ -38,10 +38,10 @@ export function AnalyticsClient() {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Sparkles className="text-accent" />
-          <span>AI-Powered Insights</span>
+          <span>Insights con IA</span>
         </CardTitle>
         <CardDescription>
-          Generate a detailed analysis of communication performance, including patterns, trends, and recommendations.
+          Genera un análisis detallado del rendimiento de la comunicación, incluyendo patrones, tendencias y recomendaciones.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -50,15 +50,15 @@ export function AnalyticsClient() {
             {isLoading ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Generating...
+                Generando...
               </>
             ) : (
-              'Generate Communication Analysis'
+              'Generar Análisis de Comunicación'
             )}
           </Button>
           {analysisResult && (
             <div className="w-full p-4 border rounded-lg bg-background mt-4">
-              <h4 className="font-semibold mb-2">Analysis Result:</h4>
+              <h4 className="font-semibold mb-2">Resultado del Análisis:</h4>
               <p className="text-sm text-muted-foreground whitespace-pre-wrap">{analysisResult}</p>
             </div>
           )}
