@@ -7,6 +7,7 @@ import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
 import { UserSettingsProvider, useUserSettings } from '@/providers/user-settings-provider';
 import { Loader2 } from 'lucide-react';
 
+// This component uses the hook and must be a child of the provider.
 function DashboardContent({ children }: { children: React.ReactNode }) {
   const { user, loading } = useUserSettings();
   const router = useRouter();
@@ -37,7 +38,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
   );
 }
 
-
+// The main layout component now correctly wraps DashboardContent with the provider.
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
     <UserSettingsProvider>
