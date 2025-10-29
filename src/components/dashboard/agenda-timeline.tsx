@@ -32,9 +32,10 @@ const getEventColor = (event: CalendarEvent): string => {
 type AgendaTimelineProps = {
   events: CalendarEvent[];
   professionals: string[];
+  onEventClick: (event: CalendarEvent) => void;
 };
 
-export function AgendaTimeline({ events, professionals }: AgendaTimelineProps) {
+export function AgendaTimeline({ events, professionals, onEventClick }: AgendaTimelineProps) {
   const timeSlots = Array.from({ length: 11 }, (_, i) => DateTime.local().set({ hour: 10 + i, minute: 0 }));
 
   const renderEventOnGrid = (event: CalendarEvent) => {
@@ -60,6 +61,7 @@ export function AgendaTimeline({ events, professionals }: AgendaTimelineProps) {
           backgroundColor: `${serviceColor}26`, // 15% opacity
           borderColor: serviceColor 
         }}
+        onClick={() => onEventClick(event)}
         title={`${start.toFormat('HH:mm')} - ${end.toFormat('HH:mm')}\nServicio: ${service || title}\nCliente: ${clientName || 'N/A'}`}
       >
         <p className="font-bold text-xs text-foreground truncate">{start.toFormat('HH:mm')}</p>

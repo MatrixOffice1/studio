@@ -13,6 +13,7 @@ import { generateAgendaAnalysis } from '@/ai/flows/generate-agenda-analysis';
 import { AnalysisParser } from './analysis-parser';
 import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { AppointmentDetails } from './appointment-details';
 
 
 export type CalendarEvent = {
@@ -22,9 +23,10 @@ export type CalendarEvent = {
   title: string;
   clientName?: string;
   clientPhone?: string;
-  status: string;
+a  status: string;
   service?: string;
   professional: string;
+  description?: string;
 };
 
 const PROFESSIONALS = ['Ana', 'Joana', 'Maria'];
@@ -42,7 +44,8 @@ export function AgendaView() {
   const [isSyncing, setIsSyncing] = useState(false);
   const [analysisResult, setAnalysisResult] = useState('');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isAnalysisModalOpen, setIsAnalysisModalOpen] = useState(false);
+  const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
 
 
   const fetchCalendarEvents = useCallback(async (isManualSync = false) => {
@@ -142,7 +145,7 @@ export function AgendaView() {
     try {
       if (eventsForNext7Days.length === 0) {
         setAnalysisResult('No hay citas en los próximos 7 días para analizar.');
-        setIsModalOpen(true);
+        setIsAnalysisModalOpen(true);
         return;
       }
   
@@ -152,7 +155,7 @@ export function AgendaView() {
       
       const result = await generateAgendaAnalysis({ dataSummary });
       setAnalysisResult(result.analysis);
-      setIsModalOpen(true);
+      setIsAnalysisModalOpen(true);
 
     } catch (e: any) {
       toast({
@@ -230,10 +233,11 @@ export function AgendaView() {
         <AgendaTimeline 
             events={eventsForSelectedDay.filter(ev => activeFilter === 'Todos' || ev.professional === activeFilter)} 
             professionals={professionalsToDisplay}
+            onEventClick={setSelectedEvent}
         />
       )}
 
-      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+      <Dialog open={isAnalysisModalOpen} onOpenChange={setIsAnalysisModalOpen}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2"><Sparkles className="text-accent" /> Análisis de la Próxima Semana</DialogTitle>
@@ -245,8 +249,20 @@ export function AgendaView() {
             <AnalysisParser content={analysisResult} />
           </div>
           <div className="flex justify-end">
-              <Button onClick={() => setIsModalOpen(false)}>Cerrar</Button>
+              <Button onClick={() => setIsAnalysisModalOpen(false)}>Cerrar</Button>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!selectedEvent} onOpenChange={(isOpen) => !isOpen && setSelectedEvent(null)}>
+        <DialogContent className="max-w-lg">
+            <DialogHeader>
+                <DialogTitle>Detalles de la Cita</DialogTitle>
+            </DialogHeader>
+            <AppointmentDetails event={selectedEvent} />
+            <div className="flex justify-end">
+                <Button variant="outline" onClick={() => setSelectedEvent(null)}>Cerrar</Button>
+            </div>
         </DialogContent>
       </Dialog>
     </div>
