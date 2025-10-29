@@ -23,7 +23,7 @@ function classifyMessage(message: string): string {
 }
 
 async function getAnalyticsData() {
-  const { data: chats, error } = await supabase.from('chats_v').select('*');
+  const { data, error } = await supabase.from('chats_v').select('*');
 
   if (error) {
     console.error('Error fetching Supabase data:', error);
@@ -37,6 +37,10 @@ async function getAnalyticsData() {
       dailyActivity: [],
     };
   }
+  
+  // Filter out chats that don't have a created_at value.
+  const chats = data.filter(chat => chat.created_at);
+
 
   const totalMessages = chats.length;
 
@@ -85,7 +89,8 @@ async function getAnalyticsData() {
         time: format(chatDate, 'p', { locale: es }),
         user: chat.contact_name,
         description: chat.message,
-        type: classifyMessage(chat.message)
+        type: classifyMessage(chat.message),
+        created_at: chat.created_at
       });
       return acc;
   }, {} as Record<string, any[]>);
@@ -94,9 +99,12 @@ async function getAnalyticsData() {
       date,
       activities: activities.sort((a,b) => parseISO(b.created_at).getTime() - parseISO(a.created_at).getTime())
   })).sort((a,b) => {
-      const dateA = Object.values(b.activities)[0].created_at;
-      const dateB = Object.values(a.activities)[0].created_at;
-      return parseISO(dateA).getTime() - parseISO(dateB).getTime();
+      const dateA = a.activities[0]?.created_at;
+      const dateB = b.activities[0]?.created_at;
+      
+      if (!dateA || !dateB) return 0;
+
+      return parseISO(dateB).getTime() - parseISO(dateA).getTime();
   });
 
 
