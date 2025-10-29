@@ -62,7 +62,8 @@ export function Messages() {
   const [avatars, setAvatars] = useState<Record<string, 'man' | 'woman'>>({});
   const [isSummaryDialogOpen, setIsSummaryDialogOpen] = useState(false);
 
-  const handleAvatarToggle = (chatId: string) => {
+  const handleAvatarToggle = (e: React.MouseEvent, chatId: string) => {
+    e.stopPropagation();
     setAvatars(prev => ({
         ...prev,
         [chatId]: prev[chatId] === 'woman' ? 'man' : 'woman'
@@ -83,6 +84,10 @@ export function Messages() {
       } else if (data) {
         const validChats = data.filter(chat => chat.last_message_at);
         setChats(validChats);
+        if (validChats.length > 0) {
+            // Automatically select the first chat
+            // setSelectedChat(validChats[0]);
+        }
       }
       setLoadingChats(false);
     };
@@ -196,19 +201,17 @@ export function Messages() {
 
   const formatMessageText = (text: string) => {
     if (typeof text !== 'string') return '';
-    // This regex looks for the user message and strips the AI prompt context
     const match = text.match(/Mensaje del usuario:\s*(.*?)\s*-\s*La fecha de hoy es/s);
     if (match && match[1]) {
       return match[1].trim();
     }
-    // Fallback for other unwanted text
-    return text.replace('vuelve a intentarlo', '').trim();
+    return text.replace(/vuelve a intentarlo/gi, '').trim();
   };
   
   return (
-    <div className="h-full flex flex-col md:flex-row">
+    <div className="grid grid-cols-1 md:grid-cols-3 h-full">
       {/* Left Panel: Chat List */}
-      <div className="w-full md:w-1/3 border-r flex flex-col bg-background">
+      <div className="col-span-1 border-r flex flex-col bg-background h-full">
         <div className="p-4 border-b">
           <div className="relative">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -237,7 +240,7 @@ export function Messages() {
                 className={cn('flex items-start gap-3 p-3 cursor-pointer hover:bg-muted', selectedChat?.chat_id === chat.chat_id && 'bg-accent hover:bg-accent')}
                 onClick={() => setSelectedChat(chat)}
               >
-                <div className="cursor-pointer" onClick={(e) => {e.stopPropagation(); handleAvatarToggle(chat.chat_id)}}>
+                <div onClick={(e) => handleAvatarToggle(e, chat.chat_id)}>
                     <Avatar className="h-10 w-10 border-2 border-transparent hover:border-primary transition-colors">
                         <AvatarFallback className="bg-muted text-muted-foreground">
                             {avatarType === 'woman' ? <AvatarWomanIcon className="w-full h-full" /> : <AvatarManIcon className="w-full h-full" />}
@@ -261,7 +264,7 @@ export function Messages() {
       </div>
 
       {/* Right Panel: Chat View */}
-      <div className="w-full md:w-2/3 flex flex-col bg-card h-full">
+      <div className="col-span-1 md:col-span-2 flex flex-col bg-card h-full">
         {selectedChat ? (
           <>
             <div className="p-3 border-b flex items-center justify-between gap-3">
@@ -299,7 +302,7 @@ export function Messages() {
                           </AvatarFallback>
                         </Avatar>
                       )}
-                      <div className={cn('max-w-xs md:max-w-md lg:max-w-lg rounded-lg px-4 py-2 shadow-md', msg.sender === 'ai' ? 'bg-primary text-primary-foreground rounded-br-none' : 'bg-background border-border border rounded-bl-none')}>
+                      <div className={cn('max-w-xs md:max-w-md lg:max-w-lg rounded-lg px-4 py-2 shadow-md', msg.sender === 'ai' ? 'bg-primary text-primary-foreground rounded-br-none' : 'bg-card border rounded-bl-none')}>
                         <p className="text-sm">{formatMessageText(msg.text_display)}</p>
                         <p className="text-xs text-right mt-1 opacity-70">{new Date(msg.timestamp).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}</p>
                       </div>
@@ -307,7 +310,6 @@ export function Messages() {
                         <Avatar className="h-8 w-8 bg-accent text-accent-foreground">
                            <AvatarFallback><Bot className="m-auto h-5 w-5" /></AvatarFallback>
                         </Avatar>
-
                       )}
                     </div>
                   ))}
@@ -324,7 +326,7 @@ export function Messages() {
             </div>
           </>
         ) : (
-            <div className='w-full h-full flex flex-col items-center justify-center text-center p-4'>
+            <div className='w-full h-full flex flex-col items-center justify-center text-center p-4 bg-card'>
                 <div className='w-24 h-24 rounded-full bg-muted flex items-center justify-center'>
                     <MessageSquare className='w-12 h-12 text-muted-foreground' />
                 </div>
