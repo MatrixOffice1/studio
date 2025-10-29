@@ -18,6 +18,7 @@ export default function SettingsPage() {
   const [aiProvider, setAiProvider] = useState('gemini');
   const [apiKey, setApiKey] = useState('');
   const [n8nWebhook, setN8nWebhook] = useState('');
+  const [syncInterval, setSyncInterval] = useState('5');
   const [isSaving, setIsSaving] = useState(false);
   const { toast } = useToast();
 
@@ -26,6 +27,7 @@ export default function SettingsPage() {
       setAiProvider(settings.aiProvider || 'gemini');
       setApiKey(settings.gemini_api_key || '');
       setN8nWebhook(settings.n8n_webhook_url || '');
+      setSyncInterval(String(settings.sync_interval || '5'));
     }
   }, [settings]);
 
@@ -45,6 +47,7 @@ export default function SettingsPage() {
       aiProvider,
       gemini_api_key: apiKey,
       n8n_webhook_url: n8nWebhook,
+      sync_interval: parseInt(syncInterval, 10) || 5,
     };
 
     const { error } = await supabase
@@ -125,6 +128,17 @@ export default function SettingsPage() {
                 value={n8nWebhook}
                 onChange={(e) => setN8nWebhook(e.target.value)}
               />
+            </div>
+            <div className="space-y-2">
+                <Label htmlFor="sync-interval">Auto-Sync Interval (minutes)</Label>
+                <Input
+                    id="sync-interval"
+                    type="number"
+                    placeholder="e.g., 5"
+                    value={syncInterval}
+                    onChange={(e) => setSyncInterval(e.target.value)}
+                    min="1"
+                />
             </div>
           </CardContent>
         </Card>

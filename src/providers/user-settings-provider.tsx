@@ -9,6 +9,7 @@ export type UserSettings = {
   aiProvider?: string;
   gemini_api_key?: string;
   n8n_webhook_url?: string;
+  sync_interval?: number;
   [key: string]: any; // Allow other string keys
 };
 

@@ -59,7 +59,9 @@ export function AgendaView() {
     if (isSyncing && !isManualSync) return;
     
     setIsSyncing(true);
-    setAgendaLoading(true);
+    if (!isManualSync) {
+      setAgendaLoading(true);
+    }
     setAgendaError(null);
     
     try {
@@ -89,11 +91,13 @@ export function AgendaView() {
     } catch (err: any) {
       setAgendaError(`Error al cargar la agenda: ${err.message}`);
       setAllEvents([]);
-      toast({
-        variant: 'destructive',
-        title: 'Error de Sincronización',
-        description: `No se pudo cargar la agenda: ${err.message}`
-      });
+      if (isManualSync) {
+        toast({
+          variant: 'destructive',
+          title: 'Error de Sincronización',
+          description: `No se pudo cargar la agenda: ${err.message}`
+        });
+      }
     } finally {
       setIsSyncing(false);
       setAgendaLoading(false);
@@ -101,8 +105,21 @@ export function AgendaView() {
   }, [settings, isSyncing, toast]);
   
   useEffect(() => {
-    fetchCalendarEvents();
+    fetchCalendarEvents(true);
   }, [settings?.n8n_webhook_url]); // Fetch on initial load/webhook URL change
+
+  useEffect(() => {
+    let intervalId: NodeJS.Timeout | null = null;
+    if (isAutoSyncEnabled && settings?.sync_interval && settings.sync_interval > 0) {
+        intervalId = setInterval(() => {
+            fetchCalendarEvents(false);
+        }, settings.sync_interval * 60 * 1000);
+    }
+    return () => {
+        if (intervalId) clearInterval(intervalId);
+    };
+}, [isAutoSyncEnabled, settings?.sync_interval, fetchCalendarEvents]);
+
 
   const eventsForSelectedDay = useMemo(() => {
     return allEvents.filter(event => event.start.hasSame(currentDate, 'day'));
