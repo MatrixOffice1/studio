@@ -240,11 +240,7 @@ export function Messages() {
                   </div>
                   <p className="text-sm text-muted-foreground">{`+${chat.chat_id}`}</p>
                    <p className="text-sm text-muted-foreground truncate">
-                    {
-                      selectedChat?.chat_id === chat.chat_id && lastMessage 
-                        ? `${lastMessage.sender === 'ai' ? 'Tú: ' : ''}${formatMessageText(lastMessage.text_display)}`
-                        : formatMessageText(chat.last_text)
-                    }
+                    {formatMessageText(chat.last_text)}
                   </p>
                 </div>
               </div>
