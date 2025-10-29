@@ -56,13 +56,13 @@ export function AgendaTimeline({ events, professionals }: AgendaTimelineProps) {
           height: `${height}px`, 
           left: '2px', 
           right: '2px',
-          backgroundColor: `${serviceColor}33`, // 20% opacity
+          backgroundColor: `${serviceColor}26`, // 15% opacity
           borderColor: serviceColor 
         }}
         title={`${start.toFormat('HH:mm')} - ${end.toFormat('HH:mm')}\nServicio: ${service || title}\nCliente: ${clientName || 'N/A'}`}
       >
         <p className="font-bold text-xs text-foreground truncate">{start.toFormat('HH:mm')}</p>
-        <p className="text-xs font-semibold text-foreground/80 truncate">{service || title}</p>
+        <p className="text-xs font-semibold text-foreground/90 truncate">{service || title}</p>
         <p className="text-xs text-muted-foreground truncate">{clientName || ''}</p>
       </div>
     );
