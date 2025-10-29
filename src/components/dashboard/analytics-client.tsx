@@ -2,11 +2,11 @@
 
 import { useState } from 'react';
 import { generateCommunicationPerformanceAnalysis } from '@/ai/flows/generate-communication-performance-analysis';
-import { messages } from '@/lib/placeholder-data';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Sparkles, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/lib/supabase';
 
 export function AnalyticsClient() {
   const [analysisResult, setAnalysisResult] = useState('');
@@ -17,16 +17,23 @@ export function AnalyticsClient() {
     setIsLoading(true);
     setAnalysisResult('');
     try {
+      const { data: messages, error } = await supabase.from('chats_v').select('*');
+
+      if (error || !messages || messages.length === 0) {
+        throw new Error(error?.message || "No se encontraron mensajes para analizar.");
+      }
+
       const result = await generateCommunicationPerformanceAnalysis({
         messages: JSON.stringify(messages),
       });
       setAnalysisResult(result.analysis);
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "No se pudo generar el análisis de IA. Por favor, inténtalo de nuevo.";
       console.error('Error generating analysis:', error);
       toast({
         variant: "destructive",
         title: "Falló el Análisis",
-        description: "No se pudo generar el análisis de IA. Por favor, inténtalo de nuevo.",
+        description: errorMessage,
       });
     } finally {
       setIsLoading(false);

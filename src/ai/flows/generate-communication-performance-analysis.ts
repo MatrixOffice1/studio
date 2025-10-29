@@ -12,13 +12,13 @@ import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 
 const GenerateCommunicationPerformanceAnalysisInputSchema = z.object({
-  messages: z.string().describe('A JSON string containing the messages data to analyze. Should include timestamps, sender/receiver information, and message content.'),
-  relevantCustomerInfo: z.string().optional().describe('Highly relevant customer information to include in the analysis.'),
+  messages: z.string().describe('Una cadena JSON que contiene los datos de los mensajes a analizar. Debe incluir marcas de tiempo, información del remitente/receptor y contenido del mensaje.'),
+  relevantCustomerInfo: z.string().optional().describe('Información muy relevante del cliente para incluir en el análisis.'),
 });
 export type GenerateCommunicationPerformanceAnalysisInput = z.infer<typeof GenerateCommunicationPerformanceAnalysisInputSchema>;
 
 const GenerateCommunicationPerformanceAnalysisOutputSchema = z.object({
-  analysis: z.string().describe('A detailed analysis of communication performance, including identified patterns, trends, and recommendations for improvement.'),
+  analysis: z.string().describe('Un análisis detallado del rendimiento de la comunicación, incluyendo patrones identificados, tendencias y recomendaciones para mejorar.'),
 });
 export type GenerateCommunicationPerformanceAnalysisOutput = z.infer<typeof GenerateCommunicationPerformanceAnalysisOutputSchema>;
 
@@ -30,21 +30,21 @@ const prompt = ai.definePrompt({
   name: 'generateCommunicationPerformanceAnalysisPrompt',
   input: {schema: GenerateCommunicationPerformanceAnalysisInputSchema},
   output: {schema: GenerateCommunicationPerformanceAnalysisOutputSchema},
-  prompt: `You are an AI assistant specialized in analyzing communication performance.
+  prompt: `Eres un asistente de IA especializado en analizar el rendimiento de la comunicación. Tu respuesta debe estar en español.
 
-  Analyze the provided message data to identify key patterns, trends, and areas for improvement in communication strategy.
+  Analiza los datos de mensajes proporcionados para identificar patrones clave, tendencias y áreas de mejora en la estrategia de comunicación.
 
-  Consider the following:
-  - Overall communication volume and frequency.
-  - Response times and patterns.
-  - Incoming vs. outgoing message ratios.
-  - Sentiment trends in communication.
-  - Key topics and themes emerging from the messages.
-  - Any relevant customer information: {{{relevantCustomerInfo}}}
+  Considera lo siguiente:
+  - Volumen y frecuencia general de la comunicación.
+  - Tiempos y patrones de respuesta.
+  - Proporción de mensajes entrantes vs. salientes.
+  - Tendencias de sentimiento en la comunicación.
+  - Temas y asuntos clave que surgen de los mensajes.
+  - Cualquier información relevante del cliente: {{{relevantCustomerInfo}}}
 
-  Based on your analysis, provide actionable recommendations for optimizing communication strategies.
+  Basado en tu análisis, proporciona recomendaciones accionables en español para optimizar las estrategias de comunicación.
 
-  Here is the message data (JSON string):
+  Aquí están los datos de los mensajes (cadena JSON):
   {{{messages}}}
   `,
 });
