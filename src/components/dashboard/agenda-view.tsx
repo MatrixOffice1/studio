@@ -14,6 +14,7 @@ import { AnalysisParser } from './analysis-parser';
 import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { AppointmentDetails } from './appointment-details';
+import { AppointmentCard } from './appointment-card';
 
 
 export type CalendarEvent = {
@@ -122,8 +123,22 @@ export function AgendaView() {
 
 
   const eventsForSelectedDay = useMemo(() => {
-    return allEvents.filter(event => event.start.hasSame(currentDate, 'day'));
+    return allEvents
+      .filter(event => event.start.hasSame(currentDate, 'day'))
+      .sort((a,b) => a.start.toMillis() - b.start.toMillis());
   }, [allEvents, currentDate]);
+
+  const { pastEvents, upcomingEvents } = useMemo(() => {
+    const now = DateTime.now().setZone('Europe/Madrid');
+    return eventsForSelectedDay.reduce((acc, event) => {
+      if (event.end < now) {
+        acc.pastEvents.push(event);
+      } else {
+        acc.upcomingEvents.push(event);
+      }
+      return acc;
+    }, { pastEvents: [] as CalendarEvent[], upcomingEvents: [] as CalendarEvent[] });
+  }, [eventsForSelectedDay]);
 
   const eventsForNext7Days = useMemo(() => {
     const today = DateTime.now().setZone('Europe/Madrid').startOf('day');
@@ -253,6 +268,41 @@ export function AgendaView() {
             onEventClick={setSelectedEvent}
         />
       )}
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-8">
+        <div>
+          <h3 className="text-lg font-semibold mb-4">Próximas Citas del Día</h3>
+          <div className="space-y-4">
+            {upcomingEvents.length > 0 ? (
+              upcomingEvents.map(event => (
+                <AppointmentCard key={event.uid} event={event} onEventClick={setSelectedEvent} />
+              ))
+            ) : (
+              <Card>
+                <CardContent className="p-6 text-center text-muted-foreground">
+                  No hay próximas citas para hoy.
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        </div>
+        <div>
+          <h3 className="text-lg font-semibold mb-4">Citas Pasadas del Día</h3>
+          <div className="space-y-4">
+            {pastEvents.length > 0 ? (
+              pastEvents.map(event => (
+                <AppointmentCard key={event.uid} event={event} isPast onEventClick={setSelectedEvent} />
+              ))
+            ) : (
+              <Card>
+                <CardContent className="p-6 text-center text-muted-foreground">
+                  No hay citas pasadas para hoy.
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        </div>
+      </div>
 
       <Dialog open={isAnalysisModalOpen} onOpenChange={setIsAnalysisModalOpen}>
         <DialogContent className="max-w-2xl">
