@@ -246,9 +246,12 @@ export function AgendaView() {
         body: JSON.stringify({
           action: 'delete',
           event: {
-            ...selectedEvent,
+            uid: selectedEvent.uid,
             start: selectedEvent.start.toISO(),
             end: selectedEvent.end.toISO(),
+            service: selectedEvent.service,
+            clientName: selectedEvent.clientName,
+            professional: selectedEvent.professional,
           }
         }),
       });
