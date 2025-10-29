@@ -18,6 +18,7 @@ import { PROFESSIONALS } from './agenda-view';
 
 const appointmentFormSchema = z.object({
   clientName: z.string().min(1, { message: 'El nombre del cliente es obligatorio.' }),
+  clientPhone: z.string().optional(),
   service: z.string().min(1, { message: 'El servicio es obligatorio.' }),
   professional: z.string().min(1, { message: 'Debes seleccionar un profesional.' }),
   startTime: z.string().regex(/^(0[0-9]|1[0-9]|2[0-3]):[0-5][0-9]$/, { message: 'Hora de inicio inválida (HH:mm).' }),
@@ -45,6 +46,7 @@ export function AppointmentForm({ isOpen, onOpenChange, onAppointmentCreated, cu
     resolver: zodResolver(appointmentFormSchema),
     defaultValues: {
       clientName: '',
+      clientPhone: '',
       service: '',
       professional: '',
       startTime: '10:00',
@@ -81,6 +83,7 @@ export function AppointmentForm({ isOpen, onOpenChange, onAppointmentCreated, cu
 
     const newEventData = {
       clientName: values.clientName,
+      clientPhone: values.clientPhone,
       service: values.service,
       title: values.service,
       professional: values.professional,
@@ -134,6 +137,19 @@ export function AppointmentForm({ isOpen, onOpenChange, onAppointmentCreated, cu
                   <FormLabel>Nombre del Cliente</FormLabel>
                   <FormControl>
                     <Input placeholder="Ej: Maria Lopez" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+             <FormField
+              control={form.control}
+              name="clientPhone"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Teléfono del Cliente (Opcional)</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Ej: 600123456" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
