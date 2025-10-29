@@ -49,7 +49,7 @@ export function AgendaHeader({
         <h1 className="text-2xl sm:text-3xl font-headline font-bold">Agenda Diaria</h1>
         <div className="bg-foreground text-background rounded-lg px-4 py-2 text-center">
           <p className="text-2xl font-bold font-mono tracking-wider">{time.toFormat('HH:mm:ss')}</p>
-          <p className="text-xs opacity-80">Hora de Madrid</p>
+          <p className="text-xs opacity-80">Hora Peninsular</p>
         </div>
       </div>
 
