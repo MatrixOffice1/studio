@@ -20,7 +20,13 @@ export function AnalyticsClient() {
       const { data: messages, error } = await supabase.from('chats_v').select('*');
 
       if (error || !messages || messages.length === 0) {
-        throw new Error(error?.message || "No se encontraron mensajes para analizar.");
+        // Even with no messages, we can ask the AI for initial recommendations
+         const result = await generateCommunicationPerformanceAnalysis({
+          messages: JSON.stringify([]),
+        });
+        setAnalysisResult(result.analysis);
+        setIsLoading(false);
+        return;
       }
 
       const result = await generateCommunicationPerformanceAnalysis({
@@ -65,8 +71,8 @@ export function AnalyticsClient() {
           </Button>
           {analysisResult && (
             <div className="w-full p-4 border rounded-lg bg-background mt-4">
-              <h4 className="font-semibold mb-2">Resultado del Análisis:</h4>
-              <p className="text-sm text-muted-foreground whitespace-pre-wrap">{analysisResult}</p>
+              <h4 className="font-semibold mb-2 text-lg">Resultado del Análisis</h4>
+              <div className="text-sm text-muted-foreground whitespace-pre-wrap font-mono">{analysisResult}</div>
             </div>
           )}
         </div>

@@ -30,38 +30,32 @@ const prompt = ai.definePrompt({
   name: 'generateCommunicationPerformanceAnalysisPrompt',
   input: {schema: GenerateCommunicationPerformanceAnalysisInputSchema},
   output: {schema: GenerateCommunicationPerformanceAnalysisOutputSchema},
-  prompt: `Eres un analista de datos experto en comunicación para negocios locales. Tu tarea es generar un informe de rendimiento muy conciso y profesional para "Peluquería Abbaglia Nails & Beauty" basado en los datos de mensajes de los últimos 7 días. Tu respuesta debe estar en español.
+  prompt: `Eres un analista de datos experto en comunicación para "Peluquería Abbaglia Nails & Beauty". Tu tarea es generar un informe de rendimiento MUY CONCISO, profesional y fácil de leer. Responde siempre en español.
 
-  La estructura del informe debe ser la siguiente, utilizando Markdown para el formato y siendo lo más breve y directo posible:
+  La estructura de tu respuesta debe ser la siguiente, usando solo saltos de línea para separar secciones. NO uses Markdown (###, ---).
 
-  # Análisis de Rendimiento de Comunicación
-  ## Peluquería Abbaglia Nails & Beauty - Últimos 7 Días
+  Análisis de Rendimiento de Comunicación
+  Peluquería Abbaglia Nails & Beauty - Últimos 7 Días
 
-  ---
+  RESUMEN EJECUTIVO
+  [Un párrafo breve y directo que resuma los hallazgos clave: rendimiento general, puntos fuertes y áreas de oportunidad.]
 
-  ### Resumen Ejecutivo
-  Un párrafo breve y directo que resuma los hallazgos clave: rendimiento general, puntos fuertes (ej. buen balance de respuesta) y áreas de oportunidad (ej. variabilidad en el volumen).
+  MÉTRICAS CLAVE
+  - Volumen Total: [Número total de mensajes]
+  - Promedio Diario: [Número promedio]
+  - Balance (Entrantes/Salientes): [Describe la proporción]
+  - Tendencia: [Describe brevemente la tendencia]
 
-  ---
+  OPORTUNIDADES CLAVE
+  [Crea una lista corta con 2-3 recomendaciones muy concisas y accionables.]
+  - Recomendación 1: [Texto de la recomendación.]
+  - Recomendación 2: [Texto de la recomendación.]
+  - Recomendación 3: [Texto de la recomendación.]
 
-  ### Métricas Clave
-  - **Volumen Total:** [Número total de mensajes]
-  - **Promedio Diario:** [Número promedio]
-  - **Balance (Entrantes/Salientes):** [Describe la proporción, ej. "Balance casi perfecto 1:1"]
-  - **Tendencia:** [Describe brevemente la tendencia, ej. "Actividad estable con picos notables"]
+  CONCLUSIÓN
+  [Un párrafo final muy breve que resuma la salud general de la comunicación y reitere la oportunidad más importante.]
 
-  ---
-
-  ### Oportunidades Clave
-  Crea una lista corta con 2-3 recomendaciones muy concisas y accionables.
-  - **Recomendación 1:** [Ej: Investigar picos de actividad para replicar campañas exitosas.]
-  - **Recomendación 2:** [Ej: Sugerir enviar promociones en días de baja actividad para estabilizar el volumen.]
-  - **Recomendación 3:** [Ej: Analizar tipos de consulta para optimizar las respuestas.]
-
-  ---
-
-  ### Conclusión
-  Un párrafo final muy breve que resuma la salud general de la comunicación y reitere la oportunidad más importante.
+  Si los datos de entrada son muy limitados, adapta tu análisis para que sea positivo y proactivo. Por ejemplo, en lugar de decir "no hay suficientes datos", di "este es un primer vistazo" y enfoca las recomendaciones en "cómo empezar a recopilar más datos" o "primeros pasos para aumentar la interacción".
 
   Datos de los mensajes (cadena JSON):
   {{{messages}}}
