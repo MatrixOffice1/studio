@@ -84,10 +84,6 @@ export function Messages() {
       } else if (data) {
         const validChats = data.filter(chat => chat.last_message_at);
         setChats(validChats);
-        if (validChats.length > 0) {
-            // Automatically select the first chat
-            // setSelectedChat(validChats[0]);
-        }
       }
       setLoadingChats(false);
     };
@@ -175,14 +171,6 @@ export function Messages() {
       setIsSummarizing(false);
     }
   };
-  
-    const handleSuggestReplies = () => {
-    // Placeholder function for suggesting replies
-    toast({
-        title: 'Próximamente',
-        description: 'La función para sugerir respuestas con IA estará disponible pronto.',
-    });
-  };
 
   const formatTimestamp = (timestamp: string) => {
     try {
@@ -252,10 +240,12 @@ export function Messages() {
                     <p className="font-semibold truncate">{`+${chat.chat_id}`}</p>
                     <p className="text-xs text-muted-foreground flex-shrink-0">{formatTimestamp(chat.last_message_at)}</p>
                   </div>
-                  <p className="text-sm text-muted-foreground truncate">
-                    {chat.direction === 'outbound' ? 'Tú: ' : ''}
-                    {formatMessageText(chat.last_text)}
-                  </p>
+                  <div className="w-full">
+                    <p className="text-sm text-muted-foreground truncate">
+                        {chat.direction === 'outbound' ? 'Tú: ' : ''}
+                        {formatMessageText(chat.last_text)}
+                    </p>
+                  </div>
                 </div>
               </div>
             )})
@@ -282,9 +272,6 @@ export function Messages() {
               <div className="flex items-center gap-2">
                 <Button onClick={handleSummary} disabled={isSummarizing || loadingMessages} size="sm" variant="outline">
                     {isSummarizing ? (<><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Resumiendo...</>) : (<><Sparkles className="mr-2 h-4 w-4" /> Resumir</>)}
-                </Button>
-                <Button onClick={handleSuggestReplies} size="sm" variant="outline">
-                    <Lightbulb className="mr-2 h-4 w-4" /> Sugerir
                 </Button>
               </div>
             </div>
@@ -316,14 +303,6 @@ export function Messages() {
                 </div>
               )}
             </ScrollArea>
-            <div className="p-4 border-t bg-background">
-              <div className="relative">
-                <Input placeholder="Escribe un mensaje..." className="pr-12" />
-                <Button size="icon" className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8">
-                  <Send className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
           </>
         ) : (
             <div className='w-full h-full flex flex-col items-center justify-center text-center p-4 bg-card'>
