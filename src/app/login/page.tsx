@@ -47,8 +47,8 @@ export default function LoginPage() {
         <Image
           src="https://i.postimg.cc/LXVKqFqv/df.png"
           alt="Logo"
-          width={300}
-          height={300}
+          width={400}
+          height={400}
           className="mx-auto mb-4 rounded-full"
         />
         <h2 className="text-xl font-semibold text-muted-foreground tracking-wider">
