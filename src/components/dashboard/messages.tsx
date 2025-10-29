@@ -34,6 +34,24 @@ type ChatAvatar = {
     avatar_type: 'man' | 'woman';
 };
 
+const AvatarWomanIcon = ({ className }: { className?: string }) => (
+    <svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlnsXlink="http://www.w3.org/1999/xlink" viewBox="0 0 512 512" xmlSpace="preserve" className={className}>
+        <g>
+            <path fill="currentColor" d="M452.786,427.066l-3.633-23.125c-3.043-19.389-15.223-36.129-32.748-44.975l-76.414-38.648 c-10.272-5.188-12.996-21.121-12.996-21.121c-0.644-1.039-1.844-1.602-3.051-1.414c-1.209,0.18-2.191,1.058-2.51,2.238 l-8.949,34.434l-56.492,112.824l-56.482-112.824l-8.959-34.434c-0.308-1.18-1.301-2.059-2.51-2.238 c-1.209-0.188-2.397,0.375-3.043,1.414c0,0-2.724,15.934-12.994,21.121l-76.424,38.648c-17.508,8.846-29.687,25.586-32.73,44.975 l-3.642,23.125c-1.281,8.258,0.422,20.373,7.808,26.43C76.903,461.576,113.425,512,255.993,512 c142.578,0,179.09-50.424,188.984-58.504C452.376,447.44,454.079,435.324,452.786,427.066z"></path>
+            <path fill="currentColor" d="M183.427,173.959c-1.676-46.97,69.898-44.937,102.133-97.3c9.764,17.75,26.634,43.693,42.166,64.738 c0.244,100.953,7.302,174.971,79.682,138.778c0,0-38.309-23.098-40.266-55.36c-3.362-55.367,4.26-95.916,0-124.676 c-0.338-2.352-0.844-4.738-1.387-7.135C360.362,38.178,312.167,0.178,256.339,0.02C256.124,0,255.993,0,255.993,0 c-62.231,0-104.446,54.844-111.149,100.139c-4.26,28.76,3.362,69.308,0,124.676c-1.957,32.262-40.267,55.36-40.267,55.36 C178.39,317.088,186.114,249.279,183.427,173.959z"></path>
+        </g>
+    </svg>
+);
+
+const AvatarManIcon = ({ className }: { className?: string }) => (
+    <svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlnsXlink="http://www.w3.org/1999/xlink" viewBox="0 0 512 512" xmlSpace="preserve" className={className}>
+         <g>
+            <path fill="currentColor" d="M432.871,404.268c-10.756-18.361-27.411-29.408-43.426-36.782c-16.038-7.367-31.903-11.337-41.438-14.935 c-7.56-2.808-15.799-7.195-21.676-11.948c-2.943-2.346-5.274-4.782-6.674-6.904c-1.446-2.13-1.885-3.784-1.885-4.894 c0-7.591,0-11.025,0-22.57c10.116-11.263,24.655-28.7,30.615-56.358c2.093-0.938,4.156-1.996,6.138-3.389 c4.96-3.412,9.154-8.365,12.708-15.106c3.59-6.771,6.756-15.427,10.138-27.27c1.706-6.011,2.51-11.226,2.51-15.874 c0-5.356-1.103-9.996-3.129-13.772c-1.743-3.293-4.127-5.661-6.592-7.419c32.73-73.058-9.289-131.94-9.289-131.94l12.335-31.709 c0,0-52.849,3.523-99.814-1.758c-135.694-15.247-143.277,79.858-143.277,122.13c0,25.326,3.784,40.045,7.061,48.06 c-0.663,0.871-1.378,1.631-1.929,2.644c-2.018,3.769-3.121,8.417-3.121,13.772c0.015,4.64,0.797,9.855,2.518,15.866 c4.529,15.769,8.611,25.944,13.9,33.422c2.652,3.71,5.654,6.69,8.931,8.954c1.996,1.393,4.06,2.451,6.138,3.389 c5.974,27.642,20.506,45.087,30.622,56.35c0,11.546,0,14.987,0,22.578c0.022,0.946-0.455,2.681-2.026,4.924 c-2.287,3.359-6.771,7.359-11.985,10.741c-5.192,3.404-11.106,6.287-16.074,8.03c-6.458,2.279-15.732,4.819-25.885,8.409 c-15.248,5.401-32.73,13.178-46.726,27.151c-14.018,13.914-23.985,34.316-23.902,62.324c0,3.561,0.156,7.256,0.484,11.062 c0.209,2.391,1.042,4.365,2.048,6.049c1.944,3.136,4.558,5.571,7.844,8.045c5.758,4.268,13.75,8.469,24.141,12.611 c31.062,12.342,83.614,23.836,153.855,23.85c57.073-0.007,102.495-7.612,134.168-17.072c15.836-4.738,28.208-9.908,37.095-15.025 c4.461-2.57,8.052-5.117,10.89-7.888c1.415-1.386,2.652-2.831,3.672-4.522c1.02-1.684,1.855-3.658,2.064-6.041 c0.32-3.814,0.469-7.493,0.469-11.039C444.38,431.754,440.045,416.477,432.871,404.268z M243.374,496.291 c-0.246-0.008-0.492-0.008-0.745-0.008l-24.812-58.228l0.32,0.253l22.57-28.216l3.702,15.575h0.991L243.374,496.291z M212.975,426.704l-28.462-66.756c3.568-2.071,7.076-4.35,10.294-6.905c1.966-1.579,3.844-3.24,5.564-5.006l47.56,34.965 L212.975,426.704z M207.068,338.979c1.572-3.053,2.645-6.435,2.66-10.174c0-8.224,0-11.441,0-25.535v-2.979l-1.982-2.205 c-10.57-11.776-24.879-27.404-29.848-55.173l-0.79-4.447l-4.238-1.505c-2.696-0.96-4.744-1.951-6.548-3.195 c-2.644-1.869-5.05-4.425-7.858-9.653c-2.764-5.2-5.714-12.976-8.916-24.261c-1.423-4.924-1.915-8.76-1.915-11.605 c0-3.314,0.633-5.236,1.282-6.465c0.976-1.774,2.175-2.533,3.702-3.143c1.043-0.403,2.145-0.552,2.778-0.604l6.011,1.274 l8.633,14.92c0,0-0.469-74.205,7.047-79.851c9.393-7.054,63.426,14.093,79.858,14.093c16.446,0,68.7-22.905,77.974-15.97 c10.786,8.067,8.931,88.774,8.931,88.774l8.834-22.86l3.621-0.388c0.633,0.008,2.942,0.276,4.514,1.311 c0.879,0.574,1.609,1.236,2.272,2.443c0.641,1.229,1.274,3.151,1.274,6.458c0.014,2.853-0.492,6.689-1.899,11.62 c-4.276,15.046-8.104,23.806-11.628,28.663c-1.758,2.458-3.367,3.986-5.162,5.244c-1.788,1.244-3.851,2.235-6.548,3.195 l-4.238,1.505l-0.782,4.447c-4.953,27.769-19.27,43.397-29.84,55.173l-1.996,2.205v2.979c0,14.094,0,17.311,0,25.535 c0.015,3.724,1.035,7.143,2.592,10.235l-48.857,35.895L207.068,338.979z M269.341,496.35c-0.246,0.015-0.462,0.022-0.716,0.022 l-2.033-70.704h1.028l3.695-15.575l22.562,28.208l0.32-0.246L269.341,496.35z M299.024,426.704l-34.95-43.694l47.516-34.928 c3.247,3.315,6.994,6.294,11.054,8.968c1.564,1.021,3.248,1.862,4.886,2.793L299.024,426.704z"></path>
+         </g>
+    </svg>
+);
+
+
 export function Messages() {
   const [chats, setChats] = useState<Chat[]>([]);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -77,15 +95,10 @@ export function Messages() {
             });
         }
         
-        const chatsWithAvatars = validChats.map(chat => ({
-            ...chat,
-            avatar_type: avatarsMap[chat.chat_id] || 'man'
-        }));
-
-        setChats(chatsWithAvatars);
+        setChats(validChats);
         setAvatarTypes(avatarsMap);
-        if (chatsWithAvatars.length > 0) {
-            setSelectedChat(chatsWithAvatars[0]);
+        if (validChats.length > 0) {
+            setSelectedChat(validChats[0]);
         }
       }
       setLoadingChats(false);
@@ -140,14 +153,11 @@ export function Messages() {
             return currentChats;
         });
     };
-    
-    const messageSubscription = supabase
-      .channel(`public:messages_v:${selectedChat?.chat_id || '*'}`)
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages_v' }, handleNewMessage)
-      .subscribe();
 
-    const avatarSubscription = supabase
-      .channel('public:chat_avatars')
+    const channel = supabase.channel('messages-realtime-channel');
+    
+    channel
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages_v' }, handleNewMessage)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'chat_avatars' }, (payload) => {
           const newAvatar = payload.new as ChatAvatar;
           if (newAvatar) {
@@ -157,8 +167,7 @@ export function Messages() {
       }).subscribe();
 
     return () => {
-      supabase.removeChannel(messageSubscription);
-      supabase.removeChannel(avatarSubscription);
+      supabase.removeChannel(channel);
     };
   }, [selectedChat]);
 
@@ -243,37 +252,16 @@ export function Messages() {
     }
   };
 
-  const formatMessageText = (text: string, direction?: 'inbound' | 'outbound' ) => {
+  const formatMessageText = (text: string) => {
     if (typeof text !== 'string') return '';
-    let cleanedText = text;
-    if (text.startsWith("Mensaje del usuario:")) {
-      const match = text.match(/Mensaje del usuario: (.*?)\s*-\s*La fecha de hoy es/s);
-      cleanedText = match && match[1] ? match[1].trim() : text;
+    const match = text.match(/Mensaje del usuario:\s*(.*?)\s*-\s*La fecha de hoy es/s);
+    if (match && match[1]) {
+      return match[1].trim();
     }
-    
-    if (direction) {
-        const prefix = direction === 'outbound' ? 'Tú: ' : 'Cliente: ';
-        return prefix + cleanedText;
-    }
-    return cleanedText;
+    return text;
   };
   
-  const UserIcon = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-user"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-  );
-
-  const WomanIcon = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-user-round"><circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 0 0-16 0"/></svg>
-  );
-  
-  const ManIcon = () => (
-     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-person-standing"><circle cx="12" cy="5" r="1"/><path d="m9 20 3-6 3 6"/><path d="m6 8 6 2 6-2"/><path d="M12 10v4"/></svg>
-  );
-
-  const AvatarIcon = ({ type }: { type?: 'man' | 'woman' }) => {
-    if (type === 'woman') return <WomanIcon />;
-    return <ManIcon />;
-  };
+  const lastMessage = messages.length > 0 ? messages[messages.length - 1] : null;
 
   return (
     <div className="h-full flex">
@@ -298,7 +286,9 @@ export function Messages() {
               ))}
             </div>
           ) : (
-            chats.map((chat) => (
+            chats.map((chat) => {
+              const avatarType = avatarTypes[chat.chat_id] || 'man';
+              return (
               <div
                 key={chat.chat_id}
                 className={cn('flex items-start gap-3 p-3 cursor-pointer hover:bg-muted', selectedChat?.chat_id === chat.chat_id && 'bg-accent hover:bg-accent')}
@@ -307,7 +297,7 @@ export function Messages() {
                 <div className="cursor-pointer" onClick={(e) => {e.stopPropagation(); handleAvatarClick(chat.chat_id)}}>
                     <Avatar className="h-10 w-10 border-2 border-transparent hover:border-primary transition-colors">
                         <AvatarFallback className="bg-muted text-muted-foreground">
-                            <AvatarIcon type={avatarTypes[chat.chat_id]} />
+                            {avatarType === 'woman' ? <AvatarWomanIcon className="w-full h-full" /> : <AvatarManIcon className="w-full h-full" />}
                         </AvatarFallback>
                     </Avatar>
                 </div>
@@ -317,10 +307,16 @@ export function Messages() {
                     <p className="text-xs text-muted-foreground flex-shrink-0">{formatTimestamp(chat.last_message_at)}</p>
                   </div>
                   <p className="text-sm text-muted-foreground truncate">{`+${chat.chat_id}`}</p>
-                  <p className="text-sm text-muted-foreground truncate">{formatMessageText(chat.last_text, chat.chat_id === messages.slice(-1)[0]?.chat_id ? messages.slice(-1)[0]?.direction : undefined)}</p>
+                   <p className="text-sm text-muted-foreground truncate">
+                    {
+                      selectedChat?.chat_id === chat.chat_id && lastMessage 
+                        ? `${lastMessage.sender === 'ai' ? 'Tú: ' : 'Cliente: '}${formatMessageText(lastMessage.text_display)}`
+                        : formatMessageText(chat.last_text)
+                    }
+                  </p>
                 </div>
               </div>
-            ))
+            )})
           )}
         </ScrollArea>
       </div>
@@ -331,7 +327,7 @@ export function Messages() {
               <div className="flex items-center gap-3">
                  <Avatar className="h-10 w-10">
                     <AvatarFallback className="bg-muted text-muted-foreground">
-                        <AvatarIcon type={avatarTypes[selectedChat.chat_id]} />
+                        {avatarTypes[selectedChat.chat_id] === 'woman' ? <AvatarWomanIcon className="w-full h-full" /> : <AvatarManIcon className="w-full h-full" />}
                     </AvatarFallback>
                 </Avatar>
                 <div>
@@ -358,7 +354,9 @@ export function Messages() {
                     <div key={msg.id} className={cn('flex items-end gap-2', msg.sender === 'ai' ? 'justify-end' : 'justify-start')}>
                       {msg.sender === 'human' && (
                         <Avatar className="h-8 w-8 bg-muted text-muted-foreground">
-                          <AvatarFallback><UserIcon /></AvatarFallback>
+                          <AvatarFallback>
+                            {avatarTypes[selectedChat.chat_id] === 'woman' ? <AvatarWomanIcon className="w-6 h-6" /> : <AvatarManIcon className="w-6 h-6" />}
+                          </AvatarFallback>
                         </Avatar>
                       )}
                       <div className={cn('max-w-xs md:max-w-md lg:max-w-lg rounded-lg px-4 py-2 shadow-md', msg.sender === 'ai' ? 'bg-primary text-primary-foreground rounded-br-none' : 'bg-card border-border border rounded-bl-none')}>
@@ -390,5 +388,3 @@ export function Messages() {
     </div>
   );
 }
-
-    
