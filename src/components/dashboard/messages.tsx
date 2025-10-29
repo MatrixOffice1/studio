@@ -243,8 +243,8 @@ export function Messages() {
                     <p className="font-semibold truncate">{`+${chat.chat_id}`}</p>
                     <p className="text-xs text-muted-foreground flex-shrink-0">{formatTimestamp(chat.last_message_at)}</p>
                   </div>
-                   <div className='w-full overflow-hidden'>
-                    <p className="text-sm text-muted-foreground truncate">
+                  <div className="w-full overflow-hidden whitespace-nowrap text-ellipsis">
+                    <p className="text-sm text-muted-foreground">
                       {lastDirection === 'outbound' ? 'Tú: ' : ''}
                       {formatMessageText(lastText)}
                     </p>
@@ -331,3 +331,5 @@ export function Messages() {
     </div>
   );
 }
+
+    
