@@ -25,7 +25,7 @@ export function ProfessionalAvailability({ currentDate }: ProfessionalAvailabili
   const [loading, setLoading] = useState<Record<string, boolean>>({});
   const { toast } = useToast();
 
-  const webhookUrl = settings?.n8n_webhook_url;
+  const webhookUrl = settings?.availability_webhook_url;
 
   useEffect(() => {
     // Reset availability when the date or settings change
@@ -37,7 +37,7 @@ export function ProfessionalAvailability({ currentDate }: ProfessionalAvailabili
       toast({
         variant: 'destructive',
         title: 'Falta Webhook',
-        description: 'Por favor, configura la URL del webhook de n8n en los Ajustes.',
+        description: 'Por favor, configura la URL del webhook de disponibilidad en los Ajustes.',
       });
       return;
     }
@@ -89,7 +89,7 @@ export function ProfessionalAvailability({ currentDate }: ProfessionalAvailabili
         <CardTitle>Disponibilidad de Profesionales</CardTitle>
         <CardDescription>
           {isFeatureDisabled 
-            ? "Configura la URL del webhook en Ajustes para habilitar esta función."
+            ? "Configura la URL del webhook de disponibilidad en Ajustes para habilitar esta función."
             : "Activa o desactiva para marcar a un profesional como ausente o presente para el día seleccionado."
           }
         </CardDescription>

@@ -58,10 +58,10 @@ export function AgendaView() {
 
 
   const fetchCalendarEvents = useCallback(async (isManualSync = false) => {
-    const webhookUrl = settings?.n8n_webhook_url;
+    const webhookUrl = settings?.agenda_webhook_url;
 
     if (!webhookUrl) {
-      setAgendaError("Por favor, configure una URL de Webhook en la sección de Ajustes.");
+      setAgendaError("Por favor, configure una URL de Webhook para la agenda en la sección de Ajustes.");
       return;
     }
 
@@ -115,7 +115,7 @@ export function AgendaView() {
   
   useEffect(() => {
     fetchCalendarEvents(true);
-  }, [settings?.n8n_webhook_url]); // Fetch on initial load/webhook URL change
+  }, [settings?.agenda_webhook_url]); // Fetch on initial load/webhook URL change
 
   // Persist the auto-sync state to localStorage
   useEffect(() => {

@@ -25,7 +25,8 @@ export default function SettingsPage() {
   const { settings, refreshSettings } = useUserSettings();
   const [aiProvider, setAiProvider] = useState('gemini');
   const [apiKey, setApiKey] = useState('');
-  const [n8nWebhook, setN8nWebhook] = useState('');
+  const [agendaWebhook, setAgendaWebhook] = useState('');
+  const [availabilityWebhook, setAvailabilityWebhook] = useState('');
   const [syncInterval, setSyncInterval] = useState('5');
   const [isSaving, setIsSaving] = useState(false);
   const { toast } = useToast();
@@ -34,7 +35,8 @@ export default function SettingsPage() {
     if (settings) {
       setAiProvider(settings.aiProvider || 'gemini');
       setApiKey(settings.gemini_api_key || '');
-      setN8nWebhook(settings.n8n_webhook_url || '');
+      setAgendaWebhook(settings.agenda_webhook_url || '');
+      setAvailabilityWebhook(settings.availability_webhook_url || 'https://n8n.srv1002935.hstgr.cloud/webhook/calendar-tony-airmate');
       setSyncInterval(String(settings.sync_interval || '5'));
     }
   }, [settings]);
@@ -54,7 +56,8 @@ export default function SettingsPage() {
     const newSettings = {
       aiProvider,
       gemini_api_key: apiKey,
-      n8n_webhook_url: n8nWebhook,
+      agenda_webhook_url: agendaWebhook,
+      availability_webhook_url: availabilityWebhook,
       sync_interval: parseInt(syncInterval, 10) || 5,
     };
 
@@ -127,21 +130,30 @@ export default function SettingsPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Integración de WhatsApp</CardTitle>
-            <CardDescription>Gestiona tus conexiones de n8n y Supabase.</CardDescription>
+            <CardTitle>Integración de n8n</CardTitle>
+            <CardDescription>Gestiona tus webhooks para la agenda y la disponibilidad.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="n8n-webhook">URL del Webhook de n8n</Label>
+              <Label htmlFor="agenda-webhook">URL del Webhook de Agenda</Label>
               <Input
-                id="n8n-webhook"
+                id="agenda-webhook"
                 placeholder="https://n8n.example.com/webhook/..."
-                value={n8nWebhook}
-                onChange={(e) => setN8nWebhook(e.target.value)}
+                value={agendaWebhook}
+                onChange={(e) => setAgendaWebhook(e.target.value)}
               />
             </div>
             <div className="space-y-2">
-                <Label htmlFor="sync-interval">Intervalo de Sincronización Automática (minutos)</Label>
+              <Label htmlFor="availability-webhook">URL del Webhook de Disponibilidad</Label>
+              <Input
+                id="availability-webhook"
+                placeholder="https://n8n.example.com/webhook/..."
+                value={availabilityWebhook}
+                onChange={(e) => setAvailabilityWebhook(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+                <Label htmlFor="sync-interval">Intervalo de Sincronización Automática de Agenda (minutos)</Label>
                 <Input
                     id="sync-interval"
                     type="number"
