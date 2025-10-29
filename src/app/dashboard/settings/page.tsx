@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -9,23 +9,58 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
+import { useUserSettings } from '@/hooks/use-user-settings';
+import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/providers/auth-provider';
 
 export default function SettingsPage() {
+  const { user } = useAuth();
+  const { settings, refreshSettings } = useUserSettings();
   const [aiProvider, setAiProvider] = useState('gemini');
   const [apiKey, setApiKey] = useState('');
   const [n8nWebhook, setN8nWebhook] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const { toast } = useToast();
 
+  useEffect(() => {
+    if (settings) {
+      setApiKey(settings.gemini_api_key || '');
+      // You can also load other settings like n8nWebhook here if they exist
+    }
+  }, [settings]);
+
   const handleSaveChanges = async () => {
+    if (!user) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'You must be logged in to save settings.',
+      });
+      return;
+    }
+
     setIsSaving(true);
-    // Mock saving settings
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    console.log('Saving settings:', { aiProvider, apiKey, n8nWebhook });
-    toast({
-      title: 'Settings Saved',
-      description: 'Your settings have been updated successfully.',
-    });
+    
+    const { error } = await supabase
+      .from('user_settings')
+      .upsert({ user_id: user.id, gemini_api_key: apiKey }, { onConflict: 'user_id' });
+
+    if (error) {
+      console.error('Error saving settings:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Error Saving Settings',
+        description: 'Could not save your settings to the database.',
+      });
+    } else {
+      toast({
+        title: 'Settings Saved',
+        description: 'Your settings have been updated successfully.',
+      });
+      // Refresh the settings in the context
+      refreshSettings();
+    }
+    
     setIsSaving(false);
   };
 
@@ -51,7 +86,7 @@ export default function SettingsPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="gemini">Gemini</SelectItem>
-                  <SelectItem value="openai">OpenAI</SelectItem>
+                  <SelectItem value="openai" disabled>OpenAI (coming soon)</SelectItem>
                 </SelectContent>
               </Select>
             </div>

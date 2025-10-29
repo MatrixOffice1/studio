@@ -6,8 +6,9 @@ import { useAuth } from '@/providers/auth-provider';
 import { AppSidebar } from '@/components/dashboard/app-sidebar';
 import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
 import { Loader2 } from 'lucide-react';
+import { UserSettingsProvider } from '@/providers/user-settings-provider';
 
-export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+function DashboardContent({ children }: { children: React.ReactNode }) {
   const { user, isLoading } = useAuth();
   const router = useRouter();
 
@@ -26,7 +27,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }
 
   if (!user) {
-    return null; // Or a redirect component, but useEffect handles it
+    return null;
   }
 
   return (
@@ -39,4 +40,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       </SidebarInset>
     </SidebarProvider>
   );
+}
+
+export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+  const { user } = useAuth();
+
+  return (
+    <UserSettingsProvider userId={user?.id}>
+      <DashboardContent>
+        {children}
+      </DashboardContent>
+    </UserSettingsProvider>
+  )
 }
