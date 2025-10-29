@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import type { DateTime } from 'luxon';
+import { useUserSettings } from '@/hooks/use-user-settings';
 
 const PROFESSIONALS = [
   { name: 'Ana', color: '#ef4444' },
@@ -14,30 +15,40 @@ const PROFESSIONALS = [
   { name: 'Maria', color: '#3b82f6' },
 ];
 
-const WEBHOOK_URL = 'https://n8n.srv1002935.hstgr.cloud/webhook-test/calendar-tony-airmate';
-
 type ProfessionalAvailabilityProps = {
   currentDate: DateTime;
 };
 
 export function ProfessionalAvailability({ currentDate }: ProfessionalAvailabilityProps) {
+  const { settings, isLoading: isLoadingSettings } = useUserSettings();
   const [availability, setAvailability] = useState<Record<string, boolean>>({});
   const [loading, setLoading] = useState<Record<string, boolean>>({});
   const { toast } = useToast();
 
+  const webhookUrl = settings?.n8n_webhook_url;
+
   useEffect(() => {
-    // Reset availability when the date changes
+    // Reset availability when the date or settings change
     setAvailability({});
-  }, [currentDate]);
+  }, [currentDate, settings]);
 
   const handleToggle = async (professionalName: string) => {
+    if (!webhookUrl) {
+      toast({
+        variant: 'destructive',
+        title: 'Falta Webhook',
+        description: 'Por favor, configura la URL del webhook de n8n en los Ajustes.',
+      });
+      return;
+    }
+
     setLoading(prev => ({ ...prev, [professionalName]: true }));
 
     const isCurrentlyPresent = availability[professionalName] !== false; // Default to present
     const newStatus = isCurrentlyPresent ? 'absent' : 'present';
 
     try {
-      const response = await fetch(WEBHOOK_URL, {
+      const response = await fetch(webhookUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -70,33 +81,31 @@ export function ProfessionalAvailability({ currentDate }: ProfessionalAvailabili
     }
   };
 
+  const isFeatureDisabled = !webhookUrl && !isLoadingSettings;
+
   return (
     <Card>
       <CardHeader>
         <CardTitle>Disponibilidad de Profesionales</CardTitle>
         <CardDescription>
-          Activa o desactiva para marcar a un profesional como ausente o presente para el día seleccionado.
+          {isFeatureDisabled 
+            ? "Configura la URL del webhook en Ajustes para habilitar esta función."
+            : "Activa o desactiva para marcar a un profesional como ausente o presente para el día seleccionado."
+          }
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-wrap items-center gap-4">
         {PROFESSIONALS.map(prof => {
           const isPresent = availability[prof.name] !== false;
-          const isLoading = loading[prof.name];
+          const isLoading = loading[prof.name] || isLoadingSettings;
           
           return (
             <Button
               key={prof.name}
               onClick={() => handleToggle(prof.name)}
-              disabled={isLoading}
-              variant={isPresent ? 'default' : 'destructive'}
-              style={{
-                '--prof-color': prof.color,
-                backgroundColor: isPresent ? prof.color : undefined,
-              } as React.CSSProperties}
-              className={cn(
-                'text-white transition-all duration-200',
-                !isPresent && 'bg-opacity-20 text-foreground border-destructive hover:bg-destructive hover:text-destructive-foreground'
-              )}
+              disabled={isLoading || isFeatureDisabled}
+              variant="outline"
+              className="transition-all duration-200"
             >
               {isLoading ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -104,11 +113,14 @@ export function ProfessionalAvailability({ currentDate }: ProfessionalAvailabili
                  <span
                     className={cn(
                         "mr-2 h-3 w-3 rounded-full transition-colors",
-                        isPresent ? 'bg-green-300' : 'bg-gray-400'
+                        isPresent ? 'bg-green-500' : 'bg-red-500'
                     )}
                  />
               )}
-              {prof.name}: {isPresent ? 'Presente' : 'Ausente'}
+              <span style={{ color: prof.color }} className="font-bold">{prof.name}:</span>
+              <span className={cn("ml-1", isPresent ? "text-green-600" : "text-red-600")}>
+                {isPresent ? 'Presente' : 'Ausente'}
+              </span>
             </Button>
           );
         })}
