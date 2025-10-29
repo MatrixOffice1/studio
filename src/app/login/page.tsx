@@ -45,7 +45,7 @@ export default function LoginPage() {
     <div className="flex flex-col items-center justify-center min-h-screen bg-background p-4">
       <div className="w-full max-w-sm text-center">
         <Image
-          src="https://i.postimg.cc/dtPHbxL1/logoooooo.png"
+          src="https://i.postimg.cc/LXVKqFqv/df.png"
           alt="Logo"
           width={300}
           height={300}
