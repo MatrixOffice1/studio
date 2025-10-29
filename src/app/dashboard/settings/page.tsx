@@ -7,10 +7,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2 } from 'lucide-react';
+import { Loader2, LifeBuoy } from 'lucide-react';
 import { useUserSettings } from '@/hooks/use-user-settings';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/providers/auth-provider';
+import Image from 'next/image';
 
 export default function SettingsPage() {
   const { user } = useAuth();
@@ -36,7 +37,7 @@ export default function SettingsPage() {
       toast({
         variant: 'destructive',
         title: 'Error',
-        description: 'You must be logged in to save settings.',
+        description: 'Debes iniciar sesión para guardar la configuración.',
       });
       return;
     }
@@ -58,15 +59,14 @@ export default function SettingsPage() {
       console.error('Error saving settings:', error);
       toast({
         variant: 'destructive',
-        title: 'Error Saving Settings',
-        description: error.message || 'Could not save your settings to the database.',
+        title: 'Error al Guardar',
+        description: error.message || 'No se pudo guardar la configuración en la base de datos.',
       });
     } else {
       toast({
-        title: 'Settings Saved',
-        description: 'Your settings have been updated successfully.',
+        title: 'Configuración Guardada',
+        description: 'Tu configuración se ha actualizado correctamente.',
       });
-      // Refresh the settings in the context
       if (refreshSettings) {
         refreshSettings();
       }
@@ -74,39 +74,43 @@ export default function SettingsPage() {
     
     setIsSaving(false);
   };
+  
+  const openSupportChat = () => {
+    window.open('https://wa.me/34603028668', '_blank');
+  };
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 space-y-8">
+    <div className="p-4 sm:p-6 lg:p-8 space-y-8 flex flex-col min-h-screen">
       <header>
-        <h1 className="text-2xl sm:text-3xl font-headline font-bold">Settings</h1>
-        <p className="text-muted-foreground">Manage your application and integration settings.</p>
+        <h1 className="text-2xl sm:text-3xl font-headline font-bold">Ajustes</h1>
+        <p className="text-muted-foreground">Gestiona la configuración de tu aplicación e integraciones.</p>
       </header>
 
-      <div className="space-y-8">
+      <div className="space-y-8 flex-grow">
         <Card>
           <CardHeader>
-            <CardTitle>AI Configuration</CardTitle>
-            <CardDescription>Configure your AI provider and API key for features like chat summary.</CardDescription>
+            <CardTitle>Configuración de IA</CardTitle>
+            <CardDescription>Configura tu proveedor de IA y la clave API para funciones como el resumen de chat.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="ai-provider">AI Provider</Label>
+              <Label htmlFor="ai-provider">Proveedor de IA</Label>
               <Select value={aiProvider} onValueChange={setAiProvider}>
                 <SelectTrigger id="ai-provider">
-                  <SelectValue placeholder="Select AI Provider" />
+                  <SelectValue placeholder="Seleccionar Proveedor de IA" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="gemini">Gemini</SelectItem>
-                  <SelectItem value="openai" disabled>OpenAI (coming soon)</SelectItem>
+                  <SelectItem value="openai" disabled>OpenAI (próximamente)</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="api-key">{aiProvider === 'gemini' ? 'Gemini' : 'OpenAI'} API Key</Label>
+              <Label htmlFor="api-key">{aiProvider === 'gemini' ? 'Gemini' : 'OpenAI'} Clave API</Label>
               <Input
                 id="api-key"
                 type="password"
-                placeholder="Enter your API key"
+                placeholder="Introduce tu clave API"
                 value={apiKey}
                 onChange={(e) => setApiKey(e.target.value)}
               />
@@ -116,12 +120,12 @@ export default function SettingsPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>WhatsApp Integration</CardTitle>
-            <CardDescription>Manage your n8n and Supabase connections.</CardDescription>
+            <CardTitle>Integración de WhatsApp</CardTitle>
+            <CardDescription>Gestiona tus conexiones de n8n y Supabase.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="n8n-webhook">n8n Webhook URL</Label>
+              <Label htmlFor="n8n-webhook">URL del Webhook de n8n</Label>
               <Input
                 id="n8n-webhook"
                 placeholder="https://n8n.example.com/webhook/..."
@@ -130,11 +134,11 @@ export default function SettingsPage() {
               />
             </div>
             <div className="space-y-2">
-                <Label htmlFor="sync-interval">Auto-Sync Interval (minutes)</Label>
+                <Label htmlFor="sync-interval">Intervalo de Sincronización Automática (minutos)</Label>
                 <Input
                     id="sync-interval"
                     type="number"
-                    placeholder="e.g., 5"
+                    placeholder="ej. 5"
                     value={syncInterval}
                     onChange={(e) => setSyncInterval(e.target.value)}
                     min="1"
@@ -143,13 +147,36 @@ export default function SettingsPage() {
           </CardContent>
         </Card>
 
+        <Card>
+            <CardHeader>
+                <CardTitle>Soporte</CardTitle>
+                <CardDescription>¿Necesitas ayuda? Contacta con nuestro equipo de soporte.</CardDescription>
+            </CardHeader>
+            <CardContent className="flex flex-col items-center text-center gap-4">
+                <Image src="https://i.postimg.cc/LXVKqFqv/df.png" alt="Soporte Airmate" width={80} height={80} className="rounded-full" />
+                <div className='space-y-1'>
+                    <p className="font-semibold">Soporte Técnico AirmateAi</p>
+                    <p className="text-muted-foreground text-sm">+34 603 02 86 68</p>
+                </div>
+                <Button onClick={openSupportChat}>
+                    <LifeBuoy className="mr-2 h-4 w-4" />
+                    Abrir chat de soporte
+                </Button>
+            </CardContent>
+        </Card>
+
+
         <div className="flex justify-end">
           <Button onClick={handleSaveChanges} disabled={isSaving}>
             {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-            Save Changes
+            Guardar Cambios
           </Button>
         </div>
       </div>
+       <footer className="text-center text-sm text-muted-foreground pt-8">
+            <p>By: AirmateAi</p>
+            <p>Versión 1.9.1</p>
+        </footer>
     </div>
   );
 }
