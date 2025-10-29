@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
-import { Search, Send, Sparkles, Loader2, Bot } from 'lucide-react';
+import { Search, Send, Sparkles, Loader2, Bot, MessageSquare } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -82,7 +82,8 @@ export function Messages() {
         const validChats = data.filter(chat => chat.last_message_at);
         setChats(validChats);
         if (validChats.length > 0) {
-            setSelectedChat(validChats[0]);
+            // Don't autoselect a chat
+            // setSelectedChat(validChats[0]);
         }
       }
       setLoadingChats(false);
@@ -129,6 +130,7 @@ export function Messages() {
                     ...currentChats[chatIndex],
                     last_text: newMessage.text_display,
                     last_message_at: newMessage.timestamp,
+                    direction: newMessage.direction,
                 };
                 const otherChats = currentChats.filter(c => c.chat_id !== newMessage.chat_id);
                 return [updatedChat, ...otherChats].sort((a, b) => parseISO(b.last_message_at).getTime() - parseISO(a.last_message_at).getTime());
@@ -191,11 +193,9 @@ export function Messages() {
     if (match && match[1]) {
       return match[1].trim();
     }
-    return text;
+    return text.replace('vuelve a intentarlo', '').trim();
   };
   
-  const lastMessage = messages.length > 0 ? messages[messages.length - 1] : null;
-
   return (
     <div className="h-full flex">
       <div className="w-1/3 border-r flex flex-col">
@@ -221,6 +221,10 @@ export function Messages() {
           ) : (
             chats.map((chat) => {
               const avatarType = avatarTypes[chat.chat_id] || 'man';
+              const lastMessageInChat = messages.filter(m => m.chat_id === chat.chat_id).pop();
+              const lastText = lastMessageInChat ? lastMessageInChat.text_display : chat.last_text;
+              const lastDirection = lastMessageInChat ? lastMessageInChat.direction : chat.direction;
+
               return (
               <div
                 key={chat.chat_id}
@@ -236,14 +240,15 @@ export function Messages() {
                 </div>
                 <div className="flex-1 overflow-hidden">
                   <div className="flex justify-between items-center">
-                    <p className="font-semibold truncate">{chat.contact_name}</p>
+                    <p className="font-semibold truncate">{`+${chat.chat_id}`}</p>
                     <p className="text-xs text-muted-foreground flex-shrink-0">{formatTimestamp(chat.last_message_at)}</p>
                   </div>
-                  <p className="text-sm text-muted-foreground truncate">{`+${chat.chat_id}`}</p>
-                   <p className="text-sm text-muted-foreground truncate">
-                    {chat.direction === 'outbound' ? 'Tú: ' : ''}
-                    {formatMessageText(chat.last_text)}
-                  </p>
+                   <div className='w-full overflow-hidden'>
+                    <p className="text-sm text-muted-foreground truncate">
+                      {lastDirection === 'outbound' ? 'Tú: ' : ''}
+                      {formatMessageText(lastText)}
+                    </p>
+                  </div>
                 </div>
               </div>
             )})
@@ -313,7 +318,15 @@ export function Messages() {
               </div>
             </div>
           </>
-        ) : (!loadingChats && <div className="flex-grow flex items-center justify-center text-muted-foreground"><p>Selecciona una conversación para empezar a chatear</p></div>)}
+        ) : (!loadingChats && 
+              <div className='w-full h-full flex flex-col items-center justify-center text-center p-4'>
+                <div className='w-24 h-24 rounded-full bg-muted flex items-center justify-center'>
+                    <MessageSquare className='w-12 h-12 text-muted-foreground' />
+                </div>
+                <h2 className='text-2xl font-bold font-headline mt-4'>Bienvenido al Dashboard</h2>
+                <p>Selecciona un chat para ver los mensajes.</p>
+            </div>
+        )}
       </div>
     </div>
   );
