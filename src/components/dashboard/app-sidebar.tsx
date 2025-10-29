@@ -37,10 +37,10 @@ import { supabase } from "@/lib/supabase"
 import { PlaceHolderImages } from "@/lib/placeholder-images"
 
 const menuItems = [
-  { href: "/dashboard/messages", label: "Messages", icon: MessagesSquare },
-  { href: "/dashboard/analytics", label: "Analytics", icon: BarChart3 },
-  { href: "/dashboard/appointments", label: "Appointments", icon: CalendarDays },
-  { href: "/dashboard/settings", label: "Settings", icon: Settings },
+  { href: "/dashboard/messages", label: "Mensajes", icon: MessagesSquare },
+  { href: "/dashboard/analytics", label: "Analíticas", icon: BarChart3 },
+  { href: "/dashboard/appointments", label: "Agenda", icon: CalendarDays },
+  { href: "/dashboard/settings", label: "Ajustes", icon: Settings },
 ]
 
 export function AppSidebar() {
@@ -55,7 +55,7 @@ export function AppSidebar() {
 
   const isActive = (href: string) => {
     if (href === "/dashboard") return pathname === "/dashboard" || pathname === "/dashboard/messages";
-    return pathname === href;
+    return pathname.startsWith(href);
   }
   
   const currentUserAvatar = PlaceHolderImages.find(img => img.id === 'currentUserAvatar');
@@ -112,12 +112,12 @@ export function AppSidebar() {
             <DropdownMenuSeparator />
             <DropdownMenuItem disabled>
               <User className="mr-2 h-4 w-4" />
-              <span>Profile</span>
+              <span>Perfil</span>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={handleLogout}>
                <LogOut className="mr-2 h-4 w-4" />
-               <span>Log out</span>
+               <span>Cerrar sesión</span>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
