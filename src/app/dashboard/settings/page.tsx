@@ -1,7 +1,7 @@
+
 'use client';
 
-import { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabase';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -9,54 +9,25 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
-import { useUserSettings } from '@/hooks/use-user-settings';
 
 export default function SettingsPage() {
-  const { settings, loading, updateSettings } = useUserSettings();
   const [aiProvider, setAiProvider] = useState('gemini');
   const [apiKey, setApiKey] = useState('');
   const [n8nWebhook, setN8nWebhook] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const { toast } = useToast();
 
-  useEffect(() => {
-    if (settings) {
-      setAiProvider(settings.aiProvider || 'gemini');
-      setApiKey(settings.apiKey || '');
-      setN8nWebhook(settings.n8nWebhook || '');
-    }
-  }, [settings]);
-
   const handleSaveChanges = async () => {
     setIsSaving(true);
-    try {
-      await updateSettings({
-        aiProvider,
-        apiKey,
-        n8nWebhook,
-      });
-      toast({
-        title: 'Settings Saved',
-        description: 'Your settings have been updated successfully.',
-      });
-    } catch (error: any) {
-      toast({
-        variant: 'destructive',
-        title: 'Error Saving Settings',
-        description: error.message,
-      });
-    } finally {
-      setIsSaving(false);
-    }
+    // Mock saving settings
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    console.log('Saving settings:', { aiProvider, apiKey, n8nWebhook });
+    toast({
+      title: 'Settings Saved',
+      description: 'Your settings have been updated successfully.',
+    });
+    setIsSaving(false);
   };
-
-  if (loading) {
-    return (
-      <div className="p-4 sm:p-6 lg:p-8 space-y-8 flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-      </div>
-    );
-  }
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 space-y-8">

@@ -35,7 +35,7 @@ import { Logo } from "@/components/logo"
 import { currentUser } from "@/lib/placeholder-data"
 
 const menuItems = [
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/dashboard/messages", label: "Messages", icon: MessagesSquare },
   { href: "/dashboard/analytics", label: "Analytics", icon: BarChart3 },
   { href: "/dashboard/appointments", label: "Appointments", icon: CalendarDays },
   { href: "/dashboard/settings", label: "Settings", icon: Settings },
@@ -44,6 +44,11 @@ const menuItems = [
 export function AppSidebar() {
   const pathname = usePathname()
 
+  const isActive = (href: string) => {
+    if (href === "/dashboard") return pathname === "/dashboard" || pathname === "/dashboard/messages";
+    return pathname === href;
+  }
+  
   return (
     <Sidebar>
       <SidebarHeader>
@@ -55,7 +60,7 @@ export function AppSidebar() {
             <SidebarMenuItem key={item.label}>
               <SidebarMenuButton
                 asChild
-                isActive={pathname === item.href}
+                isActive={isActive(item.href)}
                 tooltip={item.label}
               >
                 <Link href={item.href}>
@@ -97,11 +102,9 @@ export function AppSidebar() {
               <span>Profile</span>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem asChild>
-               <Link href="/login">
-                  <LogOut className="mr-2 h-4 w-4" />
-                  <span>Log out</span>
-               </Link>
+            <DropdownMenuItem>
+               <LogOut className="mr-2 h-4 w-4" />
+               <span>Log out</span>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

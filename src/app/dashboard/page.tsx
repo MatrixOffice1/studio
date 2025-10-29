@@ -1,9 +1,5 @@
-import { Messages } from '@/components/dashboard/messages';
+import { redirect } from 'next/navigation';
 
 export default function DashboardPage() {
-  return (
-    <div className="h-full">
-      <Messages />
-    </div>
-  );
+  redirect('/dashboard/messages');
 }

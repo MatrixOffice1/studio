@@ -13,7 +13,6 @@ import { generateConversationSummary } from '@/ai/flows/generate-conversation-su
 import { format, isToday, isYesterday, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { useUserSettings } from '@/hooks/use-user-settings';
 
 type Chat = {
   chat_id: string;
@@ -57,7 +56,8 @@ export function Messages() {
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const [avatars, setAvatars] = useState<Record<string, 'man' | 'woman'>>({});
   const [isSummaryDialogOpen, setIsSummaryDialogOpen] = useState(false);
-  const { settings, loading: loadingSettings } = useUserSettings();
+  
+  const [apiKey, setApiKey] = useState<string | undefined>(undefined);
 
   const handleAvatarToggle = (e: React.MouseEvent, chatId: string) => {
     e.stopPropagation();
@@ -191,7 +191,7 @@ export function Messages() {
     return text.replace(/Mensaje del usuario:\s*(.*?)\s*-\s*La fecha de hoy es.*|vuelve a intentarlo/gis, '$1').trim();
   };
   
-  const isSummaryButtonDisabled = loadingSettings || !settings?.apiKey;
+  const isSummaryButtonDisabled = !apiKey || isSummarizing || loadingMessages;
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 h-full">
@@ -266,7 +266,7 @@ export function Messages() {
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <Button onClick={handleSummary} disabled={isSummaryButtonDisabled || isSummarizing || loadingMessages} size="sm" variant="outline">
+                <Button onClick={handleSummary} disabled={isSummaryButtonDisabled} size="sm" variant="outline">
                     {isSummarizing ? (<><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Resumiendo...</>) : (<><Sparkles className="mr-2 h-4 w-4" /> Resumir chat con IA</>)}
                 </Button>
               </div>
