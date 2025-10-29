@@ -51,11 +51,11 @@ export function Messages() {
         .order('last_message_timestamp', { ascending: false });
 
       if (error) {
-        console.error('Error fetching chats:', error);
+        console.error('Error fetching chats:', error.message);
         toast({
           variant: 'destructive',
           title: 'Error',
-          description: 'Could not load chats.',
+          description: `Could not load chats: ${error.message}`,
         });
       } else if (data) {
         setChats(data);
@@ -85,11 +85,11 @@ export function Messages() {
         .order('timestamp', { ascending: true });
 
       if (error) {
-        console.error('Error fetching messages:', error);
+        console.error('Error fetching messages:', error.message);
         toast({
           variant: 'destructive',
           title: 'Error',
-          description: 'Could not load messages for this chat.',
+          description: `Could not load messages for this chat: ${error.message}`,
         });
       } else {
         setMessages(data || []);
