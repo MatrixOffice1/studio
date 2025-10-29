@@ -18,7 +18,7 @@ type Chat = {
   chat_id: string;
   contact_name: string;
   last_message: string;
-  last_message_timestamp: string;
+  last_message_at: string;
 };
 
 type Message = {
@@ -48,7 +48,7 @@ export function Messages() {
       const { data, error } = await supabase
         .from('chats_v')
         .select('*')
-        .order('last_message_timestamp', { ascending: false });
+        .order('last_message_at', { ascending: false });
 
       if (error) {
         console.error('Error fetching chats:', error.message);
@@ -114,7 +114,7 @@ export function Messages() {
               const { data, error } = await supabase
                 .from('chats_v')
                 .select('*')
-                .order('last_message_timestamp', { ascending: false });
+                .order('last_message_at', { ascending: false });
               if(data) setChats(data);
             };
             fetchChats();
@@ -223,7 +223,7 @@ export function Messages() {
                 <div className="flex-1 overflow-hidden">
                   <div className="flex justify-between items-center">
                     <p className="font-semibold truncate">{chat.contact_name}</p>
-                    <p className="text-xs text-muted-foreground flex-shrink-0">{formatTimestamp(chat.last_message_timestamp)}</p>
+                    <p className="text-xs text-muted-foreground flex-shrink-0">{formatTimestamp(chat.last_message_at)}</p>
                   </div>
                   <p className="text-sm text-muted-foreground truncate">{chat.last_message}</p>
                 </div>
