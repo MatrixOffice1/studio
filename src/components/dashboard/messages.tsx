@@ -29,11 +29,6 @@ type Message = {
   timestamp: string;
 };
 
-type ChatAvatar = {
-    chat_id: string;
-    avatar_type: 'man' | 'woman';
-};
-
 const AvatarWomanIcon = ({ className }: { className?: string }) => (
     <svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlnsXlink="http://www.w3.org/1999/xlink" viewBox="0 0 512 512" xmlSpace="preserve" className={className}>
         <g>
@@ -64,47 +59,34 @@ export function Messages() {
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const [avatarTypes, setAvatarTypes] = useState<Record<string, 'man' | 'woman'>>({});
 
+  const handleAvatarToggle = (chatId: string) => {
+    setAvatarTypes(prev => ({
+        ...prev,
+        [chatId]: prev[chatId] === 'woman' ? 'man' : 'woman'
+    }));
+  };
+
   useEffect(() => {
-    const fetchChatsAndAvatars = async () => {
+    const fetchChats = async () => {
       setLoadingChats(true);
-      
-      const { data: chatsData, error: chatsError } = await supabase
+      const { data, error } = await supabase
         .from('chats_v')
         .select('*')
         .order('last_message_at', { ascending: false });
 
-      const { data: avatarsData, error: avatarsError } = await supabase
-        .from('chat_avatars')
-        .select('chat_id, avatar_type');
-
-      if (chatsError) {
-        console.error('Error fetching chats:', chatsError.message);
-        toast({ variant: 'destructive', title: 'Error', description: `No se pudieron cargar los chats: ${chatsError.message}` });
-      }
-      
-      if (avatarsError) {
-        console.error('Error fetching avatars:', avatarsError.message);
-      }
-
-      if (chatsData) {
-        const validChats = chatsData.filter(chat => chat.last_message_at);
-        const avatarsMap: Record<string, 'man' | 'woman'> = {};
-        if (avatarsData) {
-            avatarsData.forEach(avatar => {
-                avatarsMap[avatar.chat_id] = avatar.avatar_type;
-            });
-        }
-        
+      if (error) {
+        console.error('Error fetching chats:', error.message);
+        toast({ variant: 'destructive', title: 'Error', description: `No se pudieron cargar los chats: ${error.message}` });
+      } else if (data) {
+        const validChats = data.filter(chat => chat.last_message_at);
         setChats(validChats);
-        setAvatarTypes(avatarsMap);
         if (validChats.length > 0) {
             setSelectedChat(validChats[0]);
         }
       }
       setLoadingChats(false);
     };
-
-    fetchChatsAndAvatars();
+    fetchChats();
   }, [toast]);
   
   useEffect(() => {
@@ -158,13 +140,7 @@ export function Messages() {
     
     channel
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages_v' }, handleNewMessage)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'chat_avatars' }, (payload) => {
-          const newAvatar = payload.new as ChatAvatar;
-          if (newAvatar) {
-            const { chat_id, avatar_type } = newAvatar;
-            setAvatarTypes(prev => ({...prev, [chat_id]: avatar_type}));
-          }
-      }).subscribe();
+      .subscribe();
 
     return () => {
       supabase.removeChannel(channel);
@@ -177,50 +153,6 @@ export function Messages() {
     }
   }, [messages]);
 
-  const handleAvatarClick = async (chatId: string) => {
-    const { data: { user } } = await supabase.auth.getUser();
-
-    if (!user) {
-        toast({ variant: "destructive", title: "Error de autenticación", description: "Debes iniciar sesión para cambiar el avatar." });
-        return;
-    }
-
-    const currentType = avatarTypes[chatId] || 'man';
-    const newType = currentType === 'man' ? 'woman' : 'man';
-
-    const { data: existing, error: selectError } = await supabase
-      .from('chat_avatars')
-      .select('chat_id')
-      .eq('chat_id', chatId)
-      .eq('user_id', user.id)
-      .maybeSingle();
-
-    if (selectError) {
-      console.error("Error checking avatar:", selectError.message);
-      toast({ variant: "destructive", title: "Error", description: `No se pudo verificar el avatar: ${selectError.message}` });
-      return;
-    }
-
-    let error;
-    if (existing) {
-      ({ error } = await supabase
-        .from('chat_avatars')
-        .update({ avatar_type: newType })
-        .eq('chat_id', chatId)
-        .eq('user_id', user.id));
-    } else {
-      ({ error } = await supabase
-        .from('chat_avatars')
-        .insert({ chat_id: chatId, avatar_type: newType, user_id: user.id }));
-    }
-
-    if (error) {
-        console.error("Error updating avatar:", error.message);
-        toast({ variant: "destructive", title: "Error", description: `No se pudo cambiar el avatar: ${error.message}` });
-    } else {
-        setAvatarTypes(prev => ({...prev, [chatId]: newType}));
-    }
-  };
 
   const handleSummary = async () => {
     if (!selectedChat || messages.length === 0) return;
@@ -294,7 +226,7 @@ export function Messages() {
                 className={cn('flex items-start gap-3 p-3 cursor-pointer hover:bg-muted', selectedChat?.chat_id === chat.chat_id && 'bg-accent hover:bg-accent')}
                 onClick={() => setSelectedChat(chat)}
               >
-                <div className="cursor-pointer" onClick={(e) => {e.stopPropagation(); handleAvatarClick(chat.chat_id)}}>
+                <div className="cursor-pointer" onClick={(e) => {e.stopPropagation(); handleAvatarToggle(chat.chat_id)}}>
                     <Avatar className="h-10 w-10 border-2 border-transparent hover:border-primary transition-colors">
                         <AvatarFallback className="bg-muted text-muted-foreground">
                             {avatarType === 'woman' ? <AvatarWomanIcon className="w-full h-full" /> : <AvatarManIcon className="w-full h-full" />}
@@ -306,11 +238,11 @@ export function Messages() {
                     <p className="font-semibold truncate">{chat.contact_name}</p>
                     <p className="text-xs text-muted-foreground flex-shrink-0">{formatTimestamp(chat.last_message_at)}</p>
                   </div>
-                  <p className="text-sm text-muted-foreground truncate">{`+${chat.chat_id}`}</p>
+                  <p className="text-sm text-muted-foreground">{`+${chat.chat_id}`}</p>
                    <p className="text-sm text-muted-foreground truncate">
                     {
                       selectedChat?.chat_id === chat.chat_id && lastMessage 
-                        ? `${lastMessage.sender === 'ai' ? 'Tú: ' : 'Cliente: '}${formatMessageText(lastMessage.text_display)}`
+                        ? `${lastMessage.sender === 'ai' ? 'Tú: ' : ''}${formatMessageText(lastMessage.text_display)}`
                         : formatMessageText(chat.last_text)
                     }
                   </p>
