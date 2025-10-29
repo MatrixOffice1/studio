@@ -10,7 +10,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { generateConversationSummary } from '@/ai/flows/generate-conversation-summary';
-import { formatDistanceToNowStrict, parseISO } from 'date-fns';
+import { format, formatDistanceToNowStrict, isToday, isYesterday, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 
 type Chat = {
@@ -193,9 +193,16 @@ export function Messages() {
 
   const formatTimestamp = (timestamp: string) => {
     try {
-      return formatDistanceToNowStrict(parseISO(timestamp), { addSuffix: true, locale: es });
+        const date = parseISO(timestamp);
+        if (isToday(date)) {
+            return format(date, 'p', { locale: es });
+        }
+        if (isYesterday(date)) {
+            return 'Ayer';
+        }
+        return format(date, 'dd/MM/yy', { locale: es });
     } catch (error) {
-      return "Fecha inválida";
+        return "Fecha inválida";
     }
   };
 
@@ -208,8 +215,15 @@ export function Messages() {
   };
 
   const AvatarIcon = ({ type }: { type?: 'man' | 'woman' }) => {
-    if (type === 'woman') return <User className="m-auto h-5 w-5" />;
-    return <PersonStanding className="m-auto h-5 w-5" />;
+      const WomanIcon = () => (
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Z"/><path d="M12 7v4"/><path d="M9 14h6"/></svg>
+      );
+      const ManIcon = () => (
+         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Z"/><path d="M15 9.5 9 15"/><path d="m15 15-6-6"/></svg>
+      );
+
+    if (type === 'woman') return <WomanIcon />;
+    return <ManIcon />;
   };
 
   return (
@@ -326,3 +340,5 @@ export function Messages() {
     </div>
   );
 }
+
+    
