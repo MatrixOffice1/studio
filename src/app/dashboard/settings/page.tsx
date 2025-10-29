@@ -153,7 +153,7 @@ export default function SettingsPage() {
                 <CardDescription>¿Necesitas ayuda? Contacta con nuestro equipo de soporte.</CardDescription>
             </CardHeader>
             <CardContent className="flex flex-col items-center text-center gap-4">
-                <Image src="https://i.postimg.cc/LXVKqFqv/df.png" alt="Soporte Airmate" width={80} height={80} className="rounded-full" />
+                <Image src="https://i.postimg.cc/LXVKqFqv/df.png" alt="Soporte Airmate" width={120} height={120} className="rounded-full" />
                 <div className='space-y-1'>
                     <p className="font-semibold">Soporte Técnico AirmateAi</p>
                     <p className="text-muted-foreground text-sm">+34 603 02 86 68</p>
