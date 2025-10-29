@@ -30,9 +30,9 @@ const prompt = ai.definePrompt({
   name: 'generateCommunicationPerformanceAnalysisPrompt',
   input: {schema: GenerateCommunicationPerformanceAnalysisInputSchema},
   output: {schema: GenerateCommunicationPerformanceAnalysisOutputSchema},
-  prompt: `Eres un analista de datos experto en comunicación para negocios locales. Tu tarea es generar un informe de rendimiento conciso y profesional para "Peluquería Abbaglia Nails & Beauty" basado en los datos de mensajes de los últimos 7 días. Tu respuesta debe estar en español.
+  prompt: `Eres un analista de datos experto en comunicación para negocios locales. Tu tarea es generar un informe de rendimiento muy conciso y profesional para "Peluquería Abbaglia Nails & Beauty" basado en los datos de mensajes de los últimos 7 días. Tu respuesta debe estar en español.
 
-  La estructura del informe debe ser la siguiente, utilizando Markdown para el formato:
+  La estructura del informe debe ser la siguiente, utilizando Markdown para el formato y siendo lo más breve y directo posible:
 
   # Análisis de Rendimiento de Comunicación
   ## Peluquería Abbaglia Nails & Beauty - Últimos 7 Días
@@ -40,35 +40,30 @@ const prompt = ai.definePrompt({
   ---
 
   ### Resumen Ejecutivo
-  Un párrafo breve que resuma los hallazgos clave: rendimiento general, puntos fuertes (ej. buen balance de respuesta) y áreas de oportunidad (ej. variabilidad en el volumen).
+  Un párrafo breve y directo que resuma los hallazgos clave: rendimiento general, puntos fuertes (ej. buen balance de respuesta) y áreas de oportunidad (ej. variabilidad en el volumen).
 
   ---
 
-  ### 1. Volumen y Tendencias
-  - **Total de Mensajes:** [Número total]
+  ### Métricas Clave
+  - **Volumen Total:** [Número total de mensajes]
   - **Promedio Diario:** [Número promedio]
-  - **Tendencia General:** Describe brevemente si la actividad es estable, volátil, creciente o decreciente. Menciona los días de mayor y menor actividad como picos y valles.
+  - **Balance (Entrantes/Salientes):** [Describe la proporción, ej. "Balance casi perfecto 1:1"]
+  - **Tendencia:** [Describe brevemente la tendencia, ej. "Actividad estable con picos notables"]
 
   ---
 
-  ### 2. Balance y Eficiencia
-  - **Mensajes Entrantes vs. Salientes:** Analiza la proporción. Un balance 1:1 es ideal y sugiere que cada consulta es atendida.
-  - **Análisis de Eficiencia:** Elogia la eficiencia si el balance es bueno, sugiriendo un buen protocolo de respuesta.
-
-  ---
-
-  ### 3. Oportunidades Clave de Mejora
-  Crea una lista corta con 2-3 recomendaciones accionables y concisas. Por ejemplo:
-  - **Investigar Picos de Actividad:** Para replicar campañas exitosas.
-  - **Gestión Proactiva:** Sugerir enviar promociones en días de baja actividad.
-  - **Analizar Contenido:** Recomendar clasificar los tipos de consulta para entender mejor las necesidades del cliente.
+  ### Oportunidades Clave
+  Crea una lista corta con 2-3 recomendaciones muy concisas y accionables.
+  - **Recomendación 1:** [Ej: Investigar picos de actividad para replicar campañas exitosas.]
+  - **Recomendación 2:** [Ej: Sugerir enviar promociones en días de baja actividad para estabilizar el volumen.]
+  - **Recomendación 3:** [Ej: Analizar tipos de consulta para optimizar las respuestas.]
 
   ---
 
   ### Conclusión
-  Un párrafo final que resuma la salud general de la comunicación y reitere la oportunidad más importante para el crecimiento.
+  Un párrafo final muy breve que resuma la salud general de la comunicación y reitere la oportunidad más importante.
 
-  Aquí están los datos de los mensajes (cadena JSON):
+  Datos de los mensajes (cadena JSON):
   {{{messages}}}
   `,
 });
