@@ -35,7 +35,7 @@ const prompt = ai.definePrompt({
   output: {
     schema: GenerateAgendaAnalysisOutputSchema,
   },
-  prompt: `Eres un analista de negocio para la 'Peluquería Abbaglia Nails & Beauty'. Analiza la agenda de los próximos 7 días y proporciona un resumen ejecutivo. La zona horaria es 'Atlantic/Canary'. Enfócate en:
+  prompt: `Eres un analista de negocio para la 'Peluquería Abbaglia Nails & Beauty'. Analiza la agenda de los próximos 7 días y proporciona un resumen ejecutivo. La zona horaria es 'Europe/Madrid'. Enfócate en:
 
 * **Días de Mayor y Menor Actividad:** ¿Qué días tienen más citas?
 * **Distribución de Trabajo:** ¿Qué profesional tiene más carga de trabajo?

@@ -28,18 +28,18 @@ export function AgendaHeader({
   onSync,
   isSyncing
 }: AgendaHeaderProps) {
-  const [time, setTime] = useState(DateTime.now().setZone('Atlantic/Canary'));
+  const [time, setTime] = useState(DateTime.now().setZone('Europe/Madrid'));
 
   useEffect(() => {
     const timerId = setInterval(() => {
-      setTime(DateTime.now().setZone('Atlantic/Canary'));
+      setTime(DateTime.now().setZone('Europe/Madrid'));
     }, 1000);
     return () => clearInterval(timerId);
   }, []);
 
   const handleDateSelect = (date: Date | undefined) => {
     if (date) {
-      setCurrentDate(DateTime.fromJSDate(date).setZone('Atlantic/Canary'));
+      setCurrentDate(DateTime.fromJSDate(date).setZone('Europe/Madrid'));
     }
   };
 
@@ -49,7 +49,7 @@ export function AgendaHeader({
         <h1 className="text-2xl sm:text-3xl font-headline font-bold">Agenda Diaria</h1>
         <div className="bg-foreground text-background rounded-lg px-4 py-2 text-center">
           <p className="text-2xl font-bold font-mono tracking-wider">{time.toFormat('HH:mm:ss')}</p>
-          <p className="text-xs opacity-80">Hora de Canarias</p>
+          <p className="text-xs opacity-80">Hora de Madrid</p>
         </div>
       </div>
 
@@ -81,7 +81,7 @@ export function AgendaHeader({
         <Button variant="outline" size="icon" onClick={() => setCurrentDate(currentDate.minus({ days: 1 }))}>
           <ChevronLeft className="h-4 w-4" />
         </Button>
-        <Button variant="outline" onClick={() => setCurrentDate(DateTime.now().setZone('Atlantic/Canary'))}>Hoy</Button>
+        <Button variant="outline" onClick={() => setCurrentDate(DateTime.now().setZone('Europe/Madrid'))}>Hoy</Button>
         <Button variant="outline" size="icon" onClick={() => setCurrentDate(currentDate.plus({ days: 1 }))}>
           <ChevronRight className="h-4 w-4" />
         </Button>

@@ -4,10 +4,9 @@ import { DateTime } from 'luxon';
 import type { CalendarEvent } from './agenda-view';
 
 const PROFESSIONAL_COLORS: { [key: string]: string } = {
-  'Josep Toledano': '#3b82f6', // blue-500
-  'Bea': '#ef4444', // red-500
-  'Grimanesa': '#8b5cf6', // violet-500
-  'Priscila González': '#10b981', // emerald-500
+  'Ana': '#ef4444', // red-500
+  'Joana': '#22c55e', // green-500
+  'Maria': '#3b82f6', // blue-500
 };
 
 const SERVICE_COLORS: { [key: string]: string } = {

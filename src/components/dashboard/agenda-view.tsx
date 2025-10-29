@@ -27,14 +27,14 @@ export type CalendarEvent = {
   professional: string;
 };
 
-const PROFESSIONALS = ['Josep Toledano', 'Bea', 'Grimanesa', 'Priscila González'];
+const PROFESSIONALS = ['Ana', 'Joana', 'Maria'];
 
 export function AgendaView() {
   const { settings } = useUserSettings();
   const { toast } = useToast();
   
   const [allEvents, setAllEvents] = useState<CalendarEvent[]>([]);
-  const [currentDate, setCurrentDate] = useState(DateTime.now().setZone('Atlantic/Canary'));
+  const [currentDate, setCurrentDate] = useState(DateTime.now().setZone('Europe/Madrid'));
   const [agendaLoading, setAgendaLoading] = useState(false);
   const [agendaError, setAgendaError] = useState<string | null>(null);
   const [isAutoSyncEnabled, setIsAutoSyncEnabled] = useState(false);
@@ -64,7 +64,7 @@ export function AgendaView() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
-          day: DateTime.now().setZone('Atlantic/Canary').toISODate(), 
+          day: DateTime.now().setZone('Europe/Madrid').toISODate(), 
           cb: Date.now() 
         })
       });
@@ -75,8 +75,8 @@ export function AgendaView() {
       if (data.ok && Array.isArray(data.items)) {
         const processed = data.items.map((ev: any) => ({
           ...ev,
-          start: DateTime.fromISO(ev.start, { zone: 'Atlantic/Canary' }),
-          end: DateTime.fromISO(ev.end, { zone: 'Atlantic/Canary' }),
+          start: DateTime.fromISO(ev.start, { zone: 'Europe/Madrid' }),
+          end: DateTime.fromISO(ev.end, { zone: 'Europe/Madrid' }),
           uid: ev.id,
         }));
         setAllEvents(processed);
@@ -106,7 +106,7 @@ export function AgendaView() {
   }, [allEvents, currentDate]);
 
   const eventsForNext7Days = useMemo(() => {
-    const today = DateTime.now().setZone('Atlantic/Canary').startOf('day');
+    const today = DateTime.now().setZone('Europe/Madrid').startOf('day');
     const sevenDaysFromNow = today.plus({ days: 7 });
     return allEvents.filter(event => event.start >= today && event.start < sevenDaysFromNow);
   }, [allEvents]);
@@ -124,7 +124,7 @@ export function AgendaView() {
       return { total: 0, completed: 0, pending: 0, next7Days: eventsForNext7Days.length };
     }
     
-    const now = DateTime.now().setZone('Atlantic/Canary');
+    const now = DateTime.now().setZone('Europe/Madrid');
     const completed = events.filter(ev => ev.end <= now).length;
     const pending = events.length - completed;
     
