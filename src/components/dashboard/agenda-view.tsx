@@ -251,7 +251,7 @@ export function AgendaView() {
             end: selectedEvent.end.toISO(),
             service: selectedEvent.service,
             clientName: selectedEvent.clientName,
-            professional: selectedEvent.professional,
+            professional_asignado: selectedEvent.professional,
           }
         }),
       });
