@@ -50,7 +50,7 @@ export default function SettingsPage() {
       toast({
         variant: 'destructive',
         title: 'Error Saving Settings',
-        description: 'Could not save your settings to the database.',
+        description: error.message || 'Could not save your settings to the database.',
       });
     } else {
       toast({
@@ -58,7 +58,9 @@ export default function SettingsPage() {
         description: 'Your settings have been updated successfully.',
       });
       // Refresh the settings in the context
-      refreshSettings();
+      if (refreshSettings) {
+        refreshSettings();
+      }
     }
     
     setIsSaving(false);

@@ -1,8 +1,7 @@
 'use client';
 
-import { createContext, useCallback, useEffect, useState } from 'react';
+import { createContext, useCallback, useEffect, useState, ReactNode } from 'react';
 import { supabase } from '@/lib/supabase';
-import { useAuth } from './auth-provider';
 
 export type UserSettings = {
   gemini_api_key?: string;
@@ -12,12 +11,12 @@ export type UserSettings = {
 type UserSettingsContextType = {
   settings: UserSettings | null;
   isLoading: boolean;
-  refreshSettings: () => void;
+  refreshSettings: (() => void) | null;
 };
 
 export const UserSettingsContext = createContext<UserSettingsContextType | undefined>(undefined);
 
-export function UserSettingsProvider({ children, userId }: { children: React.ReactNode, userId?: string }) {
+export function UserSettingsProvider({ children, userId }: { children: ReactNode, userId?: string }) {
   const [settings, setSettings] = useState<UserSettings | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
