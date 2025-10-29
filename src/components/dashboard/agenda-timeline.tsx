@@ -35,15 +35,16 @@ type AgendaTimelineProps = {
 };
 
 export function AgendaTimeline({ events, professionals }: AgendaTimelineProps) {
-  const timeSlots = Array.from({ length: 13 }, (_, i) => DateTime.local().set({ hour: 8 + i, minute: 0 }));
+  const timeSlots = Array.from({ length: 11 }, (_, i) => DateTime.local().set({ hour: 10 + i, minute: 0 }));
 
   const renderEventOnGrid = (event: CalendarEvent) => {
     const { start, end, uid, title, clientName, service } = event;
     
-    if (start.hour < 8 || start.hour >= 21) return null;
+    const timelineStartHour = 10;
+    if (start.hour < timelineStartHour || start.hour >= 21) return null;
 
     const pixelsPerHour = 80; // Corresponds to h-20 in Tailwind
-    const top = ((start.hour - 8) * 60 + start.minute) * (pixelsPerHour / 60);
+    const top = ((start.hour - timelineStartHour) * 60 + start.minute) * (pixelsPerHour / 60);
     const height = Math.max(20, end.diff(start, 'minutes').minutes * (pixelsPerHour / 60) - 2);
     const serviceColor = getEventColor(event);
     
@@ -81,6 +82,7 @@ export function AgendaTimeline({ events, professionals }: AgendaTimelineProps) {
                         {time.minute === 0 ? time.toFormat('HH:mm') : ''}
                     </div>
                 ))}
+                 <div className="h-10 text-right pr-2 text-sm text-muted-foreground border-t pt-1">20:30</div>
             </div>
 
             {/* Professionals columns */}
@@ -96,6 +98,7 @@ export function AgendaTimeline({ events, professionals }: AgendaTimelineProps) {
                         {timeSlots.map(time => (
                             <div key={time.toISOTime()} className="h-20 border-t"></div>
                         ))}
+                         <div className="h-10 border-t"></div>
                         {events
                             .filter(ev => ev.professional === prof)
                             .map(event => renderEventOnGrid(event))
