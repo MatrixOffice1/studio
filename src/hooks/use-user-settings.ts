@@ -1,89 +1,30 @@
+
 "use client";
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, createContext, useContext, ReactNode } from 'react';
 import { supabase } from '@/lib/supabase';
 import { User } from '@supabase/supabase-js';
 
-type UserSettings = {
+export type UserSettings = {
   aiProvider?: 'gemini' | 'openai';
   apiKey?: string;
   n8nWebhook?: string;
   [key: string]: any;
 };
 
+export interface UserSettingsContextType {
+  settings: UserSettings | null;
+  loading: boolean;
+  updateSettings: (newSettings: UserSettings) => Promise<void>;
+  user: User | null;
+}
+
+export const UserSettingsContext = createContext<UserSettingsContextType | undefined>(undefined);
+
 export function useUserSettings() {
-  const [user, setUser] = useState<User | null>(null);
-  const [settings, setSettings] = useState<UserSettings | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const fetchUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      setUser(user);
-    };
-
-    fetchUser();
-
-    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
-      setUser(session?.user ?? null);
-    });
-
-    return () => {
-      authListener?.subscription.unsubscribe();
-    };
-  }, []);
-
-  const fetchSettings = useCallback(async () => {
-    if (user) {
-      setLoading(true);
-      try {
-        const { data, error } = await supabase
-          .from('user_settings')
-          .select('settings')
-          .eq('user_id', user.id)
-          .single();
-
-        if (error && error.code !== 'PGRST116') { // PGRST116: "object not found"
-          throw error;
-        }
-
-        setSettings(data?.settings || {});
-      } catch (error) {
-        console.error("Error fetching user settings:", error);
-        setSettings({}); // Default to empty settings on error
-      } finally {
-        setLoading(false);
-      }
-    } else {
-        setLoading(false);
-    }
-  }, [user]);
-
-  useEffect(() => {
-    fetchSettings();
-  }, [fetchSettings]);
-
-  const updateSettings = useCallback(async (newSettings: UserSettings) => {
-    if (!user) {
-      throw new Error("User must be logged in to update settings.");
-    }
-
-    const { error } = await supabase.from('user_settings').upsert(
-      {
-        user_id: user.id,
-        settings: { ...settings, ...newSettings },
-        updated_at: new Date().toISOString(),
-      },
-      { onConflict: 'user_id' }
-    );
-
-    if (error) {
-      throw error;
-    }
-    
-    // Refresh settings after update
-    await fetchSettings();
-  }, [user, settings, fetchSettings]);
-
-  return { settings, loading, updateSettings };
+  const context = useContext(UserSettingsContext);
+  if (context === undefined) {
+    throw new Error('useUserSettings must be used within a UserSettingsProvider');
+  }
+  return context;
 }

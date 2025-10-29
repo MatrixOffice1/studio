@@ -1,6 +1,7 @@
+
 import { AppSidebar } from '@/components/dashboard/app-sidebar';
 import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
-import { UserSettingsProvider } from '@/hooks/use-user-settings';
+import { UserSettingsProvider } from '@/providers/user-settings-provider';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
