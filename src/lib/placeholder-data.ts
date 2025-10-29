@@ -1,3 +1,4 @@
+
 export const currentUser = {
   name: "Sofia",
   avatar: "https://picsum.photos/seed/me/40/40",
@@ -18,7 +19,7 @@ export const kpiData = {
         { day: 'Jue', messages: 30 },
         { day: 'Vie', messages: 22 },
         { day: 'Sáb', messages: 35 },
-        { day 'Dom', messages: 12 },
+        { day: 'Dom', messages: 12 },
     ]
 };
 
