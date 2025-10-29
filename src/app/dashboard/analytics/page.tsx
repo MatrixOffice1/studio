@@ -1,9 +1,11 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { kpiData, dailyActivity } from '@/lib/placeholder-data';
 import { TrendingUp, MessageSquare, Users, Percent } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { AnalyticsClient } from '@/components/dashboard/analytics-client';
 import { TrendsChart } from '@/components/dashboard/trends-chart';
+import { supabase } from '@/lib/supabase';
+import { subDays, format, parseISO } from 'date-fns';
+import { es } from 'date-fns/locale';
 
 const activityColors: { [key: string]: string } = {
   confirmation: 'bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-300',
@@ -11,7 +13,82 @@ const activityColors: { [key: string]: string } = {
   payment: 'bg-yellow-100 dark:bg-yellow-900/50 text-yellow-800 dark:text-yellow-300',
 };
 
-export default function AnalyticsPage() {
+async function getAnalyticsData() {
+  const { data: chats, error } = await supabase.from('chats_v').select('*');
+
+  if (error) {
+    console.error('Error fetching Supabase data:', error);
+    return {
+      kpiData: {
+        totalMessages: 0,
+        avgDailyComm: 0,
+        incomingPercentage: 0,
+        last7DaysTrend: [],
+      },
+      dailyActivity: [],
+    };
+  }
+
+  const totalMessages = chats.length;
+
+  const incomingMessages = chats.filter(c => c.direction === 'incoming').length;
+  const incomingPercentage = totalMessages > 0 ? Math.round((incomingMessages / totalMessages) * 100) : 0;
+
+  const today = new Date();
+  const dateMap = new Map<string, number>();
+  
+  chats.forEach(chat => {
+    const chatDate = format(parseISO(chat.created_at), 'yyyy-MM-dd');
+    dateMap.set(chatDate, (dateMap.get(chatDate) || 0) + 1);
+  });
+  
+  const totalDays = dateMap.size;
+  const avgDailyComm = totalDays > 0 ? Math.round(totalMessages / totalDays) : 0;
+
+
+  const last7DaysTrend = Array.from({ length: 7 }).map((_, i) => {
+    const date = subDays(today, i);
+    const dayKey = format(date, 'yyyy-MM-dd');
+    const dayName = format(date, 'EEE', { locale: es });
+    return {
+      day: dayName.charAt(0).toUpperCase() + dayName.slice(1, 3),
+      messages: dateMap.get(dayKey) || 0,
+    };
+  }).reverse();
+
+  // This is a placeholder for daily activity as `chats_v` doesn't seem to have enough info for it.
+  const dailyActivity = [
+      {
+          date: "Hoy, 24 de Julio",
+          activities: [
+              { time: "10:45 AM", user: "Elena Rodriguez", description: "Confirmó cita para el viernes.", type: "confirmation" },
+              { time: "9:30 AM", user: "Carlos Gomez", description: "Confirmó cita para mañana.", type: "confirmation" },
+          ]
+      },
+      {
+          date: "Ayer, 23 de Julio",
+          activities: [
+              { time: "4:15 PM", user: "Ana Perez", description: "Solicitó información sobre tratamiento de color.", type: "inquiry" },
+              { time: "2:00 PM", user: "Luisa Martinez", description: "Envió comprobante de pago.", type: "payment" },
+          ]
+      }
+  ];
+
+  return {
+    kpiData: {
+      totalMessages,
+      avgDailyComm,
+      incomingPercentage,
+      last7DaysTrend,
+    },
+    dailyActivity,
+  };
+}
+
+
+export default async function AnalyticsPage() {
+  const { kpiData, dailyActivity } = await getAnalyticsData();
+
   return (
     <div className="p-4 sm:p-6 lg:p-8 space-y-8">
       <header>
@@ -68,7 +145,7 @@ export default function AnalyticsPage() {
             <CardTitle>Last 7 Days Trend</CardTitle>
           </CardHeader>
           <CardContent className="h-[300px]">
-            <TrendsChart />
+            <TrendsChart data={kpiData.last7DaysTrend} />
           </CardContent>
         </Card>
 
@@ -82,8 +159,8 @@ export default function AnalyticsPage() {
                 <div key={day.date}>
                   <h4 className="font-semibold text-sm mb-2">{day.date}</h4>
                   <div className="space-y-3">
-                    {day.activities.map(activity => (
-                      <div key={activity.time} className="flex items-start gap-3">
+                    {day.activities.map((activity, index) => (
+                      <div key={index} className="flex items-start gap-3">
                         <div className="text-xs text-muted-foreground w-16 text-right pt-1">{activity.time}</div>
                         <div className="flex-1">
                            <Badge variant="outline" className={`font-normal ${activityColors[activity.type]}`}>{activity.user}</Badge>
