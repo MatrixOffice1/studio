@@ -1,56 +1,98 @@
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Separator } from "@/components/ui/separator"
-import { Switch } from "@/components/ui/switch"
+'use client';
+
+import { useState, useEffect } from 'react';
+import { supabase } from '@/lib/supabase';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useToast } from '@/hooks/use-toast';
+import { Loader2 } from 'lucide-react';
+import { useUserSettings } from '@/hooks/use-user-settings';
 
 export default function SettingsPage() {
+  const { settings, loading, updateSettings } = useUserSettings();
+  const [aiProvider, setAiProvider] = useState('gemini');
+  const [apiKey, setApiKey] = useState('');
+  const [n8nWebhook, setN8nWebhook] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    if (settings) {
+      setAiProvider(settings.aiProvider || 'gemini');
+      setApiKey(settings.apiKey || '');
+      setN8nWebhook(settings.n8nWebhook || '');
+    }
+  }, [settings]);
+
+  const handleSaveChanges = async () => {
+    setIsSaving(true);
+    try {
+      await updateSettings({
+        aiProvider,
+        apiKey,
+        n8nWebhook,
+      });
+      toast({
+        title: 'Settings Saved',
+        description: 'Your settings have been updated successfully.',
+      });
+    } catch (error: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Error Saving Settings',
+        description: error.message,
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="p-4 sm:p-6 lg:p-8 space-y-8 flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
   return (
     <div className="p-4 sm:p-6 lg:p-8 space-y-8">
       <header>
         <h1 className="text-2xl sm:text-3xl font-headline font-bold">Settings</h1>
-        <p className="text-muted-foreground">Manage your account and application settings.</p>
+        <p className="text-muted-foreground">Manage your application and integration settings.</p>
       </header>
 
       <div className="space-y-8">
         <Card>
           <CardHeader>
-            <CardTitle>Profile</CardTitle>
-            <CardDescription>Update your personal information.</CardDescription>
+            <CardTitle>AI Configuration</CardTitle>
+            <CardDescription>Configure your AI provider and API key for features like chat summary.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="name">Name</Label>
-              <Input id="name" defaultValue="Sofia" />
+              <Label htmlFor="ai-provider">AI Provider</Label>
+              <Select value={aiProvider} onValueChange={setAiProvider}>
+                <SelectTrigger id="ai-provider">
+                  <SelectValue placeholder="Select AI Provider" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="gemini">Gemini</SelectItem>
+                  <SelectItem value="openai">OpenAI</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" defaultValue="sofia@peluflow.com" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Notifications</CardTitle>
-            <CardDescription>Configure how you receive notifications.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <Label htmlFor="new-message" className="font-medium">New Messages</Label>
-                <p className="text-sm text-muted-foreground">Receive a notification for each new message.</p>
-              </div>
-              <Switch id="new-message" defaultChecked />
-            </div>
-            <Separator />
-            <div className="flex items-center justify-between">
-              <div>
-                <Label htmlFor="appointment-reminder" className="font-medium">Appointment Reminders</Label>
-                <p className="text-sm text-muted-foreground">Get reminded of upcoming appointments.</p>
-              </div>
-              <Switch id="appointment-reminder" defaultChecked />
+              <Label htmlFor="api-key">{aiProvider === 'gemini' ? 'Gemini' : 'OpenAI'} API Key</Label>
+              <Input
+                id="api-key"
+                type="password"
+                placeholder="Enter your API key"
+                value={apiKey}
+                onChange={(e) => setApiKey(e.target.value)}
+              />
             </div>
           </CardContent>
         </Card>
@@ -63,19 +105,23 @@ export default function SettingsPage() {
           <CardContent className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="n8n-webhook">n8n Webhook URL</Label>
-              <Input id="n8n-webhook" placeholder="https://n8n.example.com/webhook/..." />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="supabase-key">Supabase API Key</Label>
-              <Input id="supabase-key" type="password" placeholder="••••••••••••••••••••••••" />
+              <Input
+                id="n8n-webhook"
+                placeholder="https://n8n.example.com/webhook/..."
+                value={n8nWebhook}
+                onChange={(e) => setN8nWebhook(e.target.value)}
+              />
             </div>
           </CardContent>
         </Card>
 
         <div className="flex justify-end">
-            <Button>Save Changes</Button>
+          <Button onClick={handleSaveChanges} disabled={isSaving}>
+            {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+            Save Changes
+          </Button>
         </div>
       </div>
     </div>
-  )
+  );
 }
