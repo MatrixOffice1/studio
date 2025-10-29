@@ -169,8 +169,8 @@ export function Messages() {
         .upsert({ chat_id: chatId, avatar_type: newType }, { onConflict: 'chat_id' });
 
     if (error) {
-        console.error("Error updating avatar:", error);
-        toast({ variant: "destructive", title: "Error", description: "No se pudo cambiar el avatar." });
+        console.error("Error updating avatar:", error.message);
+        toast({ variant: "destructive", title: "Error", description: `No se pudo cambiar el avatar: ${error.message}` });
     } else {
         setAvatarTypes(prev => ({...prev, [chatId]: newType}));
     }
@@ -216,10 +216,10 @@ export function Messages() {
 
   const AvatarIcon = ({ type }: { type?: 'man' | 'woman' }) => {
       const WomanIcon = () => (
-          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Z"/><path d="M12 7v4"/><path d="M9 14h6"/></svg>
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-user-round"><circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 0 0-16 0"/></svg>
       );
       const ManIcon = () => (
-         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Z"/><path d="M15 9.5 9 15"/><path d="m15 15-6-6"/></svg>
+         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-user"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
       );
 
     if (type === 'woman') return <WomanIcon />;
@@ -340,5 +340,7 @@ export function Messages() {
     </div>
   );
 }
+
+    
 
     
