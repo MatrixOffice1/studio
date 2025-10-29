@@ -15,6 +15,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { AppointmentDetails } from './appointment-details';
 import { AppointmentCard } from './appointment-card';
+import { ProfessionalAvailability } from './professional-availability';
 
 
 export type CalendarEvent = {
@@ -225,6 +226,9 @@ export function AgendaView() {
         onSync={() => fetchCalendarEvents(true)}
         isSyncing={isSyncing}
       />
+      
+      <ProfessionalAvailability currentDate={currentDate} />
+
       <AgendaKpiCards stats={agendaStats} />
 
       <Card>
