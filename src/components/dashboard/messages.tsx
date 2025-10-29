@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
-import { Search, Send, Sparkles, Loader2, Bot, User } from 'lucide-react';
+import { Search, Send, Sparkles, Loader2, Bot } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -18,7 +18,6 @@ type Chat = {
   contact_name: string;
   last_text: string;
   last_message_at: string;
-  avatar_type?: 'man' | 'woman';
 };
 
 type Message = {
@@ -165,7 +164,7 @@ export function Messages() {
     const { data: { user } } = await supabase.auth.getUser();
 
     if (!user) {
-        toast({ variant: "destructive", title: "Error de autenticación", description: "No se pudo verificar la sesión de usuario. Por favor, refresca la página." });
+        toast({ variant: "destructive", title: "Error de autenticación", description: "Debes iniciar sesión para cambiar el avatar." });
         return;
     }
 
@@ -237,22 +236,27 @@ export function Messages() {
   };
 
   const formatMessageText = (text: string) => {
-      if (typeof text !== 'string') return '';
-      if (text.startsWith("Mensaje del usuario:")) {
-          const match = text.match(/Mensaje del usuario: (.*?)\s*-\s*La fecha de hoy es/);
-          return match ? match[1].trim() : text;
-      }
-      return text;
+    if (typeof text !== 'string') return '';
+    if (text.startsWith("Mensaje del usuario:")) {
+      const match = text.match(/Mensaje del usuario: (.*?)\s*-\s*La fecha de hoy es/s);
+      return match && match[1] ? match[1].trim() : text;
+    }
+    return text;
   };
+  
+  const UserIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-user"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+  );
+
+  const WomanIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-user-round"><circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 0 0-16 0"/></svg>
+  );
+  
+  const ManIcon = () => (
+     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-person-standing"><circle cx="12" cy="5" r="1"/><path d="m9 20 3-6 3 6"/><path d="m6 8 6 2 6-2"/><path d="M12 10v4"/></svg>
+  );
 
   const AvatarIcon = ({ type }: { type?: 'man' | 'woman' }) => {
-    const WomanIcon = () => (
-      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-    );
-    const ManIcon = () => (
-       <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 0 0-16 0"/></svg>
-    );
-
     if (type === 'woman') return <WomanIcon />;
     return <ManIcon />;
   };
@@ -340,7 +344,7 @@ export function Messages() {
                     <div key={msg.id} className={cn('flex items-end gap-2', msg.sender === 'ai' ? 'justify-end' : 'justify-start')}>
                       {msg.sender === 'human' && (
                         <Avatar className="h-8 w-8 bg-muted text-muted-foreground">
-                          <AvatarFallback><User className="m-auto h-5 w-5" /></AvatarFallback>
+                          <AvatarFallback><UserIcon /></AvatarFallback>
                         </Avatar>
                       )}
                       <div className={cn('max-w-xs md:max-w-md lg:max-w-lg rounded-lg px-4 py-2 shadow-md', msg.sender === 'ai' ? 'bg-primary text-primary-foreground rounded-br-none' : 'bg-card border-border border rounded-bl-none')}>
@@ -351,6 +355,7 @@ export function Messages() {
                         <Avatar className="h-8 w-8 bg-accent text-accent-foreground">
                            <AvatarFallback><Bot className="m-auto h-5 w-5" /></AvatarFallback>
                         </Avatar>
+
                       )}
                     </div>
                   ))}
@@ -371,3 +376,5 @@ export function Messages() {
     </div>
   );
 }
+
+    
