@@ -57,8 +57,6 @@ export function Messages() {
   const [avatars, setAvatars] = useState<Record<string, 'man' | 'woman'>>({});
   const [isSummaryDialogOpen, setIsSummaryDialogOpen] = useState(false);
   
-  const [apiKey, setApiKey] = useState<string | undefined>(undefined);
-
   const handleAvatarToggle = (e: React.MouseEvent, chatId: string) => {
     e.stopPropagation();
     setAvatars(prev => ({
@@ -191,7 +189,7 @@ export function Messages() {
     return text.replace(/Mensaje del usuario:\s*(.*?)\s*-\s*La fecha de hoy es.*|vuelve a intentarlo/gis, '$1').trim();
   };
   
-  const isSummaryButtonDisabled = !apiKey || isSummarizing || loadingMessages;
+  const isSummaryButtonDisabled = isSummarizing || loadingMessages;
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 h-full">

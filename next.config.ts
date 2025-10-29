@@ -33,6 +33,12 @@ const nextConfig: NextConfig = {
         hostname: 'cudwngrffwlppheeeecl.supabase.co',
         port: '',
         pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'i.postimg.cc',
+        port: '',
+        pathname: '/**',
       }
     ],
   },

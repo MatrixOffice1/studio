@@ -10,7 +10,7 @@ import {
   User,
 } from "lucide-react"
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 
 import {
   Sidebar,
@@ -32,7 +32,9 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Logo } from "@/components/logo"
-import { currentUser } from "@/lib/placeholder-data"
+import { useAuth } from "@/providers/auth-provider"
+import { supabase } from "@/lib/supabase"
+import { PlaceHolderImages } from "@/lib/placeholder-images"
 
 const menuItems = [
   { href: "/dashboard/messages", label: "Messages", icon: MessagesSquare },
@@ -43,11 +45,22 @@ const menuItems = [
 
 export function AppSidebar() {
   const pathname = usePathname()
+  const router = useRouter();
+  const { user } = useAuth();
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    router.push('/login');
+  };
 
   const isActive = (href: string) => {
     if (href === "/dashboard") return pathname === "/dashboard" || pathname === "/dashboard/messages";
     return pathname === href;
   }
+  
+  const currentUserAvatar = PlaceHolderImages.find(img => img.id === 'currentUserAvatar');
+  const userEmail = user?.email || 'user@peluflow.com';
+  const userName = user?.user_metadata?.name || userEmail.split('@')[0];
   
   return (
     <Sidebar>
@@ -79,10 +92,10 @@ export function AppSidebar() {
               <div className="flex justify-between items-center w-full">
                 <div className="flex gap-2 items-center">
                   <Avatar className="h-8 w-8">
-                    <AvatarImage src={currentUser.avatar} alt={currentUser.name} />
-                    <AvatarFallback>{currentUser.name.charAt(0)}</AvatarFallback>
+                    {currentUserAvatar && <AvatarImage src={currentUserAvatar.imageUrl} alt={userName} />}
+                    <AvatarFallback>{userName.charAt(0)}</AvatarFallback>
                   </Avatar>
-                  <span className="text-sm font-medium">{currentUser.name}</span>
+                  <span className="text-sm font-medium">{userName}</span>
                 </div>
               </div>
             </Button>
@@ -90,19 +103,19 @@ export function AppSidebar() {
           <DropdownMenuContent className="w-56 mb-2" align="end" forceMount>
             <DropdownMenuLabel className="font-normal">
               <div className="flex flex-col space-y-1">
-                <p className="text-sm font-medium leading-none">{currentUser.name}</p>
+                <p className="text-sm font-medium leading-none">{userName}</p>
                 <p className="text-xs leading-none text-muted-foreground">
-                  {currentUser.name.toLowerCase().replace(' ', '.')}@peluflow.com
+                  {userEmail}
                 </p>
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>
+            <DropdownMenuItem disabled>
               <User className="mr-2 h-4 w-4" />
               <span>Profile</span>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>
+            <DropdownMenuItem onClick={handleLogout}>
                <LogOut className="mr-2 h-4 w-4" />
                <span>Log out</span>
             </DropdownMenuItem>
