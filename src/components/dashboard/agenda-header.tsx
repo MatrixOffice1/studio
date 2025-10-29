@@ -46,7 +46,6 @@ export function AgendaHeader({
   return (
     <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
       <div className="flex items-center gap-4">
-        <h1 className="text-2xl sm:text-3xl font-headline font-bold">Agenda Diaria</h1>
         <div className="bg-foreground text-background rounded-lg px-4 py-2 text-center">
           <p className="text-2xl font-bold font-mono tracking-wider">{time.toFormat('HH:mm:ss')}</p>
           <p className="text-xs opacity-80">Hora Peninsular</p>
