@@ -18,10 +18,10 @@ const SERVICE_COLORS: { [key: string]: string } = {
   'Peinados': '#14b8a6', // teal-500
   'Tratamientos Kiki': '#06b6d4', // cyan-500
   'Tratamientos QIQI': '#6366f1', // indigo-500
-  'default': '#6b7280', // gray-500
+  'default': '#6b7280', // gray-500,
 };
 
-const getEventColor = (event: CalendarEvent): string => {
+const getEventBackgroundColor = (event: CalendarEvent): string => {
   if (event.service) {
     const serviceKey = Object.keys(SERVICE_COLORS).find(key => event.service!.toLowerCase().includes(key.toLowerCase()));
     if (serviceKey) return SERVICE_COLORS[serviceKey];
@@ -39,15 +39,16 @@ export function AgendaTimeline({ events, professionals, onEventClick }: AgendaTi
   const timeSlots = Array.from({ length: 11 }, (_, i) => DateTime.local().set({ hour: 10 + i, minute: 0 }));
 
   const renderEventOnGrid = (event: CalendarEvent) => {
-    const { start, end, uid, title, clientName, service } = event;
+    const { start, end, uid, title, clientName, service, professional } = event;
     
     const timelineStartHour = 10;
-    if (start.hour < timelineStartHour || start.hour >= 21) return null;
+    if (start.hour < timelineStartHour || start.hour > 20) return null;
 
     const pixelsPerHour = 80; // Corresponds to h-20 in Tailwind
     const top = ((start.hour - timelineStartHour) * 60 + start.minute) * (pixelsPerHour / 60);
     const height = Math.max(20, end.diff(start, 'minutes').minutes * (pixelsPerHour / 60) - 2);
-    const serviceColor = getEventColor(event);
+    const serviceBgColor = getEventBackgroundColor(event);
+    const profColor = PROFESSIONAL_COLORS[professional] || '#6b7280';
     
     return (
       <div 
@@ -58,8 +59,8 @@ export function AgendaTimeline({ events, professionals, onEventClick }: AgendaTi
           height: `${height}px`, 
           left: '2px', 
           right: '2px',
-          backgroundColor: `${serviceColor}26`, // 15% opacity
-          borderColor: serviceColor 
+          backgroundColor: `${serviceBgColor}26`, // 15% opacity for service color
+          borderColor: profColor // Border color for professional
         }}
         onClick={() => onEventClick(event)}
         title={`${start.toFormat('HH:mm')} - ${end.toFormat('HH:mm')}\nServicio: ${service || title}\nCliente: ${clientName || 'N/A'}`}
@@ -88,26 +89,37 @@ export function AgendaTimeline({ events, professionals, onEventClick }: AgendaTi
             </div>
 
             {/* Professionals columns */}
-            {professionals.map(prof => (
-                <div key={prof} className="flex-1 border-l min-w-[220px]">
-                    <div 
-                        className="h-16 sticky top-0 bg-card z-10 flex items-center justify-center p-2 border-b-4"
-                        style={{ borderBottomColor: PROFESSIONAL_COLORS[prof] || '#6b7280' }}
-                    >
-                        <span className="font-bold text-foreground text-center">{prof}</span>
+            {professionals.map(prof => {
+                const eventCount = events.filter(ev => ev.professional === prof).length;
+                return (
+                    <div key={prof} className="flex-1 border-l min-w-[220px]">
+                        <div 
+                            className="h-16 sticky top-0 bg-card z-10 flex items-center justify-center p-2 border-b-2"
+                            style={{ borderBottomColor: PROFESSIONAL_COLORS[prof] || '#6b7280' }}
+                        >
+                            <span className="font-bold text-foreground text-center">{prof}</span>
+                            {eventCount > 0 && (
+                                <span 
+                                    className="ml-2 text-xs font-bold text-white rounded-full h-5 w-5 flex items-center justify-center"
+                                    style={{ backgroundColor: PROFESSIONAL_COLORS[prof] || '#6b7280' }}
+                                >
+                                    {eventCount}
+                                </span>
+                            )}
+                        </div>
+                        <div className="relative">
+                            {timeSlots.map(time => (
+                                <div key={time.toISOTime()} className="h-20 border-t"></div>
+                            ))}
+                            <div className="h-10 border-t"></div>
+                            {events
+                                .filter(ev => ev.professional === prof)
+                                .map(event => renderEventOnGrid(event))
+                            }
+                        </div>
                     </div>
-                    <div className="relative">
-                        {timeSlots.map(time => (
-                            <div key={time.toISOTime()} className="h-20 border-t"></div>
-                        ))}
-                         <div className="h-10 border-t"></div>
-                        {events
-                            .filter(ev => ev.professional === prof)
-                            .map(event => renderEventOnGrid(event))
-                        }
-                    </div>
-                </div>
-            ))}
+                )
+            })}
         </div>
     </div>
   );
