@@ -4,14 +4,23 @@ import { Badge } from '@/components/ui/badge';
 import { AnalyticsClient } from '@/components/dashboard/analytics-client';
 import { TrendsChart } from '@/components/dashboard/trends-chart';
 import { supabase } from '@/lib/supabase';
-import { subDays, format, parseISO } from 'date-fns';
+import { subDays, format, parseISO, isToday, isYesterday } from 'date-fns';
 import { es } from 'date-fns/locale';
 
 const activityColors: { [key: string]: string } = {
   confirmation: 'bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-300',
   inquiry: 'bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-300',
   payment: 'bg-yellow-100 dark:bg-yellow-900/50 text-yellow-800 dark:text-yellow-300',
+  default: 'bg-gray-100 dark:bg-gray-900/50 text-gray-800 dark:text-gray-300',
 };
+
+function classifyMessage(message: string): string {
+    const lowerMessage = message.toLowerCase();
+    if (lowerMessage.includes('confirm')) return 'confirmation';
+    if (lowerMessage.includes('información') || lowerMessage.includes('saber') || lowerMessage.includes('disponibilidad')) return 'inquiry';
+    if (lowerMessage.includes('pago') || lowerMessage.includes('comprobante')) return 'payment';
+    return 'default';
+}
 
 async function getAnalyticsData() {
   const { data: chats, error } = await supabase.from('chats_v').select('*');
@@ -56,23 +65,40 @@ async function getAnalyticsData() {
     };
   }).reverse();
 
-  // This is a placeholder for daily activity as `chats_v` doesn't seem to have enough info for it.
-  const dailyActivity = [
-      {
-          date: "Hoy, 24 de Julio",
-          activities: [
-              { time: "10:45 AM", user: "Elena Rodriguez", description: "Confirmó cita para el viernes.", type: "confirmation" },
-              { time: "9:30 AM", user: "Carlos Gomez", description: "Confirmó cita para mañana.", type: "confirmation" },
-          ]
-      },
-      {
-          date: "Ayer, 23 de Julio",
-          activities: [
-              { time: "4:15 PM", user: "Ana Perez", description: "Solicitó información sobre tratamiento de color.", type: "inquiry" },
-              { time: "2:00 PM", user: "Luisa Martinez", description: "Envió comprobante de pago.", type: "payment" },
-          ]
+  const activityByDate = chats.reduce((acc, chat) => {
+      const chatDate = parseISO(chat.created_at);
+      let dateLabel;
+      if (isToday(chatDate)) {
+        dateLabel = `Hoy, ${format(chatDate, 'dd \'de\' MMMM', { locale: es })}`;
+      } else if (isYesterday(chatDate)) {
+        dateLabel = `Ayer, ${format(chatDate, 'dd \'de\' MMMM', { locale: es })}`;
+      } else {
+        dateLabel = format(chatDate, 'eeee, dd \'de\' MMMM', { locale: es });
+        dateLabel = dateLabel.charAt(0).toUpperCase() + dateLabel.slice(1);
       }
-  ];
+      
+      if (!acc[dateLabel]) {
+        acc[dateLabel] = [];
+      }
+      
+      acc[dateLabel].push({
+        time: format(chatDate, 'p', { locale: es }),
+        user: chat.contact_name,
+        description: chat.message,
+        type: classifyMessage(chat.message)
+      });
+      return acc;
+  }, {} as Record<string, any[]>);
+
+  const dailyActivity = Object.entries(activityByDate).map(([date, activities]) => ({
+      date,
+      activities: activities.sort((a,b) => parseISO(b.created_at).getTime() - parseISO(a.created_at).getTime())
+  })).sort((a,b) => {
+      const dateA = Object.values(b.activities)[0].created_at;
+      const dateB = Object.values(a.activities)[0].created_at;
+      return parseISO(dateA).getTime() - parseISO(dateB).getTime();
+  });
+
 
   return {
     kpiData: {
@@ -163,7 +189,7 @@ export default async function AnalyticsPage() {
                       <div key={index} className="flex items-start gap-3">
                         <div className="text-xs text-muted-foreground w-16 text-right pt-1">{activity.time}</div>
                         <div className="flex-1">
-                           <Badge variant="outline" className={`font-normal ${activityColors[activity.type]}`}>{activity.user}</Badge>
+                           <Badge variant="outline" className={`font-normal ${activityColors[activity.type] || activityColors.default}`}>{activity.user}</Badge>
                            <p className="text-sm mt-1">{activity.description}</p>
                         </div>
                       </div>
