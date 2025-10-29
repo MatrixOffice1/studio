@@ -3,9 +3,13 @@
 import { createContext, useCallback, useEffect, useState, ReactNode } from 'react';
 import { supabase } from '@/lib/supabase';
 
+// The 'settings' column is a single JSONB object.
+// This type can be expanded as more settings are added.
 export type UserSettings = {
+  aiProvider?: string;
   gemini_api_key?: string;
-  // Add other settings fields here
+  n8n_webhook_url?: string;
+  [key: string]: any; // Allow other string keys
 };
 
 type UserSettingsContextType = {
@@ -28,9 +32,10 @@ export function UserSettingsProvider({ children, userId }: { children: ReactNode
     }
 
     setIsLoading(true);
+    // Select the whole row, specifically the 'settings' column which is JSONB
     const { data, error } = await supabase
       .from('user_settings')
-      .select('*')
+      .select('settings')
       .eq('user_id', userId)
       .single();
 
@@ -38,7 +43,8 @@ export function UserSettingsProvider({ children, userId }: { children: ReactNode
       console.error('Error fetching user settings:', error);
       setSettings(null);
     } else {
-      setSettings(data);
+      // The 'settings' field from the DB is the JSON object
+      setSettings(data?.settings || {});
     }
     setIsLoading(false);
   }, [userId]);

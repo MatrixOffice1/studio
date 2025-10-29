@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -24,8 +23,9 @@ export default function SettingsPage() {
 
   useEffect(() => {
     if (settings) {
+      setAiProvider(settings.aiProvider || 'gemini');
       setApiKey(settings.gemini_api_key || '');
-      // You can also load other settings like n8nWebhook here if they exist
+      setN8nWebhook(settings.n8n_webhook_url || '');
     }
   }, [settings]);
 
@@ -40,10 +40,16 @@ export default function SettingsPage() {
     }
 
     setIsSaving(true);
-    
+
+    const newSettings = {
+      aiProvider,
+      gemini_api_key: apiKey,
+      n8n_webhook_url: n8nWebhook,
+    };
+
     const { error } = await supabase
       .from('user_settings')
-      .upsert({ user_id: user.id, gemini_api_key: apiKey }, { onConflict: 'user_id' });
+      .upsert({ user_id: user.id, settings: newSettings }, { onConflict: 'user_id' });
 
     if (error) {
       console.error('Error saving settings:', error);
