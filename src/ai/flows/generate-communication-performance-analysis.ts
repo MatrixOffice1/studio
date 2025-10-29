@@ -30,29 +30,32 @@ const prompt = ai.definePrompt({
   name: 'generateCommunicationPerformanceAnalysisPrompt',
   input: {schema: GenerateCommunicationPerformanceAnalysisInputSchema},
   output: {schema: GenerateCommunicationPerformanceAnalysisOutputSchema},
-  prompt: `Eres un analista de datos experto en comunicación para "Peluquería Abbaglia Nails & Beauty". Tu tarea es generar un informe de rendimiento MUY CONCISO, profesional y fácil de leer. Responde siempre en español.
+  prompt: `Eres un analista de datos experto para "Peluquería Abbaglia Nails & Beauty". Tu tarea es generar un informe de rendimiento MUY CONCISO, profesional y fácil de leer. Responde siempre en español.
 
-  La estructura de tu respuesta debe ser la siguiente, usando solo saltos de línea para separar secciones. NO uses Markdown (###, ---).
+  La estructura de tu respuesta debe ser la siguiente:
+  - Usa **TÍTULO** para los encabezados de sección (e.g., **RESUMEN EJECUTIVO**).
+  - Usa saltos de línea simples para las listas y dobles para separar párrafos y secciones.
+  - NO uses Markdown (###, ---).
 
-  Análisis de Rendimiento de Comunicación
+  **Análisis de Rendimiento de Comunicación**
   Peluquería Abbaglia Nails & Beauty - Últimos 7 Días
 
-  RESUMEN EJECUTIVO
+  **RESUMEN EJECUTIVO**
   [Un párrafo breve y directo que resuma los hallazgos clave: rendimiento general, puntos fuertes y áreas de oportunidad.]
 
-  MÉTRICAS CLAVE
+  **MÉTRICAS CLAVE**
   - Volumen Total: [Número total de mensajes]
   - Promedio Diario: [Número promedio]
   - Balance (Entrantes/Salientes): [Describe la proporción]
   - Tendencia: [Describe brevemente la tendencia]
 
-  OPORTUNIDADES CLAVE
+  **OPORTUNIDADES CLAVE**
   [Crea una lista corta con 2-3 recomendaciones muy concisas y accionables.]
   - Recomendación 1: [Texto de la recomendación.]
   - Recomendación 2: [Texto de la recomendación.]
   - Recomendación 3: [Texto de la recomendación.]
 
-  CONCLUSIÓN
+  **CONCLUSIÓN**
   [Un párrafo final muy breve que resuma la salud general de la comunicación y reitere la oportunidad más importante.]
 
   Si los datos de entrada son muy limitados, adapta tu análisis para que sea positivo y proactivo. Por ejemplo, en lugar de decir "no hay suficientes datos", di "este es un primer vistazo" y enfoca las recomendaciones en "cómo empezar a recopilar más datos" o "primeros pasos para aumentar la interacción".

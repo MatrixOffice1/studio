@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Sparkles, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/lib/supabase';
+import { AnalysisParser } from './analysis-parser';
 
 export function AnalyticsClient() {
   const [analysisResult, setAnalysisResult] = useState('');
@@ -72,7 +73,7 @@ export function AnalyticsClient() {
           {analysisResult && (
             <div className="w-full p-4 border rounded-lg bg-background mt-4">
               <h4 className="font-semibold mb-2 text-lg">Resultado del Análisis</h4>
-              <div className="text-sm text-muted-foreground whitespace-pre-wrap font-mono">{analysisResult}</div>
+              <AnalysisParser content={analysisResult} />
             </div>
           )}
         </div>
