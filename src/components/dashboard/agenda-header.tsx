@@ -48,7 +48,7 @@ export function AgendaHeader({
   return (
     <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
       <div className="flex items-center gap-4">
-        <div className="bg-foreground text-background rounded-lg px-4 py-2 text-center">
+        <div className="bg-foreground text-background rounded-lg px-4 py-2 text-center w-36">
           <p className="text-2xl font-bold font-mono tracking-wider">{time.toFormat('HH:mm:ss')}</p>
           <p className="text-xs opacity-80">Madrid</p>
         </div>
@@ -58,7 +58,7 @@ export function AgendaHeader({
         </Button>
       </div>
 
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="flex flex-wrap items-center justify-end gap-2">
         <Popover>
           <PopoverTrigger asChild>
             <Button
@@ -83,26 +83,30 @@ export function AgendaHeader({
           </PopoverContent>
         </Popover>
 
-        <Button variant="outline" size="icon" onClick={() => setCurrentDate(currentDate.minus({ days: 1 }))}>
-          <ChevronLeft className="h-4 w-4" />
-        </Button>
-        <Button variant="outline" onClick={() => setCurrentDate(DateTime.now().setZone('Europe/Madrid'))}>Hoy</Button>
-        <Button variant="outline" size="icon" onClick={() => setCurrentDate(currentDate.plus({ days: 1 }))}>
-          <ChevronRight className="h-4 w-4" />
-        </Button>
+        <div className="flex items-center gap-2">
+            <Button variant="outline" size="icon" onClick={() => setCurrentDate(currentDate.minus({ days: 1 }))}>
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <Button variant="outline" onClick={() => setCurrentDate(DateTime.now().setZone('Europe/Madrid'))}>Hoy</Button>
+            <Button variant="outline" size="icon" onClick={() => setCurrentDate(currentDate.plus({ days: 1 }))}>
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+        </div>
 
-        <Button onClick={onSync} disabled={isSyncing}>
-          {isSyncing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          Sincronizar
-        </Button>
+        <div className="flex items-center gap-2">
+            <Button onClick={onSync} disabled={isSyncing}>
+              {isSyncing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Sincronizar
+            </Button>
 
-        <div className="flex items-center space-x-2">
-          <Switch 
-            id="autosync-switch" 
-            checked={isAutoSyncEnabled}
-            onCheckedChange={setIsAutoSyncEnabled}
-          />
-          <Label htmlFor="autosync-switch">Sinc. Automática</Label>
+            <div className="flex items-center space-x-2">
+              <Switch 
+                id="autosync-switch" 
+                checked={isAutoSyncEnabled}
+                onCheckedChange={setIsAutoSyncEnabled}
+              />
+              <Label htmlFor="autosync-switch">Sinc. Automática</Label>
+            </div>
         </div>
       </div>
     </header>
