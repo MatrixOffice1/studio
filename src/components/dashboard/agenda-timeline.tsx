@@ -46,7 +46,7 @@ export function AgendaTimeline({ events, professionals, onEventClick }: AgendaTi
 
     const pixelsPerHour = 80; // Corresponds to h-20 in Tailwind
     const top = ((start.hour - timelineStartHour) * 60 + start.minute) * (pixelsPerHour / 60);
-    const height = Math.max(20, end.diff(start, 'minutes').minutes * (pixelsPerHour / 60) - 2);
+    const height = Math.max(30, end.diff(start, 'minutes').minutes * (pixelsPerHour / 60) - 2);
     const serviceBgColor = getEventBackgroundColor(event);
     const profColor = PROFESSIONAL_COLORS[professional] || '#6b7280';
     
