@@ -51,7 +51,7 @@ export default function LoginPage() {
               Bienvenido de nuevo
             </h1>
             <p className="mt-2 text-muted-foreground">
-              Inicia sesión para gestionar tus comunicaciones.
+              - Whatsapp Manager -
             </p>
           </div>
           <form onSubmit={handleLogin} className="space-y-6">
