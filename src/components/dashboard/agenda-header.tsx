@@ -50,7 +50,7 @@ export function AgendaHeader({
       <div className="flex items-center gap-4">
         <div className="bg-foreground text-background rounded-lg px-4 py-2 text-center">
           <p className="text-2xl font-bold font-mono tracking-wider">{time.toFormat('HH:mm:ss')}</p>
-          <p className="text-xs opacity-80">Hora Peninsular</p>
+          <p className="text-xs opacity-80">Madrid</p>
         </div>
         <Button onClick={onAddAppointment}>
           <Plus className="mr-2 h-4 w-4" />
