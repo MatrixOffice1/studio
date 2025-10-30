@@ -46,15 +46,21 @@ export function ProfessionalAvailability({ currentDate }: ProfessionalAvailabili
     const isCurrentlyPresent = availability[professionalName] !== false;
     const newStatus = isCurrentlyPresent ? 'absent' : 'present';
 
-    try {
-      const urlWithParams = new URL(webhookUrl);
-      urlWithParams.searchParams.append('professional', professionalName);
-      urlWithParams.searchParams.append('date', currentDate.toISODate() as string);
-      urlWithParams.searchParams.append('status', newStatus);
+    const startDateTime = currentDate.set({ hour: 8, minute: 0, second: 0, millisecond: 0 });
+    const endDateTime = currentDate.set({ hour: 21, minute: 0, second: 0, millisecond: 0 });
 
-      await fetch(urlWithParams.toString(), {
+    try {
+      await fetch(webhookUrl, {
         method: 'POST',
-        mode: 'no-cors',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          professional: professionalName,
+          status: newStatus,
+          start: startDateTime.toISO(),
+          end: endDateTime.toISO(),
+        }),
       });
 
       setAvailability(prev => ({ ...prev, [professionalName]: newStatus === 'present' }));
