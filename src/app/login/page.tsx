@@ -47,7 +47,7 @@ export default function LoginPage() {
         {/* Left Column: Login Form */}
         <div className="w-full max-w-md md:w-1/2">
           <div className="mb-8 text-center md:text-left">
-            <h1 className="text-3xl font-bold font-headline text-foreground sm:text-4xl">
+            <h1 className="text-3xl font-bold text-foreground sm:text-4xl">
               Bienvenido de nuevo
             </h1>
             <p className="mt-2 text-muted-foreground">
