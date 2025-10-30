@@ -48,10 +48,10 @@ export default function LoginPage() {
         <div className="w-full max-w-md md:w-1/2">
           <div className="mb-8 text-center md:text-left">
             <h1 className="text-3xl font-bold text-foreground sm:text-4xl">
-              Bienvenido de nuevo
+              Whatsapp Manager
             </h1>
             <p className="mt-2 text-muted-foreground">
-              - Whatsapp Manager -
+              Bienvenido de nuevo
             </p>
           </div>
           <form onSubmit={handleLogin} className="space-y-6">
