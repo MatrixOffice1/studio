@@ -7,7 +7,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Loader2, Plus } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { es } from 'date-fns/locale';
 
@@ -18,7 +18,6 @@ type AgendaHeaderProps = {
   setIsAutoSyncEnabled: (enabled: boolean) => void;
   onSync: () => void;
   isSyncing: boolean;
-  onAddAppointment: () => void;
 };
 
 export function AgendaHeader({ 
@@ -28,7 +27,6 @@ export function AgendaHeader({
   setIsAutoSyncEnabled,
   onSync,
   isSyncing,
-  onAddAppointment
 }: AgendaHeaderProps) {
   const [time, setTime] = useState(DateTime.now().setZone('Europe/Madrid'));
 
@@ -47,17 +45,11 @@ export function AgendaHeader({
 
   return (
     <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-      <div className="flex items-center gap-4">
-        <div className="bg-foreground text-background rounded-lg px-4 py-2 text-center w-36">
-          <p className="text-2xl font-bold font-mono tracking-wider">{time.toFormat('HH:mm:ss')}</p>
-          <p className="text-xs opacity-80">Madrid</p>
-        </div>
-        <Button onClick={onAddAppointment}>
-          <Plus className="mr-2 h-4 w-4" />
-          Añadir Cita
-        </Button>
+      <div className="bg-foreground text-background rounded-lg px-4 py-2 text-center w-36">
+        <p className="text-2xl font-bold font-mono tracking-wider">{time.toFormat('HH:mm:ss')}</p>
+        <p className="text-xs opacity-80">Madrid</p>
       </div>
-
+      
       <div className="flex flex-wrap items-center justify-end gap-2">
         <Popover>
           <PopoverTrigger asChild>

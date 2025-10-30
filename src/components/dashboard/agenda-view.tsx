@@ -8,7 +8,7 @@ import { AgendaKpiCards } from './agenda-kpi-cards';
 import { AgendaTimeline } from './agenda-timeline';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, Sparkles, Trash2 } from 'lucide-react';
+import { Loader2, Sparkles, Trash2, Plus } from 'lucide-react';
 import { generateAgendaAnalysis } from '@/ai/flows/generate-agenda-analysis';
 import { AnalysisParser } from './analysis-parser';
 import { useToast } from '@/hooks/use-toast';
@@ -280,7 +280,6 @@ export function AgendaView() {
         setIsAutoSyncEnabled={setIsAutoSyncEnabled}
         onSync={() => fetchCalendarEvents(true)}
         isSyncing={isSyncing}
-        onAddAppointment={() => setIsAppointmentFormOpen(true)}
       />
       
       <ProfessionalAvailability currentDate={currentDate} />
@@ -309,17 +308,23 @@ export function AgendaView() {
                 </Button>
               ))}
             </div>
-            <Button onClick={handleAnalyzeWeek} disabled={isAnalyzing}>
-              {isAnalyzing ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Analizando...
-                </>
-              ) : (
-                <>
-                  <Sparkles className="mr-2 h-4 w-4" /> Analizar Próximos 7 Días con IA
-                </>
-              )}
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button onClick={() => setIsAppointmentFormOpen(true)}>
+                <Plus className="mr-2 h-4 w-4" />
+                Añadir Cita
+              </Button>
+              <Button onClick={handleAnalyzeWeek} disabled={isAnalyzing}>
+                {isAnalyzing ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Analizando...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="mr-2 h-4 w-4" /> Analizar Próximos 7 Días
+                  </>
+                )}
+              </Button>
+            </div>
           </div>
         </CardContent>
       </Card>
