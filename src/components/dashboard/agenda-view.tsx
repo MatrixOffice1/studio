@@ -87,7 +87,15 @@ export function AgendaView() {
       });
       
       if (!response.ok) throw new Error(`Error de red: ${response.statusText}`);
-      const data = await response.json();
+      
+      const responseText = await response.text();
+      if (!responseText) {
+          // Handle empty response gracefully
+          setAllEvents([]);
+          return;
+      }
+      
+      const data = JSON.parse(responseText);
 
       if (data.ok && Array.isArray(data.items)) {
         const processed = data.items.map((ev: any) => ({
