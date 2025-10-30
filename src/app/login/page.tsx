@@ -46,7 +46,7 @@ export default function LoginPage() {
       <div className="container mx-auto flex max-w-5xl flex-1 flex-col items-center justify-center px-4 md:flex-row md:gap-12">
         {/* Left Column: Login Form */}
         <div className="w-full max-w-md md:w-1/2">
-          <div className="mb-8 text-center md:text-left">
+          <div className="mb-8 text-center">
             <h1 className="text-4xl font-bold text-foreground sm:text-5xl">
               Whatsapp Manager
             </h1>
