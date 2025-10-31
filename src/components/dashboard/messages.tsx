@@ -196,10 +196,12 @@ export function Messages() {
     if (scrollAreaRef.current) {
         const viewport = scrollAreaRef.current;
         setTimeout(() => {
-            viewport.scrollTo({ top: viewport.scrollHeight, behavior: 'smooth' });
+            if(viewport) {
+              viewport.scrollTo({ top: viewport.scrollHeight, behavior: 'smooth' });
+            }
         }, 100);
     }
-  }, [messages]);
+  }, [messages, selectedChat]);
 
 
   const handleSummary = async () => {
