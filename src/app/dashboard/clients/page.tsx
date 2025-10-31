@@ -72,7 +72,20 @@ export default function ClientsPage() {
       
       const data: RawReservation[] = await response.json();
 
-      const clientMap = new Map<string, { visits: RawReservation[], lastVisit: DateTime }>();
+      const clientMap = new Map<string, { visits: RawReservation[], lastVisit: DateTime, normalizedPhone: string }>();
+      
+      const normalizePhone = (phone: string | number): string => {
+        let phoneStr = String(phone).replace(/\s+/g, '');
+        if (phoneStr.startsWith('+')) {
+          phoneStr = phoneStr.substring(1);
+        }
+        if (!phoneStr.startsWith('34')) {
+           // Assuming it's a spanish number missing the country code
+           if(phoneStr.length === 9) return `34${phoneStr}`;
+        }
+        return phoneStr;
+      };
+
 
       data.forEach(reservation => {
         const clientName = reservation["Nombre completo"];
@@ -81,13 +94,14 @@ export default function ClientsPage() {
         
         if (!clientName || !clientPhone || !visitDateStr) return;
 
-        const key = `${clientName.trim().toLowerCase()}-${clientPhone.trim()}`;
+        const normalizedPhone = normalizePhone(clientPhone);
+        const key = `${clientName.trim().toLowerCase()}-${normalizedPhone}`;
         const visitDate = DateTime.fromSQL(visitDateStr, { zone: 'Europe/Madrid' });
 
         if (!visitDate.isValid) return;
 
         if (!clientMap.has(key)) {
-          clientMap.set(key, { visits: [], lastVisit: visitDate });
+          clientMap.set(key, { visits: [], lastVisit: visitDate, normalizedPhone: `+${normalizedPhone}` });
         }
         
         const clientEntry = clientMap.get(key)!;
@@ -103,7 +117,7 @@ export default function ClientsPage() {
         
         return {
           name: firstVisit["Nombre completo"],
-          phone: String(firstVisit["Telefono"]),
+          phone: entry.normalizedPhone,
           totalVisits: entry.visits.length,
           lastVisit: entry.lastVisit,
           professionals: uniqueProfessionals,
