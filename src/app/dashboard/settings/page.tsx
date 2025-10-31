@@ -85,6 +85,7 @@ export default function SettingsPage() {
   const [availabilityWebhook, setAvailabilityWebhook] = useState('');
   const [citasWebhook, setCitasWebhook] = useState('');
   const [clientsWebhook, setClientsWebhook] = useState('');
+  const [pdfWebhook, setPdfWebhook] = useState('');
   const [syncInterval, setSyncInterval] = useState('5');
   const [isSaving, setIsSaving] = useState(false);
   const { toast } = useToast();
@@ -99,6 +100,7 @@ export default function SettingsPage() {
       setAvailabilityWebhook(settings.availability_webhook_url || 'https://n8n.srv1002935.hstgr.cloud/webhook/calendar-tony-airmate');
       setCitasWebhook(settings.citas_webhook_url || 'https://n8n.srv1002935.hstgr.cloud/webhook-test/calendar-citas-modf');
       setClientsWebhook(settings.clients_webhook_url || '');
+      setPdfWebhook(settings.pdf_webhook_url || 'https://n8n.srv1002935.hstgr.cloud/webhook/pdf');
       setSyncInterval(String(settings.sync_interval || '5'));
     }
   }, [settings]);
@@ -122,6 +124,7 @@ export default function SettingsPage() {
       availability_webhook_url: availabilityWebhook,
       citas_webhook_url: citasWebhook,
       clients_webhook_url: clientsWebhook,
+      pdf_webhook_url: pdfWebhook,
       sync_interval: parseInt(syncInterval, 10) || 5,
     };
 
@@ -258,6 +261,15 @@ export default function SettingsPage() {
                 placeholder="https://n8n.example.com/webhook/..."
                 value={clientsWebhook}
                 onChange={(e) => setClientsWebhook(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="pdf-webhook">URL del Webhook de PDF</Label>
+              <Input
+                id="pdf-webhook"
+                placeholder="https://n8n.example.com/webhook/..."
+                value={pdfWebhook}
+                onChange={(e) => setPdfWebhook(e.target.value)}
               />
             </div>
             <div className="space-y-2">

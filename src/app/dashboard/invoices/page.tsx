@@ -196,7 +196,15 @@ export default function InvoicesPage() {
   }, [settings, fetchInvoiceData, isAdmin]);
 
   const handleStatusToggle = async (invoiceNumber: string) => {
-    const pdfWebhookUrl = 'https://n8n.srv1002935.hstgr.cloud/webhook/pdf';
+    const pdfWebhookUrl = settings?.pdf_webhook_url;
+    if (!pdfWebhookUrl) {
+      toast({
+        variant: 'destructive',
+        title: 'Error de Configuración',
+        description: 'Falta la URL del webhook de PDF en los ajustes.',
+      });
+      return;
+    }
     
     let updatedInvoice: Invoice | undefined;
     const newStatus = invoices.find(inv => inv.invoiceNumber === invoiceNumber)?.status === 'Pagado' ? 'Pendiente' : 'Pagado';
@@ -248,7 +256,16 @@ export default function InvoicesPage() {
   };
 
   const handlePdfDownload = async (invoice: Invoice) => {
-    const pdfWebhookUrl = 'https://n8n.srv1002935.hstgr.cloud/webhook/pdf';
+    const pdfWebhookUrl = settings?.pdf_webhook_url;
+     if (!pdfWebhookUrl) {
+      toast({
+        variant: 'destructive',
+        title: 'Error de Configuración',
+        description: 'Falta la URL del webhook de PDF en los ajustes.',
+      });
+      return;
+    }
+
     setPdfLoading(prev => ({...prev, [invoice.invoiceNumber]: true}));
     try {
       const response = await fetch(pdfWebhookUrl, {
