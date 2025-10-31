@@ -19,6 +19,7 @@ type RawReservation = {
 };
 
 type ClientProfile = {
+  id: string;
   name: string;
   phone: string;
   totalVisits: number;
@@ -111,11 +112,12 @@ export default function ClientsPage() {
         }
       });
       
-      const processedClients: ClientProfile[] = Array.from(clientMap.values()).map(entry => {
+      const processedClients: ClientProfile[] = Array.from(clientMap.entries()).map(([key, entry]) => {
         const firstVisit = entry.visits[0];
         const uniqueProfessionals = [...new Set(entry.visits.map(v => v["Profesional deseado"]))];
         
         return {
+          id: key,
           name: firstVisit["Nombre completo"],
           phone: entry.normalizedPhone,
           totalVisits: entry.visits.length,
@@ -209,7 +211,7 @@ export default function ClientsPage() {
       <section>
           <div className="space-y-4">
               {clients.map(client => (
-                  <Card key={client.phone} className="hover:shadow-md transition-shadow">
+                  <Card key={client.id} className="hover:shadow-md transition-shadow">
                       <CardContent className="p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                           <div className="flex items-center gap-4">
                               <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
