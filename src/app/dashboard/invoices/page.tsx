@@ -20,7 +20,7 @@ type RawReservation = {
   "Servicio": string;
   "Fecha y hora": string;
   "Profesional deseado": string;
-  "Precio": number;
+  "Precio": number | string;
 };
 
 type Invoice = {
@@ -100,9 +100,13 @@ export default function InvoicesPage() {
 
         const clientKey = `${reservation["Nombre completo"].trim().toLowerCase()}-${date.toISODate()}`;
         
-        const price = typeof reservation["Precio"] === 'string' 
-          ? parseFloat(reservation["Precio"].replace(',', '.')) 
-          : (typeof reservation["Precio"] === 'number' ? reservation["Precio"] : 0);
+        let price = 0;
+        const rawPrice = reservation["Precio"];
+        if (typeof rawPrice === 'string' && rawPrice.trim() !== '') {
+          price = parseFloat(rawPrice.replace(',', '.'));
+        } else if (typeof rawPrice === 'number') {
+          price = rawPrice;
+        }
 
         if (isNaN(price)) return;
 
