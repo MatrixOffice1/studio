@@ -66,6 +66,17 @@ export default function InvoicesPage() {
   const [professionalFilter, setProfessionalFilter] = useState('todos');
 
   const isAdmin = user?.email === 'tony@abbaglia.com';
+  
+  const parseDate = (dateString: string): DateTime => {
+    // Try parsing 'YYYY-MM-DD HH:mm:ss'
+    let dt = DateTime.fromSQL(dateString, { zone: 'Europe/Madrid' });
+    if (dt.isValid) {
+      return dt;
+    }
+    // Try parsing 'DD/MM/YYYY HH:mm:ss'
+    dt = DateTime.fromFormat(dateString, 'dd/MM/yyyy HH:mm:ss', { zone: 'Europe/Madrid' });
+    return dt;
+  };
 
   const fetchInvoiceData = useCallback(async (isManualSync = false) => {
     if (!isAdmin) {
@@ -103,7 +114,7 @@ export default function InvoicesPage() {
             return; 
         }
 
-        const date = DateTime.fromSQL(reservation["Fecha y hora"], { zone: 'Europe/Madrid' });
+        const date = parseDate(reservation["Fecha y hora"]);
         
         if (!date.isValid) {
             return; 
