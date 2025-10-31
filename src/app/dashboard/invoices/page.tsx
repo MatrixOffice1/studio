@@ -11,7 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, Wallet, Calendar, AlertTriangle, FileDown, Search } from 'lucide-react';
+import { Loader2, Wallet, Calendar, AlertTriangle, FileDown, Search, RefreshCw } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 type RawReservation = {
@@ -58,6 +58,7 @@ export default function InvoicesPage() {
   
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSyncing, setIsSyncing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
   const [searchTerm, setSearchTerm] = useState('');
@@ -66,7 +67,7 @@ export default function InvoicesPage() {
 
   const isAdmin = user?.email === 'tony@abbaglia.com';
 
-  const fetchInvoiceData = useCallback(async () => {
+  const fetchInvoiceData = useCallback(async (isManualSync = false) => {
     if (!isAdmin) {
       setIsLoading(false);
       return;
@@ -75,11 +76,11 @@ export default function InvoicesPage() {
     const webhookUrl = settings?.clients_webhook_url;
     if (!webhookUrl) {
       setError("Por favor, configure la URL del webhook de clientes en Ajustes.");
-      setIsLoading(false);
+      if (!isManualSync) setIsLoading(false); else setIsSyncing(false);
       return;
     }
 
-    setIsLoading(true);
+    if (!isManualSync) setIsLoading(true); else setIsSyncing(true);
     setError(null);
     
     try {
@@ -97,16 +98,25 @@ export default function InvoicesPage() {
 
       data.forEach((reservation, index) => {
         const clientName = reservation["Nombre completo"];
+        if (!clientName || typeof clientName !== 'string' || clientName.trim() === '') {
+            return; 
+        }
+
         const date = DateTime.fromSQL(reservation["Fecha y hora"], { zone: 'Europe/Madrid' });
         
-        if (!date.isValid || !clientName || typeof clientName !== 'string' || clientName.trim() === '') {
+        if (!date.isValid) {
             return; 
         }
 
         const clientKey = `${clientName.trim().toLowerCase()}-${date.toISODate()}`;
         
         const rawPrice = reservation["Precio (€)"] || reservation["Precio"] || "0";
-        const price = parseFloat(String(rawPrice).replace(/[^0-9,.]/g, '').replace(',', '.')) || 0;
+        const priceString = String(rawPrice).replace(/[€\s]/g, '').replace(',', '.');
+        const price = parseFloat(priceString);
+
+        if (isNaN(price)) {
+          return;
+        }
 
 
         if (dailyInvoicesMap.has(clientKey)) {
@@ -139,15 +149,21 @@ export default function InvoicesPage() {
       const processedInvoices = Array.from(dailyInvoicesMap.values()).sort((a, b) => b.date.toMillis() - a.date.toMillis());
       setInvoices(processedInvoices);
 
+      if (isManualSync) {
+        toast({ title: "Sincronizado", description: "La lista de facturas ha sido actualizada." });
+      }
+
     } catch (err: any) {
       setError(`Error al cargar las facturas: ${err.message}`);
-      toast({
-        variant: 'destructive',
-        title: 'Error de Carga',
-        description: err.message,
-      });
+      if(isManualSync) {
+        toast({
+          variant: 'destructive',
+          title: 'Error de Sincronización',
+          description: err.message,
+        });
+      }
     } finally {
-      setIsLoading(false);
+      if (!isManualSync) setIsLoading(false); else setIsSyncing(false);
     }
   }, [settings, toast, isAdmin]);
   
@@ -233,9 +249,17 @@ export default function InvoicesPage() {
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 space-y-8">
-      <header>
-        <h1 className="text-2xl sm:text-3xl font-headline font-bold">Facturación</h1>
-        <p className="text-muted-foreground">Gestiona y revisa las facturas de tus clientes.</p>
+      <header className="flex justify-between items-start">
+        <div>
+            <h1 className="text-2xl sm:text-3xl font-headline font-bold">Facturación</h1>
+            <p className="text-muted-foreground">Gestiona y revisa las facturas de tus clientes.</p>
+        </div>
+        <div className="flex items-center gap-2">
+            <Button onClick={() => fetchInvoiceData(true)} disabled={isSyncing}>
+                {isSyncing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
+                Sincronizar
+            </Button>
+        </div>
       </header>
 
       <section className="grid gap-4 md:grid-cols-3">
