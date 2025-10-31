@@ -110,9 +110,6 @@ export function Messages() {
       } else if (chatsData) {
         const validChats = chatsData.filter(chat => chat.last_message_at);
         setChats(validChats);
-        if (validChats.length > 0 && !selectedChat) {
-          setSelectedChat(validChats[0]);
-        }
       }
 
       if (user) {
@@ -135,7 +132,7 @@ export function Messages() {
       setLoadingChats(false);
     };
     fetchChatsAndAvatars();
-  }, [toast, user, selectedChat]);
+  }, [toast, user]);
   
   useEffect(() => {
     const fetchMessages = async () => {
