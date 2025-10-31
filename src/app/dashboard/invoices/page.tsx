@@ -113,6 +113,20 @@ export default function InvoicesPage() {
 
       const dailyInvoicesMap = new Map<string, Invoice>();
       const invoiceNumberCounters: { [date: string]: number } = {};
+      
+      const normalizePhone = (phone: string | number): string => {
+        let phoneStr = String(phone).replace(/\s+/g, '');
+        if (phoneStr.startsWith('+')) {
+          phoneStr = phoneStr.substring(1);
+        }
+        if (phoneStr.length === 9 && !phoneStr.startsWith('34')) {
+           return `+34${phoneStr}`;
+        }
+        if (!phoneStr.startsWith('+')) {
+            return `+${phoneStr}`;
+        }
+        return phoneStr;
+      };
 
       data.forEach((reservation) => {
         const clientName = reservation["Nombre completo"];
@@ -155,7 +169,7 @@ export default function InvoicesPage() {
           dailyInvoicesMap.set(clientKey, {
             invoiceNumber: `F-${date.toFormat('yyMMdd')}-${invoiceNum}`,
             clientName: clientName,
-            clientPhone: String(reservation["Telefono"]),
+            clientPhone: normalizePhone(String(reservation["Telefono"])),
             date: date,
             items: [{
               service: reservation["Servicio"],
