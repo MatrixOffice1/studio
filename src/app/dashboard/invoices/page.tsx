@@ -21,6 +21,7 @@ type RawReservation = {
   "Fecha y hora": string;
   "Profesional deseado": string;
   "Precio": number | string;
+  "Precio (€)": number | string;
 };
 
 type Invoice = {
@@ -104,8 +105,9 @@ export default function InvoicesPage() {
 
         const clientKey = `${clientName.trim().toLowerCase()}-${date.toISODate()}`;
         
-        const rawPrice = reservation["Precio"];
-        const price = parseFloat(String(rawPrice).replace(',', '.')) || 0;
+        const rawPrice = reservation["Precio (€)"] || reservation["Precio"] || "0";
+        const price = parseFloat(String(rawPrice).replace(/[^0-9,.]/g, '').replace(',', '.')) || 0;
+
 
         if (dailyInvoicesMap.has(clientKey)) {
           const existingInvoice = dailyInvoicesMap.get(clientKey)!;
