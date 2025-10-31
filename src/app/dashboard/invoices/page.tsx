@@ -5,6 +5,8 @@ import { useUserSettings } from '@/hooks/use-user-settings';
 import { useAuth } from '@/providers/auth-provider';
 import { useToast } from '@/hooks/use-toast';
 import { DateTime } from 'luxon';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -280,19 +282,39 @@ export default function InvoicesPage() {
       if (!response.ok) {
         throw new Error(`El servidor respondió con el estado ${response.status}`);
       }
-
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `factura-${invoice.invoiceNumber}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      window.URL.revokeObjectURL(url);
       
+      const data = await response.json();
+      const htmlContent = data[0]?.html;
+
+      if (!htmlContent) {
+          throw new Error("La respuesta del webhook no contenía HTML válido.");
+      }
+      
+      const pdf = new jsPDF('p', 'pt', 'a4');
+      
+      // We need to create a temporary element to render the HTML for html2canvas
+      const container = document.createElement('div');
+      container.innerHTML = htmlContent;
+      container.style.width = '210mm';
+      container.style.position = 'fixed';
+      container.style.left = '-300mm'; // Position off-screen
+      document.body.appendChild(container);
+
+      const canvas = await html2canvas(container, {
+          scale: 2, // Increase scale for better quality
+      });
+      
+      document.body.removeChild(container);
+
+      const imgData = canvas.toDataURL('image/png');
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+      
+      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+      pdf.save(`factura-${invoice.invoiceNumber}.pdf`);
+
       toast({
-        title: 'PDF Descargado',
+        title: 'PDF Generado',
         description: `Se ha iniciado la descarga de la factura ${invoice.invoiceNumber}.`,
       });
 
