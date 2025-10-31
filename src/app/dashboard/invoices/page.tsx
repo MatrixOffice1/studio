@@ -36,7 +36,7 @@ type Invoice = {
 
 const PROFESSIONALS = ['Ana', 'Joana', 'Maria', 'Tony'];
 
-function KpiCard({ title, value, icon: Icon, description }: { title: string, value: string | number, icon: React.ElementType, description?: string }) {
+function KpiCard({ title, value, icon: Icon, description }: { title:string, value: string | number, icon: React.ElementType, description?: string }) {
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -95,8 +95,9 @@ export default function InvoicesPage() {
       const data: RawReservation[] = await response.json();
 
       const dailyInvoicesMap = new Map<string, Invoice>();
+      const invoiceNumberCounters: { [date: string]: number } = {};
 
-      data.forEach((reservation, index) => {
+      data.forEach((reservation) => {
         const clientName = reservation["Nombre completo"];
         if (!clientName || typeof clientName !== 'string' || clientName.trim() === '') {
             return; 
@@ -110,14 +111,13 @@ export default function InvoicesPage() {
 
         const clientKey = `${clientName.trim().toLowerCase()}-${date.toISODate()}`;
         
-        const rawPrice = reservation["Precio (€)"] || reservation["Precio"] || "0";
-        const priceString = String(rawPrice).replace(/[€\s]/g, '').replace(',', '.');
+        const rawPrice = reservation["Precio (€)"] || reservation["Precio"];
+        const priceString = String(rawPrice || "0").replace(/[€\s]/g, '').replace(',', '.');
         const price = parseFloat(priceString);
 
         if (isNaN(price)) {
           return;
         }
-
 
         if (dailyInvoicesMap.has(clientKey)) {
           const existingInvoice = dailyInvoicesMap.get(clientKey)!;
@@ -128,10 +128,15 @@ export default function InvoicesPage() {
           });
           existingInvoice.totalPrice += price;
         } else {
-          const year = date.toFormat('yyyy');
-          const invoiceNum = (index + 1).toString().padStart(4, '0');
+          const dateString = date.toFormat('yyyy-MM-dd');
+          if (!invoiceNumberCounters[dateString]) {
+            invoiceNumberCounters[dateString] = 0;
+          }
+          invoiceNumberCounters[dateString]++;
+          const invoiceNum = invoiceNumberCounters[dateString].toString().padStart(3, '0');
+          
           dailyInvoicesMap.set(clientKey, {
-            invoiceNumber: `F-${year}-${invoiceNum}`,
+            invoiceNumber: `F-${date.toFormat('yyMMdd')}-${invoiceNum}`,
             clientName: clientName,
             clientPhone: String(reservation["Telefono"]),
             date: date,
