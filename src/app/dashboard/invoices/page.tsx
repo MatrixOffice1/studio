@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Loader2, Wallet, Calendar, AlertTriangle, FileDown, Search } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 type RawReservation = {
   "Nombre completo": string;
@@ -98,7 +99,13 @@ export default function InvoicesPage() {
         if (!date.isValid || !reservation["Nombre completo"]) return;
 
         const clientKey = `${reservation["Nombre completo"].trim().toLowerCase()}-${date.toISODate()}`;
-        const price = typeof reservation.Precio === 'number' ? reservation.Precio : 0;
+        
+        const price = typeof reservation["Precio"] === 'string' 
+          ? parseFloat(reservation["Precio"].replace(',', '.')) 
+          : (typeof reservation["Precio"] === 'number' ? reservation["Precio"] : 0);
+
+        if (isNaN(price)) return;
+
 
         if (dailyInvoicesMap.has(clientKey)) {
           const existingInvoice = dailyInvoicesMap.get(clientKey)!;
