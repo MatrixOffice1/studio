@@ -20,7 +20,6 @@ type RawReservation = {
   "Fecha y hora": string;
   "Profesional deseado": string;
   "Precio": number;
-  "Estado del Pago": 'Pagado' | 'Pendiente';
 };
 
 type Invoice = {
@@ -71,9 +70,9 @@ export default function InvoicesPage() {
       return;
     }
 
-    const webhookUrl = settings?.invoices_webhook_url;
+    const webhookUrl = settings?.clients_webhook_url;
     if (!webhookUrl) {
-      setError("Por favor, configure la URL del webhook de facturas en Ajustes.");
+      setError("Por favor, configure la URL del webhook de clientes en Ajustes.");
       setIsLoading(false);
       return;
     }
@@ -109,10 +108,6 @@ export default function InvoicesPage() {
             price: price,
           });
           existingInvoice.totalPrice += price;
-          // If any item is pending, the whole invoice is pending
-          if (reservation["Estado del Pago"] === 'Pendiente') {
-            existingInvoice.status = 'Pendiente';
-          }
         } else {
           const year = date.toFormat('yyyy');
           const invoiceNum = (index + 1).toString().padStart(4, '0');
@@ -127,7 +122,7 @@ export default function InvoicesPage() {
               price: price,
             }],
             totalPrice: price,
-            status: reservation["Estado del Pago"] || 'Pendiente',
+            status: 'Pendiente', // Default status
           });
         }
       });
@@ -154,6 +149,16 @@ export default function InvoicesPage() {
       setIsLoading(false);
     }
   }, [settings, fetchInvoiceData, isAdmin]);
+
+  const handleStatusToggle = (invoiceNumber: string) => {
+    setInvoices(prevInvoices => 
+      prevInvoices.map(inv => 
+        inv.invoiceNumber === invoiceNumber 
+          ? { ...inv, status: inv.status === 'Pagado' ? 'Pendiente' : 'Pagado' }
+          : inv
+      )
+    );
+  };
   
   const filteredInvoices = useMemo(() => {
     return invoices.filter(invoice => {
@@ -161,7 +166,7 @@ export default function InvoicesPage() {
                           invoice.clientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
                           invoice.invoiceNumber.toLowerCase().includes(searchTerm.toLowerCase());
       
-      const statusMatch = statusFilter === 'todos' || invoice.status.toLowerCase() === statusFilter;
+      const statusMatch = statusFilter === 'todos' || invoice.status === (statusFilter.charAt(0).toUpperCase() + statusFilter.slice(1));
       
       const professionalMatch = professionalFilter === 'todos' || 
                                 invoice.items.some(item => item.professional === professionalFilter);
@@ -253,8 +258,8 @@ export default function InvoicesPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="todos">Todos los estados</SelectItem>
-                  <SelectItem value="pagado">Pagado</SelectItem>
-                  <SelectItem value="pendiente">Pendiente</SelectItem>
+                  <SelectItem value="Pagado">Pagado</SelectItem>
+                  <SelectItem value="Pendiente">Pendiente</SelectItem>
                 </SelectContent>
               </Select>
               <Select value={professionalFilter} onValueChange={setProfessionalFilter}>
@@ -293,7 +298,11 @@ export default function InvoicesPage() {
                       </TableCell>
                       <TableCell>{invoice.date.setLocale('es').toFormat('dd LLL, yyyy')}</TableCell>
                       <TableCell className="text-center">
-                        <Badge variant={invoice.status === 'Pagado' ? 'secondary' : 'destructive'} className={invoice.status === 'Pagado' ? 'bg-green-100 text-green-800' : 'bg-orange-100 text-orange-800'}>
+                        <Badge 
+                          variant={invoice.status === 'Pagado' ? 'secondary' : 'destructive'} 
+                          className={`cursor-pointer transition-colors ${invoice.status === 'Pagado' ? 'bg-green-100 hover:bg-green-200 text-green-800' : 'bg-orange-100 hover:bg-orange-200 text-orange-800'}`}
+                          onClick={() => handleStatusToggle(invoice.invoiceNumber)}
+                        >
                           {invoice.status}
                         </Badge>
                       </TableCell>

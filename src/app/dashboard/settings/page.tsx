@@ -85,7 +85,6 @@ export default function SettingsPage() {
   const [availabilityWebhook, setAvailabilityWebhook] = useState('');
   const [citasWebhook, setCitasWebhook] = useState('');
   const [clientsWebhook, setClientsWebhook] = useState('');
-  const [invoicesWebhook, setInvoicesWebhook] = useState('');
   const [syncInterval, setSyncInterval] = useState('5');
   const [isSaving, setIsSaving] = useState(false);
   const { toast } = useToast();
@@ -100,7 +99,6 @@ export default function SettingsPage() {
       setAvailabilityWebhook(settings.availability_webhook_url || 'https://n8n.srv1002935.hstgr.cloud/webhook/calendar-tony-airmate');
       setCitasWebhook(settings.citas_webhook_url || 'https://n8n.srv1002935.hstgr.cloud/webhook-test/calendar-citas-modf');
       setClientsWebhook(settings.clients_webhook_url || '');
-      setInvoicesWebhook(settings.invoices_webhook_url || '');
       setSyncInterval(String(settings.sync_interval || '5'));
     }
   }, [settings]);
@@ -124,7 +122,6 @@ export default function SettingsPage() {
       availability_webhook_url: availabilityWebhook,
       citas_webhook_url: citasWebhook,
       clients_webhook_url: clientsWebhook,
-      invoices_webhook_url: invoicesWebhook,
       sync_interval: parseInt(syncInterval, 10) || 5,
     };
 
@@ -224,7 +221,7 @@ export default function SettingsPage() {
         <Card>
           <CardHeader>
             <CardTitle>Integración de n8n</CardTitle>
-            <CardDescription>Gestiona tus webhooks para la agenda, disponibilidad, clientes y facturas.</CardDescription>
+            <CardDescription>Gestiona tus webhooks para la agenda, disponibilidad y clientes.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
@@ -255,21 +252,12 @@ export default function SettingsPage() {
               />
             </div>
              <div className="space-y-2">
-              <Label htmlFor="clients-webhook">URL del Webhook de Clientes</Label>
+              <Label htmlFor="clients-webhook">URL del Webhook de Clientes y Facturas</Label>
               <Input
                 id="clients-webhook"
                 placeholder="https://n8n.example.com/webhook/..."
                 value={clientsWebhook}
                 onChange={(e) => setClientsWebhook(e.target.value)}
-              />
-            </div>
-             <div className="space-y-2">
-              <Label htmlFor="invoices-webhook">URL del Webhook de Facturas</Label>
-              <Input
-                id="invoices-webhook"
-                placeholder="https://n8n.example.com/webhook/..."
-                value={invoicesWebhook}
-                onChange={(e) => setInvoicesWebhook(e.target.value)}
               />
             </div>
             <div className="space-y-2">
