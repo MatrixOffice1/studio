@@ -12,6 +12,7 @@ import { format, isValid } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/providers/auth-provider';
 import { supabase } from '@/lib/supabase';
+import { Input } from '@/components/ui/input';
 
 type RawReservation = {
   "Nombre completo": string;
@@ -152,7 +153,10 @@ export default function ClientsPage() {
           phoneStr = phoneStr.substring(1);
         }
         if (phoneStr.length === 9 && !phoneStr.startsWith('34')) {
-           return `34${phoneStr}`;
+           return `+34${phoneStr}`;
+        }
+        if (!phoneStr.startsWith('+')) {
+            return `+${phoneStr}`;
         }
         return phoneStr;
       };
@@ -171,7 +175,7 @@ export default function ClientsPage() {
         if (!visitDate.isValid) return;
 
         if (!clientMap.has(key)) {
-          clientMap.set(key, { visits: [], lastVisit: visitDate, normalizedPhone: `+${normalizedPhone}`, name: clientName });
+          clientMap.set(key, { visits: [], lastVisit: visitDate, normalizedPhone: normalizedPhone, name: clientName });
         }
         
         const clientEntry = clientMap.get(key)!;
@@ -361,5 +365,3 @@ export default function ClientsPage() {
     </div>
   );
 }
-
-    
