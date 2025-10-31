@@ -5,10 +5,11 @@ import { useUserSettings } from '@/hooks/use-user-settings';
 import { useToast } from '@/hooks/use-toast';
 import { DateTime } from 'luxon';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Loader2, Users, Star, Repeat, Phone, Calendar as CalendarIcon, UserCheck } from 'lucide-react';
+import { Loader2, Users, Star, Repeat, Phone, Calendar as CalendarIcon, UserCheck, RefreshCw } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { es } from 'date-fns/locale';
 import { format } from 'date-fns';
+import { Button } from '@/components/ui/button';
 
 type RawReservation = {
   "Nombre completo": string;
@@ -45,19 +46,21 @@ export default function ClientsPage() {
   const { toast } = useToast();
   const [clients, setClients] = useState<ClientProfile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSyncing, setIsSyncing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchClientData = useCallback(async () => {
+  const fetchClientData = useCallback(async (isManualSync = false) => {
     const webhookUrl = settings?.clients_webhook_url;
 
     if (!webhookUrl) {
       setError("Por favor, configure la URL del webhook de clientes en Ajustes.");
-      setIsLoading(false);
+      if (!isManualSync) setIsLoading(false); else setIsSyncing(false);
       return;
     }
 
-    setIsLoading(true);
+    if (!isManualSync) setIsLoading(true); else setIsSyncing(true);
     setError(null);
+    
     try {
       const response = await fetch(webhookUrl, {
         method: 'POST',
@@ -79,8 +82,9 @@ export default function ClientsPage() {
         if (!clientName || !clientPhone || !visitDateStr) return;
 
         const key = `${clientName.trim().toLowerCase()}-${clientPhone.trim()}`;
-        // Google Sheets date format might be 'YYYY-MM-DD HH:mm:ss'
         const visitDate = DateTime.fromSQL(visitDateStr, { zone: 'Europe/Madrid' });
+
+        if (!visitDate.isValid) return;
 
         if (!clientMap.has(key)) {
           clientMap.set(key, { visits: [], lastVisit: visitDate });
@@ -109,21 +113,27 @@ export default function ClientsPage() {
       processedClients.sort((a, b) => b.totalVisits - a.totalVisits);
       setClients(processedClients);
 
+      if (isManualSync) {
+        toast({ title: "Sincronizado", description: "La lista de clientes ha sido actualizada." });
+      }
+
     } catch (err: any) {
       setError(`Error al cargar los datos de clientes: ${err.message}`);
-      toast({
-        variant: 'destructive',
-        title: 'Error de Carga',
-        description: err.message,
-      });
+      if(isManualSync) {
+        toast({
+          variant: 'destructive',
+          title: 'Error de Sincronización',
+          description: err.message,
+        });
+      }
     } finally {
-      setIsLoading(false);
+      if (!isManualSync) setIsLoading(false); else setIsSyncing(false);
     }
   }, [settings, toast]);
   
   useEffect(() => {
     if(settings) {
-        fetchClientData();
+        fetchClientData(false);
     }
   }, [settings, fetchClientData]);
   
@@ -150,7 +160,7 @@ export default function ClientsPage() {
     );
   }
 
-  if (error) {
+  if (error && !clients.length) {
     return (
       <div className="p-4 sm:p-6 lg:p-8">
         <Card className="flex-1 flex items-center justify-center bg-destructive/10 border-destructive">
@@ -165,9 +175,15 @@ export default function ClientsPage() {
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 space-y-8">
-      <header>
-        <h1 className="text-2xl sm:text-3xl font-headline font-bold">Clientes</h1>
-        <p className="text-muted-foreground">Tu base de clientes, ordenada por lealtad.</p>
+      <header className="flex justify-between items-start">
+        <div>
+            <h1 className="text-2xl sm:text-3xl font-headline font-bold">Clientes</h1>
+            <p className="text-muted-foreground">Tu base de clientes, ordenada por lealtad.</p>
+        </div>
+        <Button onClick={() => fetchClientData(true)} disabled={isSyncing}>
+            {isSyncing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
+            Sincronizar
+        </Button>
       </header>
 
       <section className="grid gap-4 md:grid-cols-3">
