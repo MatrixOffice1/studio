@@ -5,11 +5,13 @@ import { useUserSettings } from '@/hooks/use-user-settings';
 import { useToast } from '@/hooks/use-toast';
 import { DateTime } from 'luxon';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Loader2, Users, Star, Repeat, Phone, Calendar as CalendarIcon, UserCheck, RefreshCw } from 'lucide-react';
+import { Loader2, Users, Star, Repeat, Phone, Calendar as CalendarIcon, UserCheck, RefreshCw, Download } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { es } from 'date-fns/locale';
-import { format } from 'date-fns';
+import { format, isValid } from 'date-fns';
 import { Button } from '@/components/ui/button';
+import { useAuth } from '@/providers/auth-provider';
+import { supabase } from '@/lib/supabase';
 
 type RawReservation = {
   "Nombre completo": string;
@@ -27,6 +29,11 @@ type ClientProfile = {
   professionals: string[];
 };
 
+type UserSettings = {
+  clients_webhook_url?: string;
+  [key: string]: any;
+};
+
 function KpiCard({ title, value, icon: Icon, description }: { title: string, value: string | number, icon: React.ElementType, description?: string }) {
   return (
     <Card>
@@ -42,7 +49,64 @@ function KpiCard({ title, value, icon: Icon, description }: { title: string, val
   );
 }
 
+function UserManagement({ userId }: { userId: string }) {
+  const [email, setEmail] = useState('');
+  const [isInviting, setIsInviting] = useState(false);
+  const { toast } = useToast();
+
+  const handleInviteUser = async () => {
+    if (!email) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Por favor, introduce un correo electrónico.',
+      });
+      return;
+    }
+    setIsInviting(true);
+    const { error } = await supabase.auth.admin.inviteUserByEmail(email);
+    if (error) {
+      toast({
+        variant: 'destructive',
+        title: 'Error al invitar usuario',
+        description: error.message,
+      });
+    } else {
+      toast({
+        title: 'Invitación Enviada',
+        description: `Se ha enviado una invitación a ${email}.`,
+      });
+      setEmail('');
+    }
+    setIsInviting(false);
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Gestionar Usuarios</CardTitle>
+        <CardDescription>Invita a nuevos usuarios para que puedan acceder a la agenda.</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="flex space-x-2">
+          <Input
+            type="email"
+            placeholder="correo@ejemplo.com"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
+          <Button onClick={handleInviteUser} disabled={isInviting}>
+            {isInviting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+            Invitar Usuario
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 export default function ClientsPage() {
+  const { user } = useAuth();
   const { settings } = useUserSettings();
   const { toast } = useToast();
   const [clients, setClients] = useState<ClientProfile[]>([]);
@@ -50,8 +114,15 @@ export default function ClientsPage() {
   const [isSyncing, setIsSyncing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const isAdmin = user?.email === 'tony@abbaglia.com';
+
   const fetchClientData = useCallback(async (isManualSync = false) => {
-    const webhookUrl = settings?.clients_webhook_url;
+    if (!isAdmin) {
+      setIsLoading(false);
+      return;
+    }
+
+    const webhookUrl = (settings as UserSettings)?.clients_webhook_url;
 
     if (!webhookUrl) {
       setError("Por favor, configure la URL del webhook de clientes en Ajustes.");
@@ -73,20 +144,18 @@ export default function ClientsPage() {
       
       const data: RawReservation[] = await response.json();
 
-      const clientMap = new Map<string, { visits: RawReservation[], lastVisit: DateTime, normalizedPhone: string }>();
+      const clientMap = new Map<string, { visits: RawReservation[], lastVisit: DateTime, normalizedPhone: string, name: string }>();
       
       const normalizePhone = (phone: string | number): string => {
         let phoneStr = String(phone).replace(/\s+/g, '');
         if (phoneStr.startsWith('+')) {
           phoneStr = phoneStr.substring(1);
         }
-        if (!phoneStr.startsWith('34')) {
-           // Assuming it's a spanish number missing the country code
-           if(phoneStr.length === 9) return `34${phoneStr}`;
+        if (phoneStr.length === 9 && !phoneStr.startsWith('34')) {
+           return `34${phoneStr}`;
         }
         return phoneStr;
       };
-
 
       data.forEach(reservation => {
         const clientName = reservation["Nombre completo"];
@@ -102,7 +171,7 @@ export default function ClientsPage() {
         if (!visitDate.isValid) return;
 
         if (!clientMap.has(key)) {
-          clientMap.set(key, { visits: [], lastVisit: visitDate, normalizedPhone: `+${normalizedPhone}` });
+          clientMap.set(key, { visits: [], lastVisit: visitDate, normalizedPhone: `+${normalizedPhone}`, name: clientName });
         }
         
         const clientEntry = clientMap.get(key)!;
@@ -113,12 +182,11 @@ export default function ClientsPage() {
       });
       
       const processedClients: ClientProfile[] = Array.from(clientMap.entries()).map(([key, entry]) => {
-        const firstVisit = entry.visits[0];
         const uniqueProfessionals = [...new Set(entry.visits.map(v => v["Profesional deseado"]))];
         
         return {
           id: key,
-          name: firstVisit["Nombre completo"],
+          name: entry.name,
           phone: entry.normalizedPhone,
           totalVisits: entry.visits.length,
           lastVisit: entry.lastVisit,
@@ -145,13 +213,15 @@ export default function ClientsPage() {
     } finally {
       if (!isManualSync) setIsLoading(false); else setIsSyncing(false);
     }
-  }, [settings, toast]);
+  }, [settings, toast, isAdmin]);
   
   useEffect(() => {
-    if(settings) {
+    if(settings && isAdmin) {
         fetchClientData(false);
+    } else {
+        setIsLoading(false);
     }
-  }, [settings, fetchClientData]);
+  }, [settings, fetchClientData, isAdmin]);
   
   const kpiData = useMemo(() => {
     if (!clients || clients.length === 0) {
@@ -168,10 +238,41 @@ export default function ClientsPage() {
     };
   }, [clients]);
 
+  const downloadCSV = () => {
+    const headers = "Nombre,Telefono,Visitas Totales,Ultima Visita,Profesionales";
+    const rows = clients.map(client => {
+      const lastVisitFormatted = client.lastVisit.isValid ? format(client.lastVisit.toJSDate(), 'yyyy-MM-dd HH:mm', { locale: es }) : 'Fecha inválida';
+      const professionalsFormatted = `"${client.professionals.join(', ')}"`;
+      return [client.name, client.phone, client.totalVisits, lastVisitFormatted, professionalsFormatted].join(',');
+    });
+
+    const csvContent = "data:text/csv;charset=utf-8," + [headers, ...rows].join("\n");
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", "clientes.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[calc(100vh-8rem)]">
         <Loader2 className="h-16 w-16 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (!isAdmin) {
+    return (
+      <div className="p-4 sm:p-6 lg:p-8">
+        <Card className="flex-1 flex items-center justify-center bg-destructive/10 border-destructive">
+          <CardContent className="text-center text-destructive p-6">
+            <CardTitle>Acceso Denegado</CardTitle>
+            <p>No tienes permiso para ver esta sección.</p>
+          </CardContent>
+        </Card>
       </div>
     );
   }
@@ -196,10 +297,16 @@ export default function ClientsPage() {
             <h1 className="text-2xl sm:text-3xl font-headline font-bold">Clientes</h1>
             <p className="text-muted-foreground">Tu base de clientes, ordenada por lealtad.</p>
         </div>
-        <Button onClick={() => fetchClientData(true)} disabled={isSyncing}>
-            {isSyncing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
-            Sincronizar
-        </Button>
+        <div className="flex items-center gap-2">
+            <Button onClick={downloadCSV} variant="outline" disabled={clients.length === 0}>
+                <Download className="mr-2 h-4 w-4" />
+                Descargar CSV
+            </Button>
+            <Button onClick={() => fetchClientData(true)} disabled={isSyncing}>
+                {isSyncing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
+                Sincronizar
+            </Button>
+        </div>
       </header>
 
       <section className="grid gap-4 md:grid-cols-3">
@@ -234,7 +341,7 @@ export default function ClientsPage() {
                               <div className="flex items-center gap-2">
                                   <CalendarIcon className="w-4 h-4 text-primary"/>
                                   <span className="font-semibold">
-                                      Última: {client.lastVisit.isValid ? format(client.lastVisit.toJSDate(), 'dd MMM yyyy', { locale: es }) : 'Fecha inválida'}
+                                      Última: {isValid(client.lastVisit.toJSDate()) ? format(client.lastVisit.toJSDate(), 'dd MMM yyyy', { locale: es }) : 'Fecha inválida'}
                                   </span>
                               </div>
                               <div className="flex items-center gap-2 col-span-2 sm:col-span-1">
@@ -254,3 +361,5 @@ export default function ClientsPage() {
     </div>
   );
 }
+
+    
