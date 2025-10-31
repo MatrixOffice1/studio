@@ -8,13 +8,13 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Loader2, Users, Star, Repeat, Phone, Calendar as CalendarIcon, UserCheck } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { es } from 'date-fns/locale';
-import { format, parseISO } from 'date-fns';
+import { format } from 'date-fns';
 
 type RawReservation = {
-  clientName: string;
-  clientPhone: string;
-  date: string;
-  professional: string;
+  "Nombre completo": string;
+  "Telefono": string | number;
+  "Fecha y hora": string;
+  "Profesional deseado": string;
 };
 
 type ClientProfile = {
@@ -72,8 +72,15 @@ export default function ClientsPage() {
       const clientMap = new Map<string, { visits: RawReservation[], lastVisit: DateTime }>();
 
       data.forEach(reservation => {
-        const key = `${reservation.clientName.trim().toLowerCase()}-${reservation.clientPhone.trim()}`;
-        const visitDate = DateTime.fromISO(reservation.date, { zone: 'Europe/Madrid' });
+        const clientName = reservation["Nombre completo"];
+        const clientPhone = String(reservation["Telefono"]);
+        const visitDateStr = reservation["Fecha y hora"];
+        
+        if (!clientName || !clientPhone || !visitDateStr) return;
+
+        const key = `${clientName.trim().toLowerCase()}-${clientPhone.trim()}`;
+        // Google Sheets date format might be 'YYYY-MM-DD HH:mm:ss'
+        const visitDate = DateTime.fromSQL(visitDateStr, { zone: 'Europe/Madrid' });
 
         if (!clientMap.has(key)) {
           clientMap.set(key, { visits: [], lastVisit: visitDate });
@@ -88,11 +95,11 @@ export default function ClientsPage() {
       
       const processedClients: ClientProfile[] = Array.from(clientMap.values()).map(entry => {
         const firstVisit = entry.visits[0];
-        const uniqueProfessionals = [...new Set(entry.visits.map(v => v.professional))];
+        const uniqueProfessionals = [...new Set(entry.visits.map(v => v["Profesional deseado"]))];
         
         return {
-          name: firstVisit.clientName,
-          phone: firstVisit.clientPhone,
+          name: firstVisit["Nombre completo"],
+          phone: String(firstVisit["Telefono"]),
           totalVisits: entry.visits.length,
           lastVisit: entry.lastVisit,
           professionals: uniqueProfessionals,
@@ -195,7 +202,7 @@ export default function ClientsPage() {
                               <div className="flex items-center gap-2">
                                   <CalendarIcon className="w-4 h-4 text-primary"/>
                                   <span className="font-semibold">
-                                      Última: {format(client.lastVisit.toJSDate(), 'dd MMM yyyy', { locale: es })}
+                                      Última: {client.lastVisit.isValid ? format(client.lastVisit.toJSDate(), 'dd MMM yyyy', { locale: es }) : 'Fecha inválida'}
                                   </span>
                               </div>
                               <div className="flex items-center gap-2 col-span-2 sm:col-span-1">
