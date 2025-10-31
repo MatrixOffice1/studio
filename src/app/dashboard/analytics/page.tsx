@@ -120,7 +120,7 @@ async function getAnalyticsData() {
 
 
 export default async function AnalyticsPage() {
-  const { kpiData, dailyActivity } = await getAnalyticsData();
+  const { kpiData } = await getAnalyticsData();
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 space-y-8">
@@ -172,39 +172,13 @@ export default async function AnalyticsPage() {
         </Card>
       </section>
 
-      <div className="grid gap-8 lg:grid-cols-5">
-        <Card className="lg:col-span-3">
+      <div className="grid gap-8 lg:grid-cols-1">
+        <Card className="lg:col-span-1">
           <CardHeader>
             <CardTitle>Tendencia de los últimos 7 días</CardTitle>
           </CardHeader>
           <CardContent className="h-[300px]">
             <TrendsChart data={kpiData.last7DaysTrend} />
-          </CardContent>
-        </Card>
-
-        <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle>Feed de Actividad Diaria</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {dailyActivity.map(day => (
-                <div key={day.date}>
-                  <h4 className="font-semibold text-sm mb-2">{day.date}</h4>
-                  <div className="space-y-3">
-                    {day.activities.map((activity, index) => (
-                      <div key={index} className="flex items-start gap-3">
-                        <div className="text-xs text-muted-foreground w-16 text-right pt-1">{activity.time}</div>
-                        <div className="flex-1">
-                           <Badge variant="outline" className={`font-normal ${activityColors[activity.type] || activityColors.default}`}>{activity.user}</Badge>
-                           <p className="text-sm mt-1">{activity.description}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
           </CardContent>
         </Card>
       </div>
