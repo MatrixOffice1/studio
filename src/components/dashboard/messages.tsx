@@ -197,9 +197,17 @@ export function Messages() {
 
   useEffect(() => {
     if (scrollAreaRef.current) {
-      scrollAreaRef.current.scrollTo(0, scrollAreaRef.current.scrollHeight);
+        // We use a small timeout to allow the DOM to update before scrolling
+        setTimeout(() => {
+            if (scrollAreaRef.current) {
+                scrollAreaRef.current.scrollTo({
+                    top: scrollAreaRef.current.scrollHeight,
+                    behavior: 'smooth'
+                });
+            }
+        }, 100);
     }
-  }, [messages]);
+  }, [messages, loadingMessages]);
 
 
   const handleSummary = async () => {
