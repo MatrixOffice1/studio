@@ -54,14 +54,11 @@ export function Messages() {
   const [summary, setSummary] = useState('');
   const [isSummarizing, setIsSummarizing] = useState(false);
   const { toast } = useToast();
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesViewportRef = useRef<HTMLDivElement>(null);
   const [avatars, setAvatars] = useState<Record<string, 'man' | 'woman'>>({});
   const [isSummaryDialogOpen, setIsSummaryDialogOpen] = useState(false);
   const { user } = useAuth();
   
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
 
   const handleAvatarToggle = async (e: React.MouseEvent, chatId: string) => {
     e.stopPropagation();
@@ -197,8 +194,15 @@ export function Messages() {
   }, [selectedChat]);
 
   useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
+    if (messagesViewportRef.current) {
+        // We use a timeout to allow the DOM to update before scrolling
+        setTimeout(() => {
+            if (messagesViewportRef.current) {
+                messagesViewportRef.current.scrollTop = messagesViewportRef.current.scrollHeight;
+            }
+        }, 0);
+    }
+  }, [messages, selectedChat]);
 
 
   const handleSummary = async () => {
@@ -317,7 +321,7 @@ export function Messages() {
                 </Button>
               </div>
             </div>
-            <ScrollArea className="flex-grow p-4">
+            <ScrollArea className="flex-grow p-4" viewportRef={messagesViewportRef}>
               <div className="space-y-4">
                   {messages.map((msg) => (
                     <div key={msg.id} className={cn('flex items-end gap-2', msg.sender === 'ai' ? 'justify-end' : 'justify-start')}>
@@ -339,7 +343,6 @@ export function Messages() {
                       )}
                     </div>
                   ))}
-                <div ref={messagesEndRef} />
               </div>
             </ScrollArea>
           </>
@@ -373,3 +376,5 @@ export function Messages() {
     </div>
   );
 }
+
+    
