@@ -98,7 +98,7 @@ export default function InvoicesPage() {
         if (!date.isValid || !reservation["Nombre completo"]) return;
 
         const clientKey = `${reservation["Nombre completo"].trim().toLowerCase()}-${date.toISODate()}`;
-        const price = typeof reservation["Precio"] === 'number' ? reservation["Precio"] : 0;
+        const price = typeof reservation.Precio === 'number' ? reservation.Precio : 0;
 
         if (dailyInvoicesMap.has(clientKey)) {
           const existingInvoice = dailyInvoicesMap.get(clientKey)!;
@@ -166,7 +166,7 @@ export default function InvoicesPage() {
                           invoice.clientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
                           invoice.invoiceNumber.toLowerCase().includes(searchTerm.toLowerCase());
       
-      const statusMatch = statusFilter === 'todos' || invoice.status === (statusFilter.charAt(0).toUpperCase() + statusFilter.slice(1));
+      const statusMatch = statusFilter === 'todos' || invoice.status.toLowerCase() === statusFilter.toLowerCase();
       
       const professionalMatch = professionalFilter === 'todos' || 
                                 invoice.items.some(item => item.professional === professionalFilter);
@@ -299,8 +299,12 @@ export default function InvoicesPage() {
                       <TableCell>{invoice.date.setLocale('es').toFormat('dd LLL, yyyy')}</TableCell>
                       <TableCell className="text-center">
                         <Badge 
-                          variant={invoice.status === 'Pagado' ? 'secondary' : 'destructive'} 
-                          className={`cursor-pointer transition-colors ${invoice.status === 'Pagado' ? 'bg-green-100 hover:bg-green-200 text-green-800' : 'bg-orange-100 hover:bg-orange-200 text-orange-800'}`}
+                          variant={invoice.status === 'Pagado' ? 'default' : 'destructive'} 
+                          className={cn('cursor-pointer transition-colors', 
+                            invoice.status === 'Pagado' 
+                            ? 'bg-green-100 hover:bg-green-200 text-green-800' 
+                            : 'bg-orange-100 hover:bg-orange-200 text-orange-800'
+                          )}
                           onClick={() => handleStatusToggle(invoice.invoiceNumber)}
                         >
                           {invoice.status}
