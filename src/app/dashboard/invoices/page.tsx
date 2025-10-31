@@ -100,16 +100,8 @@ export default function InvoicesPage() {
 
         const clientKey = `${reservation["Nombre completo"].trim().toLowerCase()}-${date.toISODate()}`;
         
-        let price = 0;
         const rawPrice = reservation["Precio"];
-        if (typeof rawPrice === 'string' && rawPrice.trim() !== '') {
-          price = parseFloat(rawPrice.replace(',', '.'));
-        } else if (typeof rawPrice === 'number') {
-          price = rawPrice;
-        }
-
-        if (isNaN(price)) return;
-
+        const price = parseFloat(String(rawPrice).replace(',', '.')) || 0;
 
         if (dailyInvoicesMap.has(clientKey)) {
           const existingInvoice = dailyInvoicesMap.get(clientKey)!;
