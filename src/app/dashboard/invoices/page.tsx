@@ -95,10 +95,14 @@ export default function InvoicesPage() {
       const dailyInvoicesMap = new Map<string, Invoice>();
 
       data.forEach((reservation, index) => {
+        const clientName = reservation["Nombre completo"];
         const date = DateTime.fromSQL(reservation["Fecha y hora"], { zone: 'Europe/Madrid' });
-        if (!date.isValid || !reservation["Nombre completo"]) return;
+        
+        if (!date.isValid || !clientName || typeof clientName !== 'string' || clientName.trim() === '') {
+            return; 
+        }
 
-        const clientKey = `${reservation["Nombre completo"].trim().toLowerCase()}-${date.toISODate()}`;
+        const clientKey = `${clientName.trim().toLowerCase()}-${date.toISODate()}`;
         
         const rawPrice = reservation["Precio"];
         const price = parseFloat(String(rawPrice).replace(',', '.')) || 0;
@@ -116,7 +120,7 @@ export default function InvoicesPage() {
           const invoiceNum = (index + 1).toString().padStart(4, '0');
           dailyInvoicesMap.set(clientKey, {
             invoiceNumber: `F-${year}-${invoiceNum}`,
-            clientName: reservation["Nombre completo"],
+            clientName: clientName,
             clientPhone: String(reservation["Telefono"]),
             date: date,
             items: [{
