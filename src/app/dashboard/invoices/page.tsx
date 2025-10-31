@@ -65,6 +65,10 @@ export default function InvoicesPage() {
   const [statusFilter, setStatusFilter] = useState('todos');
   const [professionalFilter, setProfessionalFilter] = useState('todos');
 
+  const [statusLoading, setStatusLoading] = useState<Record<string, boolean>>({});
+  const [pdfLoading, setPdfLoading] = useState<Record<string, boolean>>({});
+
+
   const isAdmin = user?.email === 'tony@abbaglia.com';
   
   const parseDate = (dateString: string): DateTime => {
@@ -191,15 +195,101 @@ export default function InvoicesPage() {
     }
   }, [settings, fetchInvoiceData, isAdmin]);
 
-  const handleStatusToggle = (invoiceNumber: string) => {
+  const handleStatusToggle = async (invoiceNumber: string) => {
+    const pdfWebhookUrl = 'https://n8n.srv1002935.hstgr.cloud/webhook/pdf';
+    
+    let updatedInvoice: Invoice | undefined;
+    const newStatus = invoices.find(inv => inv.invoiceNumber === invoiceNumber)?.status === 'Pagado' ? 'Pendiente' : 'Pagado';
+
     setInvoices(prevInvoices => 
-      prevInvoices.map(inv => 
-        inv.invoiceNumber === invoiceNumber 
-          ? { ...inv, status: inv.status === 'Pagado' ? 'Pendiente' : 'Pagado' }
-          : inv
-      )
+      prevInvoices.map(inv => {
+        if (inv.invoiceNumber === invoiceNumber) {
+          updatedInvoice = { ...inv, status: newStatus };
+          return updatedInvoice;
+        }
+        return inv;
+      })
     );
+    
+    setStatusLoading(prev => ({...prev, [invoiceNumber]: true}));
+
+    if (updatedInvoice) {
+      try {
+        await fetch(pdfWebhookUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            ...updatedInvoice, 
+            date: updatedInvoice.date.toISO() // Serialize date for JSON
+          }),
+        });
+        toast({
+          title: `Estado actualizado a ${newStatus}`,
+          description: `La factura ${invoiceNumber} se ha marcado como ${newStatus.toLowerCase()}.`,
+        });
+      } catch (error: any) {
+         toast({
+          variant: 'destructive',
+          title: 'Error de red',
+          description: `No se pudo actualizar el estado: ${error.message}`,
+        });
+         // Revert state on error
+        setInvoices(prevInvoices => 
+          prevInvoices.map(inv => 
+            inv.invoiceNumber === invoiceNumber 
+              ? { ...inv, status: inv.status === 'Pagado' ? 'Pendiente' : 'Pagado' }
+              : inv
+          )
+        );
+      } finally {
+        setStatusLoading(prev => ({...prev, [invoiceNumber]: false}));
+      }
+    }
   };
+
+  const handlePdfDownload = async (invoice: Invoice) => {
+    const pdfWebhookUrl = 'https://n8n.srv1002935.hstgr.cloud/webhook/pdf';
+    setPdfLoading(prev => ({...prev, [invoice.invoiceNumber]: true}));
+    try {
+      const response = await fetch(pdfWebhookUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...invoice,
+          date: invoice.date.toISO(), // Serialize date for JSON
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`El servidor respondió con el estado ${response.status}`);
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `factura-${invoice.invoiceNumber}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+      
+      toast({
+        title: 'PDF Descargado',
+        description: `Se ha iniciado la descarga de la factura ${invoice.invoiceNumber}.`,
+      });
+
+    } catch (error: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Error al Descargar PDF',
+        description: `No se pudo generar el PDF: ${error.message}`,
+      });
+    } finally {
+      setPdfLoading(prev => ({...prev, [invoice.invoiceNumber]: false}));
+    }
+  };
+  
   
   const filteredInvoices = useMemo(() => {
     return invoices.filter(invoice => {
@@ -356,15 +446,15 @@ export default function InvoicesPage() {
                           )}
                           onClick={() => handleStatusToggle(invoice.invoiceNumber)}
                         >
-                          {invoice.status}
+                          {statusLoading[invoice.invoiceNumber] ? <Loader2 className="h-4 w-4 animate-spin" /> : invoice.status}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right font-medium">
                         {invoice.totalPrice.toLocaleString('es-ES', { style: 'currency', currency: 'EUR' })}
                       </TableCell>
                       <TableCell className="text-center">
-                        <Button variant="outline" size="sm" disabled>
-                          <FileDown className="mr-2 h-4 w-4" />
+                        <Button variant="outline" size="sm" onClick={() => handlePdfDownload(invoice)} disabled={pdfLoading[invoice.invoiceNumber]}>
+                          {pdfLoading[invoice.invoiceNumber] ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileDown className="mr-2 h-4 w-4" />}
                           PDF
                         </Button>
                       </TableCell>
