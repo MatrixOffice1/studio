@@ -8,6 +8,7 @@ import {
   MessagesSquare,
   Settings,
   User,
+  Users,
 } from "lucide-react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
@@ -40,6 +41,7 @@ const menuItems = [
   { href: "/dashboard/messages", label: "Mensajes", icon: MessagesSquare },
   { href: "/dashboard/analytics", label: "Analíticas", icon: BarChart3 },
   { href: "/dashboard/appointments", label: "Agenda", icon: CalendarDays },
+  { href: "/dashboard/clients", label: "Clientes", icon: Users },
   { href: "/dashboard/settings", label: "Ajustes", icon: Settings },
 ]
 
