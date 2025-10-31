@@ -9,6 +9,7 @@ import {
   Settings,
   User,
   Users,
+  Wallet,
 } from "lucide-react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
@@ -38,17 +39,20 @@ import { supabase } from "@/lib/supabase"
 import { PlaceHolderImages } from "@/lib/placeholder-images"
 
 const menuItems = [
-  { href: "/dashboard/messages", label: "Mensajes", icon: MessagesSquare },
-  { href: "/dashboard/analytics", label: "Analíticas", icon: BarChart3 },
-  { href: "/dashboard/appointments", label: "Agenda", icon: CalendarDays },
-  { href: "/dashboard/clients", label: "Clientes", icon: Users },
-  { href: "/dashboard/settings", label: "Ajustes", icon: Settings },
+  { href: "/dashboard/messages", label: "Mensajes", icon: MessagesSquare, adminOnly: true },
+  { href: "/dashboard/analytics", label: "Analíticas", icon: BarChart3, adminOnly: true },
+  { href: "/dashboard/appointments", label: "Agenda", icon: CalendarDays, adminOnly: false },
+  { href: "/dashboard/clients", label: "Clientes", icon: Users, adminOnly: true },
+  { href: "/dashboard/invoices", label: "Facturas", icon: Wallet, adminOnly: true },
+  { href: "/dashboard/settings", label: "Ajustes", icon: Settings, adminOnly: true },
 ]
 
 export function AppSidebar() {
   const pathname = usePathname()
   const router = useRouter();
   const { user } = useAuth();
+  
+  const isAdmin = user?.email === 'tony@abbaglia.com';
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -64,6 +68,8 @@ export function AppSidebar() {
   const userEmail = user?.email || 'user@peluflow.com';
   const userName = user?.user_metadata?.name || userEmail.split('@')[0];
   
+  const visibleMenuItems = menuItems.filter(item => isAdmin || !item.adminOnly);
+
   return (
     <Sidebar>
       <SidebarHeader>
@@ -71,7 +77,7 @@ export function AppSidebar() {
       </SidebarHeader>
       <SidebarContent>
         <SidebarMenu>
-          {menuItems.map((item) => (
+          {visibleMenuItems.map((item) => (
             <SidebarMenuItem key={item.label}>
               <SidebarMenuButton
                 asChild

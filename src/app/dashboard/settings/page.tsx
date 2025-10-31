@@ -20,6 +20,62 @@ const WhatsAppIcon = (props: React.SVGProps<SVGSVGElement>) => (
 );
 
 
+function UserManagement({ userId }: { userId: string }) {
+    const [email, setEmail] = useState('');
+    const [isInviting, setIsInviting] = useState(false);
+    const { toast } = useToast();
+  
+    const handleInviteUser = async () => {
+      if (!email) {
+        toast({
+          variant: 'destructive',
+          title: 'Error',
+          description: 'Por favor, introduce un correo electrónico.',
+        });
+        return;
+      }
+      setIsInviting(true);
+      const { error } = await supabase.auth.admin.inviteUserByEmail(email);
+      if (error) {
+        toast({
+          variant: 'destructive',
+          title: 'Error al invitar usuario',
+          description: error.message,
+        });
+      } else {
+        toast({
+          title: 'Invitación Enviada',
+          description: `Se ha enviado una invitación a ${email}.`,
+        });
+        setEmail('');
+      }
+      setIsInviting(false);
+    };
+  
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Gestionar Usuarios</CardTitle>
+          <CardDescription>Invita a nuevos usuarios para que puedan acceder a la agenda.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex space-x-2">
+            <Input
+              type="email"
+              placeholder="correo@ejemplo.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+            <Button onClick={handleInviteUser} disabled={isInviting}>
+              {isInviting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              Invitar Usuario
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    );
+}
+
 export default function SettingsPage() {
   const { user } = useAuth();
   const { settings, refreshSettings } = useUserSettings();
@@ -29,9 +85,12 @@ export default function SettingsPage() {
   const [availabilityWebhook, setAvailabilityWebhook] = useState('');
   const [citasWebhook, setCitasWebhook] = useState('');
   const [clientsWebhook, setClientsWebhook] = useState('');
+  const [invoicesWebhook, setInvoicesWebhook] = useState('');
   const [syncInterval, setSyncInterval] = useState('5');
   const [isSaving, setIsSaving] = useState(false);
   const { toast } = useToast();
+
+  const isAdmin = user?.email === 'tony@abbaglia.com';
 
   useEffect(() => {
     if (settings) {
@@ -41,6 +100,7 @@ export default function SettingsPage() {
       setAvailabilityWebhook(settings.availability_webhook_url || 'https://n8n.srv1002935.hstgr.cloud/webhook/calendar-tony-airmate');
       setCitasWebhook(settings.citas_webhook_url || 'https://n8n.srv1002935.hstgr.cloud/webhook-test/calendar-citas-modf');
       setClientsWebhook(settings.clients_webhook_url || '');
+      setInvoicesWebhook(settings.invoices_webhook_url || '');
       setSyncInterval(String(settings.sync_interval || '5'));
     }
   }, [settings]);
@@ -64,6 +124,7 @@ export default function SettingsPage() {
       availability_webhook_url: availabilityWebhook,
       citas_webhook_url: citasWebhook,
       clients_webhook_url: clientsWebhook,
+      invoices_webhook_url: invoicesWebhook,
       sync_interval: parseInt(syncInterval, 10) || 5,
     };
 
@@ -95,6 +156,30 @@ export default function SettingsPage() {
     window.open('https://wa.me/34603028668', '_blank');
   };
 
+  if (!isAdmin) {
+    return (
+        <div className="p-4 sm:p-6 lg:p-8">
+            <Card>
+                <CardHeader>
+                    <CardTitle>Soporte</CardTitle>
+                    <CardDescription>¿Necesitas ayuda? Contacta con nuestro equipo de soporte.</CardDescription>
+                </CardHeader>
+                <CardContent className="flex items-center gap-6">
+                    <Image src="https://i.postimg.cc/FsTSyft0/df.png" alt="Soporte Airmate" width={150} height={150} className="rounded-full flex-shrink-0" />
+                    <div className='space-y-2 flex-grow'>
+                        <p className="font-semibold text-lg">Soporte Técnico AirmateAi</p>
+                        <p className="text-muted-foreground">+34 603 02 86 68</p>
+                        <Button onClick={openSupportChat} className="mt-4">
+                            <WhatsAppIcon className="mr-2 h-4 w-4" />
+                            Abrir chat de soporte
+                        </Button>
+                    </div>
+                </CardContent>
+            </Card>
+        </div>
+    );
+  }
+
   return (
     <div className="p-4 sm:p-6 lg:p-8 space-y-8 flex flex-col min-h-screen">
       <header>
@@ -103,6 +188,8 @@ export default function SettingsPage() {
       </header>
 
       <div className="space-y-8 flex-grow">
+        {isAdmin && user && <UserManagement userId={user.id} />}
+        
         <Card>
           <CardHeader>
             <CardTitle>Configuración de IA</CardTitle>
@@ -137,7 +224,7 @@ export default function SettingsPage() {
         <Card>
           <CardHeader>
             <CardTitle>Integración de n8n</CardTitle>
-            <CardDescription>Gestiona tus webhooks para la agenda, disponibilidad y clientes.</CardDescription>
+            <CardDescription>Gestiona tus webhooks para la agenda, disponibilidad, clientes y facturas.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
@@ -174,6 +261,15 @@ export default function SettingsPage() {
                 placeholder="https://n8n.example.com/webhook/..."
                 value={clientsWebhook}
                 onChange={(e) => setClientsWebhook(e.target.value)}
+              />
+            </div>
+             <div className="space-y-2">
+              <Label htmlFor="invoices-webhook">URL del Webhook de Facturas</Label>
+              <Input
+                id="invoices-webhook"
+                placeholder="https://n8n.example.com/webhook/..."
+                value={invoicesWebhook}
+                onChange={(e) => setInvoicesWebhook(e.target.value)}
               />
             </div>
             <div className="space-y-2">
