@@ -7,34 +7,26 @@ import { cookies } from 'next/headers';
 export async function POST(request: Request) {
   const cookieStore = cookies();
   
-  // 1. Create a client with a custom storage adapter to correctly read the session
+  // This is the standard and correct way to initialize the client in a Route Handler.
+  // It allows the client to correctly read the session cookies from the request.
   const supabase = createRouteHandlerClient({
     cookies: () => cookieStore,
-    storage: {
-      getItem: (key) => {
-        // The key from Supabase might be "sb-...", but the cookie name is just "...".
-        // This logic correctly extracts the cookie name.
-        return cookieStore.get(key.split('.').pop()!)?.value ?? null;
-      },
-      setItem: () => {}, // setItem/removeItem are not needed for server-side auth checks
-      removeItem: () => {},
-    },
   });
 
-  // 2. Check if the user making the request is authenticated
+  // 1. Check if the user making the request is authenticated
   const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) {
     return NextResponse.json({ error: 'No estás autenticado.' }, { status: 401 });
   }
 
-  // 3. Create a separate, admin client with service_role to perform privileged operations
+  // 2. Create a separate, admin client with service_role to perform privileged operations
   const supabaseAdmin = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   );
 
-  // 4. Check if the authenticated user is an admin by querying their profile with the admin client
+  // 3. Check if the authenticated user is an admin by querying their profile with the admin client
   const { data: profile, error: profileError } = await supabaseAdmin
     .from('profiles')
     .select('is_admin')
@@ -45,14 +37,14 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Acceso denegado. No tienes permisos de administrador.' }, { status: 403 });
   }
 
-  // 5. If the user is a confirmed admin, proceed to get the new user's data from the request
+  // 4. If the user is a confirmed admin, proceed to get the new user's data from the request
   const { email, password, full_name, is_admin } = await request.json();
 
   if (!email || !password || full_name === undefined) {
     return NextResponse.json({ error: 'Faltan campos obligatorios (email, password, full_name).' }, { status: 400 });
   }
   
-  // 6. Create the new user in auth.users using the admin client
+  // 5. Create the new user in auth.users using the admin client
   const { data: newUserData, error: createError } = await supabaseAdmin.auth.admin.createUser({
     email: email,
     password: password,
@@ -69,7 +61,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'No se pudo crear el usuario.' }, { status: 500 });
   }
 
-  // 7. Insert the profile into public.profiles
+  // 6. Insert the profile into public.profiles
   const { error: insertProfileError } = await supabaseAdmin
     .from('profiles')
     .insert({
@@ -86,7 +78,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: `Error al crear el perfil: ${insertProfileError.message}` }, { status: 500 });
   }
   
-  // 8. Return the newly created user's data (without sensitive info)
+  // 7. Return the newly created user's data (without sensitive info)
   const responsePayload = {
     id: newUser.id,
     email: newUser.email,
