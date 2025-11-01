@@ -3,7 +3,6 @@
 import {
   BarChart3,
   CalendarDays,
-  LayoutDashboard,
   LogOut,
   MessagesSquare,
   Settings,
@@ -44,16 +43,13 @@ const menuItems = [
   { href: "/dashboard/appointments", label: "Agenda", icon: CalendarDays, adminOnly: false },
   { href: "/dashboard/clients", label: "Clientes", icon: Users, adminOnly: true },
   { href: "/dashboard/invoices", label: "Facturas", icon: Wallet, adminOnly: true },
-  { href: "/dashboard/settings", label: "Ajustes", icon: Settings, adminOnly: true },
 ]
 
 export function AppSidebar() {
   const pathname = usePathname()
   const router = useRouter();
-  const { user } = useAuth();
+  const { profile } = useAuth();
   
-  const isAdmin = user?.email === 'tony@abbaglia.com';
-
   const handleLogout = async () => {
     await supabase.auth.signOut();
     router.push('/login');
@@ -65,10 +61,10 @@ export function AppSidebar() {
   }
   
   const currentUserAvatar = PlaceHolderImages.find(img => img.id === 'currentUserAvatar');
-  const userEmail = user?.email || 'user@peluflow.com';
-  const userName = user?.user_metadata?.name || userEmail.split('@')[0];
+  const userEmail = profile?.email || 'user@peluflow.com';
+  const userName = profile?.full_name || userEmail.split('@')[0];
   
-  const visibleMenuItems = menuItems.filter(item => isAdmin || !item.adminOnly);
+  const visibleMenuItems = menuItems.filter(item => profile?.is_admin || !item.adminOnly);
 
   return (
     <Sidebar>
@@ -101,7 +97,7 @@ export function AppSidebar() {
                 <div className="flex gap-2 items-center">
                   <Avatar className="h-8 w-8">
                     {currentUserAvatar && <AvatarImage src={currentUserAvatar.imageUrl} alt={userName} />}
-                    <AvatarFallback>{userName.charAt(0)}</AvatarFallback>
+                    <AvatarFallback>{userName.charAt(0).toUpperCase()}</AvatarFallback>
                   </Avatar>
                   <span className="text-sm font-medium">{userName}</span>
                 </div>
@@ -118,9 +114,17 @@ export function AppSidebar() {
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem disabled>
-              <User className="mr-2 h-4 w-4" />
-              <span>Perfil</span>
+            <DropdownMenuItem asChild>
+              <Link href="/dashboard/profile">
+                <User className="mr-2 h-4 w-4" />
+                <span>Perfil</span>
+              </Link>
+            </DropdownMenuItem>
+             <DropdownMenuItem asChild>
+               <Link href="/dashboard/settings">
+                <Settings className="mr-2 h-4 w-4" />
+                <span>Ajustes</span>
+              </Link>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={handleLogout}>

@@ -8,21 +8,6 @@ import { supabase } from '@/lib/supabase';
 import { subDays, format, parseISO, isToday, isYesterday } from 'date-fns';
 import { es } from 'date-fns/locale';
 
-const activityColors: { [key: string]: string } = {
-  confirmation: 'bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-300',
-  inquiry: 'bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-300',
-  payment: 'bg-yellow-100 dark:bg-yellow-900/50 text-yellow-800 dark:text-yellow-300',
-  default: 'bg-gray-100 dark:bg-gray-900/50 text-gray-800 dark:text-gray-300',
-};
-
-function classifyMessage(message: string): string {
-    const lowerMessage = message.toLowerCase();
-    if (lowerMessage.includes('confirm')) return 'confirmation';
-    if (lowerMessage.includes('información') || lowerMessage.includes('saber') || lowerMessage.includes('disponibilidad')) return 'inquiry';
-    if (lowerMessage.includes('pago') || lowerMessage.includes('comprobante')) return 'payment';
-    return 'default';
-}
-
 async function getAnalyticsData() {
   const sevenDaysAgo = format(subDays(new Date(), 7), 'yyyy-MM-dd');
 
@@ -98,7 +83,6 @@ async function getAnalyticsData() {
         time: format(chatDate, 'p', { locale: es }),
         user: chat.contact_name,
         description: chat.message,
-        type: classifyMessage(chat.message),
         created_at: chat.created_at
       });
       return acc;
@@ -198,5 +182,3 @@ export default async function AnalyticsPage() {
     </div>
   );
 }
-
-    

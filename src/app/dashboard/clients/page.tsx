@@ -13,11 +13,10 @@ import { es } from 'date-fns/locale';
 import { format, isValid } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/providers/auth-provider';
-import { Input } from '@/components/ui/input';
 
 type RawReservation = {
   "Nombre completo": string;
-  "Telefono": string | number;
+  "Telefono"?: string | number;
   "Fecha y hora": string;
   "Profesional deseado": string;
   "Servicio": string;
@@ -62,7 +61,7 @@ function KpiCard({ title, value, icon: Icon, description }: { title: string, val
 }
 
 export default function ClientsPage() {
-  const { user } = useAuth();
+  const { profile } = useAuth();
   const { settings } = useUserSettings();
   const { toast } = useToast();
   const [clients, setClients] = useState<ClientProfile[]>([]);
@@ -70,22 +69,20 @@ export default function ClientsPage() {
   const [isSyncing, setIsSyncing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedClient, setSelectedClient] = useState<ClientProfile | null>(null);
-
-  const isAdmin = user?.email === 'tony@abbaglia.com';
   
   const parseDate = (dateString: string): DateTime => {
     let dt = DateTime.fromFormat(dateString, 'dd/MM/yyyy HH:mm:ss', { zone: 'Europe/Madrid' });
     if (dt.isValid) return dt;
-    
+
     dt = DateTime.fromFormat(dateString, 'd/M/yyyy HH:mm:ss', { zone: 'Europe/Madrid' });
     if (dt.isValid) return dt;
-
+    
     dt = DateTime.fromSQL(dateString, { zone: 'Europe/Madrid' });
     return dt;
   };
 
   const fetchClientData = useCallback(async (isManualSync = false) => {
-    if (!isAdmin) {
+    if (!profile?.is_admin) {
       setIsLoading(false);
       return;
     }
@@ -198,15 +195,15 @@ export default function ClientsPage() {
     } finally {
       if (!isManualSync) setIsLoading(false); else setIsSyncing(false);
     }
-  }, [settings, toast, isAdmin]);
+  }, [settings, toast, profile]);
   
   useEffect(() => {
-    if(settings && isAdmin) {
+    if(settings && profile?.is_admin) {
         fetchClientData(false);
     } else {
         setIsLoading(false);
     }
-  }, [settings, fetchClientData, isAdmin]);
+  }, [settings, fetchClientData, profile]);
   
   const kpiData = useMemo(() => {
     if (!clients || clients.length === 0) {
@@ -249,7 +246,7 @@ export default function ClientsPage() {
     );
   }
 
-  if (!isAdmin) {
+  if (!profile?.is_admin) {
     return (
       <div className="p-4 sm:p-6 lg:p-8">
         <Card className="flex-1 flex items-center justify-center bg-destructive/10 border-destructive">

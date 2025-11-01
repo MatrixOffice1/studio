@@ -20,7 +20,8 @@ import { AnalysisParser } from '@/components/dashboard/analysis-parser';
 
 
 type RawReservation = {
-  "id "?: string;
+  "id"?: string;
+  "row_number"?: number;
   "Nombre completo": string;
   "Telefono": string | number;
   "Servicio": string;
@@ -29,6 +30,7 @@ type RawReservation = {
   "Precio": number | string;
   "Precio (€)": number | string;
   "Estado"?: 'Pagado' | 'Pendiente' | '';
+  "id ": string;
 };
 
 export type Invoice = {
@@ -59,7 +61,7 @@ function KpiCard({ title, value, icon: Icon, description }: { title:string, valu
 }
 
 export default function InvoicesPage() {
-  const { user } = useAuth();
+  const { profile } = useAuth();
   const { settings } = useUserSettings();
   const { toast } = useToast();
   
@@ -79,8 +81,6 @@ export default function InvoicesPage() {
   const [analysisResult, setAnalysisResult] = useState('');
   const [isAnalysisVisible, setIsAnalysisVisible] = useState(false);
 
-  const isAdmin = user?.email === 'tony@abbaglia.com';
-  
   const parseDate = (dateString: string): DateTime => {
     let dt = DateTime.fromFormat(dateString, 'dd/MM/yyyy HH:mm:ss', { zone: 'Europe/Madrid' });
     if (dt.isValid) return dt;
@@ -93,7 +93,7 @@ export default function InvoicesPage() {
   };
 
   const fetchInvoiceData = useCallback(async (isManualSync = false) => {
-    if (!isAdmin) {
+    if (!profile?.is_admin) {
       setIsLoading(false);
       return;
     }
@@ -120,6 +120,7 @@ export default function InvoicesPage() {
       const data: RawReservation[] = await response.json();
       
       const normalizePhone = (phone: string | number): string => {
+        if (!phone) return 'No especificado';
         let phoneStr = String(phone).replace(/\s+/g, '');
         if (phoneStr.startsWith('+')) return phoneStr;
         if (phoneStr.length >= 9 && !phoneStr.startsWith('+')) return `+${phoneStr}`;
@@ -132,8 +133,7 @@ export default function InvoicesPage() {
         const priceString = String(rawPrice || "0").replace(/[€\s]/g, '').replace(',', '.');
         const price = parseFloat(priceString);
         const status = reservation.Estado === 'Pagado' ? 'Pagado' : 'Pendiente';
-        const idKey = 'id ' as keyof RawReservation;
-        const invoiceNumber = reservation[idKey] || `F-${date.toFormat('yyMMdd')}-${String(index).padStart(3, '0')}`;
+        const invoiceNumber = reservation["id "] || `F-${date.toFormat('yyMMdd')}-${String(index).padStart(3, '0')}`;
         
         return {
           invoiceNumber: String(invoiceNumber).trim(),
@@ -170,15 +170,15 @@ export default function InvoicesPage() {
     } finally {
       if (!isManualSync) setIsLoading(false); else setIsSyncing(false);
     }
-  }, [settings, toast, isAdmin]);
+  }, [settings, toast, profile]);
   
   useEffect(() => {
-    if(settings && isAdmin) {
+    if(settings && profile?.is_admin) {
       fetchInvoiceData();
     } else {
       setIsLoading(false);
     }
-  }, [settings, fetchInvoiceData, isAdmin]);
+  }, [settings, fetchInvoiceData, profile]);
 
   const handleStatusToggle = async (invoiceNumber: string) => {
     const sheetWebhookUrl = settings?.clients_webhook_url;
@@ -191,52 +191,51 @@ export default function InvoicesPage() {
       return;
     }
     
-    let updatedInvoice: Invoice | undefined;
-    const newStatus = invoices.find(inv => inv.invoiceNumber === invoiceNumber)?.status === 'Pagado' ? 'Pendiente' : 'Pagado';
+    let originalInvoice: Invoice | undefined = invoices.find(inv => inv.invoiceNumber === invoiceNumber);
+    if (!originalInvoice) return;
+
+    const newStatus = originalInvoice.status === 'Pagado' ? 'Pendiente' : 'Pagado';
+    const updatedInvoice = { ...originalInvoice, status: newStatus };
 
     setInvoices(prevInvoices => 
-      prevInvoices.map(inv => {
-        if (inv.invoiceNumber === invoiceNumber) {
-          updatedInvoice = { ...inv, status: newStatus };
-          return updatedInvoice;
-        }
-        return inv;
-      })
+      prevInvoices.map(inv => inv.invoiceNumber === invoiceNumber ? updatedInvoice : inv)
     );
     
     setStatusLoading(prev => ({...prev, [invoiceNumber]: true}));
 
-    if (updatedInvoice) {
-      try {
-        await fetch(sheetWebhookUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
-            ...updatedInvoice, 
-            date: updatedInvoice.date.toISO()
-          }),
+    try {
+        const response = await fetch(sheetWebhookUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                action: 'update_status',
+                invoiceNumber: updatedInvoice.invoiceNumber,
+                status: updatedInvoice.status
+            }),
         });
+
+        if (!response.ok) throw new Error(`El servidor de webhook respondió con: ${response.status}`);
+
         toast({
-          title: `Estado actualizado a ${newStatus}`,
-          description: `La factura ${invoiceNumber} se ha marcado como ${newStatus.toLowerCase()}.`,
+            title: `Estado actualizado a ${newStatus}`,
+            description: `La factura ${invoiceNumber} se ha marcado como ${newStatus.toLowerCase()}.`,
         });
-      } catch (error: any) {
+    } catch (error: any) {
          toast({
           variant: 'destructive',
           title: 'Error de red',
           description: `No se pudo actualizar el estado: ${error.message}`,
         });
-         // Revert state on error
+        // Revert state on error
         setInvoices(prevInvoices => 
           prevInvoices.map(inv => 
             inv.invoiceNumber === invoiceNumber 
-              ? { ...inv, status: inv.status === 'Pagado' ? 'Pendiente' : 'Pagado' }
+              ? { ...inv, status: originalInvoice!.status }
               : inv
           )
         );
-      } finally {
+    } finally {
         setStatusLoading(prev => ({...prev, [invoiceNumber]: false}));
-      }
     }
   };
 
@@ -327,7 +326,7 @@ export default function InvoicesPage() {
 
   const kpiData = useMemo(() => {
     const now = DateTime.now().setZone('Europe/Madrid');
-    const sevenDaysAgo = now.minus({ days: 7 }).startOf('day');
+    const sevenDaysAgo = now.minus({ days: 7 });
 
     const currentMonthInvoices = invoices.filter(inv => 
         inv.date.year === now.year && inv.date.month === now.month
@@ -350,7 +349,7 @@ export default function InvoicesPage() {
   }, [invoices]);
 
   const handleAnalyze = async () => {
-    if (analysisResult) {
+    if (analysisResult && !isAnalyzing) {
       setIsAnalysisVisible(true);
       return;
     }
@@ -359,11 +358,6 @@ export default function InvoicesPage() {
     setIsAnalysisVisible(true);
     try {
       if (invoices.length === 0) {
-        toast({
-          variant: "default",
-          title: "No hay datos",
-          description: "No hay facturas para analizar.",
-        });
         setAnalysisResult("No hay facturas para analizar.");
         return;
       }
@@ -385,7 +379,15 @@ export default function InvoicesPage() {
     }
   };
   
-  if (!isAdmin) {
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[calc(100vh-8rem)]">
+        <Loader2 className="h-16 w-16 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (!profile?.is_admin) {
     return (
       <div className="p-4 sm:p-6 lg:p-8">
         <Card className="flex-1 flex items-center justify-center bg-destructive/10 border-destructive">
@@ -394,14 +396,6 @@ export default function InvoicesPage() {
             <p>No tienes permiso para ver esta sección.</p>
           </CardContent>
         </Card>
-      </div>
-    );
-  }
-
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-[calc(100vh-8rem)]">
-        <Loader2 className="h-16 w-16 animate-spin text-primary" />
       </div>
     );
   }
@@ -571,7 +565,11 @@ export default function InvoicesPage() {
                         Ocultar Análisis
                     </Button>
                 </div>
-                <AnalysisParser content={analysisResult} />
+                {isAnalyzing ? (
+                  <div className="flex items-center justify-center h-24"><Loader2 className="animate-spin text-primary"/></div>
+                ) : (
+                  <AnalysisParser content={analysisResult} />
+                )}
               </div>
             )}
           </div>

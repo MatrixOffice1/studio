@@ -9,7 +9,7 @@ import { Loader2 } from 'lucide-react';
 import { UserSettingsProvider } from '@/providers/user-settings-provider';
 
 function DashboardContent({ children }: { children: React.ReactNode }) {
-  const { user, isLoading } = useAuth();
+  const { user, profile, isLoading } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
@@ -18,7 +18,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
     }
   }, [user, isLoading, router]);
 
-  if (isLoading) {
+  if (isLoading || !profile) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-background">
         <Loader2 className="h-16 w-16 animate-spin text-primary" />

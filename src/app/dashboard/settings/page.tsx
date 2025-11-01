@@ -7,11 +7,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2 } from 'lucide-react';
+import { Loader2, UserPlus, Users, Edit, Check, X } from 'lucide-react';
 import { useUserSettings } from '@/hooks/use-user-settings';
 import { supabase } from '@/lib/supabase';
-import { useAuth } from '@/providers/auth-provider';
+import { useAuth, type UserProfile } from '@/providers/auth-provider';
 import Image from 'next/image';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Switch } from '@/components/ui/switch';
 
 const WhatsAppIcon = (props: React.SVGProps<SVGSVGElement>) => (
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512" {...props}>
@@ -20,64 +22,153 @@ const WhatsAppIcon = (props: React.SVGProps<SVGSVGElement>) => (
 );
 
 
-function UserManagement({ userId }: { userId: string }) {
-    const [email, setEmail] = useState('');
-    const [isInviting, setIsInviting] = useState(false);
+function UserManagement() {
     const { toast } = useToast();
-  
-    const handleInviteUser = async () => {
-      if (!email) {
-        toast({
-          variant: 'destructive',
-          title: 'Error',
-          description: 'Por favor, introduce un correo electrónico.',
-        });
-        return;
-      }
-      setIsInviting(true);
-      const { error } = await supabase.auth.admin.inviteUserByEmail(email);
+    const [users, setUsers] = useState<UserProfile[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [editingUser, setEditingUser] = useState<UserProfile | null>(null);
+
+    const fetchUsers = async () => {
+      setIsLoading(true);
+      const { data, error } = await supabase.from('profiles').select('*');
       if (error) {
-        toast({
-          variant: 'destructive',
-          title: 'Error al invitar usuario',
-          description: error.message,
-        });
+        toast({ variant: 'destructive', title: 'Error', description: 'No se pudieron cargar los usuarios.' });
       } else {
-        toast({
-          title: 'Invitación Enviada',
-          description: `Se ha enviado una invitación a ${email}.`,
-        });
-        setEmail('');
+        setUsers(data || []);
       }
-      setIsInviting(false);
+      setIsLoading(false);
+    };
+
+    useEffect(() => {
+        fetchUsers();
+    }, []);
+
+    const handleInviteUser = async (email: string) => {
+      setIsSubmitting(true);
+      const { data, error } = await supabase.auth.admin.inviteUserByEmail(email);
+      if (error) {
+        toast({ variant: 'destructive', title: 'Error al invitar', description: error.message });
+      } else {
+        toast({ title: 'Invitación Enviada', description: `Se ha enviado una invitación a ${email}.` });
+        setIsInviteDialogOpen(false);
+        fetchUsers(); // Refresh user list
+      }
+      setIsSubmitting(false);
+    };
+    
+    const handleUpdateUser = async (updatedProfile: Partial<UserProfile>) => {
+      if (!editingUser) return;
+      setIsSubmitting(true);
+      const { error } = await supabase
+        .from('profiles')
+        .update(updatedProfile)
+        .eq('id', editingUser.id);
+      
+      if (error) {
+        toast({ variant: 'destructive', title: 'Error al actualizar', description: error.message });
+      } else {
+        toast({ title: 'Usuario Actualizado', description: 'Los cambios se han guardado.' });
+        setEditingUser(null);
+        fetchUsers(); // Refresh user list
+      }
+      setIsSubmitting(false);
     };
   
     return (
       <Card>
-        <CardHeader>
-          <CardTitle>Gestionar Usuarios</CardTitle>
-          <CardDescription>Invita a nuevos usuarios para que puedan acceder a la agenda.</CardDescription>
+        <CardHeader className="flex flex-row justify-between items-center">
+            <div>
+                <CardTitle>Gestionar Usuarios</CardTitle>
+                <CardDescription>Invita y gestiona los roles de los usuarios de tu equipo.</CardDescription>
+            </div>
+            <Button onClick={() => setIsInviteDialogOpen(true)}><UserPlus className="mr-2" /> Invitar Usuario</Button>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex space-x-2">
-            <Input
-              type="email"
-              placeholder="correo@ejemplo.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
-            <Button onClick={handleInviteUser} disabled={isInviting}>
-              {isInviting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-              Invitar Usuario
-            </Button>
-          </div>
+        <CardContent>
+          {isLoading ? (
+            <div className="flex justify-center items-center h-24">
+                <Loader2 className="animate-spin" />
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {users.map(user => (
+                <div key={user.id} className="flex items-center justify-between p-2 rounded-md hover:bg-muted">
+                    {editingUser?.id === user.id ? (
+                        <div className="flex-1 flex gap-2 items-center">
+                            <Input 
+                                defaultValue={user.full_name} 
+                                onBlur={(e) => setEditingUser({...editingUser, full_name: e.target.value})}
+                                className="h-8"
+                            />
+                            <Switch 
+                                checked={editingUser.is_admin}
+                                onCheckedChange={(checked) => setEditingUser({...editingUser, is_admin: checked})}
+                            />
+                            <Label>{editingUser.is_admin ? "Admin" : "Usuario"}</Label>
+                            <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => handleUpdateUser({ full_name: editingUser.full_name, is_admin: editingUser.is_admin })} disabled={isSubmitting}>
+                                <Check className="text-green-500"/>
+                            </Button>
+                            <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setEditingUser(null)}>
+                                <X className="text-red-500"/>
+                            </Button>
+                        </div>
+                    ) : (
+                        <>
+                            <div>
+                                <p className="font-semibold">{user.full_name}</p>
+                                <p className="text-sm text-muted-foreground">{user.email}</p>
+                            </div>
+                            <div className="flex items-center gap-4">
+                                <span className={`text-sm font-medium px-2 py-1 rounded-md ${user.is_admin ? 'bg-primary/20 text-primary' : 'bg-secondary'}`}>{user.is_admin ? 'Admin' : 'Usuario'}</span>
+                                <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setEditingUser(user)}>
+                                    <Edit />
+                                </Button>
+                            </div>
+                        </>
+                    )}
+                </div>
+              ))}
+            </div>
+          )}
         </CardContent>
+         <InviteUserDialog 
+            isOpen={isInviteDialogOpen} 
+            onOpenChange={setIsInviteDialogOpen}
+            onInvite={handleInviteUser}
+            isSubmitting={isSubmitting}
+        />
       </Card>
     );
 }
 
+function InviteUserDialog({isOpen, onOpenChange, onInvite, isSubmitting}: {isOpen: boolean, onOpenChange: (open: boolean) => void, onInvite: (email: string) => void, isSubmitting: boolean}) {
+    const [email, setEmail] = useState('');
+    return (
+        <Dialog open={isOpen} onOpenChange={onOpenChange}>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Invitar Nuevo Usuario</DialogTitle>
+                    <DialogDescription>Introduce el correo electrónico del usuario que quieres invitar. Recibirá un enlace para configurar su cuenta.</DialogDescription>
+                </DialogHeader>
+                <div className="space-y-2 py-4">
+                    <Label htmlFor="invite-email">Correo Electrónico</Label>
+                    <Input id="invite-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="correo@ejemplo.com"/>
+                </div>
+                <DialogFooter>
+                    <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
+                    <Button onClick={() => onInvite(email)} disabled={isSubmitting || !email}>
+                        {isSubmitting && <Loader2 className="mr-2 animate-spin"/>}
+                        Enviar Invitación
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    )
+}
+
 export default function SettingsPage() {
-  const { user } = useAuth();
+  const { profile } = useAuth();
   const { settings, refreshSettings } = useUserSettings();
   const [aiProvider, setAiProvider] = useState('gemini');
   const [apiKey, setApiKey] = useState('');
@@ -89,8 +180,6 @@ export default function SettingsPage() {
   const [syncInterval, setSyncInterval] = useState('5');
   const [isSaving, setIsSaving] = useState(false);
   const { toast } = useToast();
-
-  const isAdmin = user?.email === 'tony@abbaglia.com';
 
   useEffect(() => {
     if (settings) {
@@ -106,7 +195,7 @@ export default function SettingsPage() {
   }, [settings]);
 
   const handleSaveChanges = async () => {
-    if (!user) {
+    if (!profile) {
       toast({
         variant: 'destructive',
         title: 'Error',
@@ -130,7 +219,7 @@ export default function SettingsPage() {
 
     const { error } = await supabase
       .from('user_settings')
-      .upsert({ user_id: user.id, settings: newSettings }, { onConflict: 'user_id' });
+      .upsert({ user_id: profile.id, settings: newSettings }, { onConflict: 'user_id' });
 
     if (error) {
       console.error('Error saving settings:', error);
@@ -156,30 +245,6 @@ export default function SettingsPage() {
     window.open('https://wa.me/34603028668', '_blank');
   };
 
-  if (!isAdmin) {
-    return (
-        <div className="p-4 sm:p-6 lg:p-8">
-            <Card>
-                <CardHeader>
-                    <CardTitle>Soporte</CardTitle>
-                    <CardDescription>¿Necesitas ayuda? Contacta con nuestro equipo de soporte.</CardDescription>
-                </CardHeader>
-                <CardContent className="flex items-center gap-6">
-                    <Image src="https://i.postimg.cc/FsTSyft0/df.png" alt="Soporte Airmate" width={150} height={150} className="rounded-full flex-shrink-0" />
-                    <div className='space-y-2 flex-grow'>
-                        <p className="font-semibold text-lg">Soporte Técnico AirmateAi</p>
-                        <p className="text-muted-foreground">+34 603 02 86 68</p>
-                        <Button onClick={openSupportChat} className="mt-4">
-                            <WhatsAppIcon className="mr-2 h-4 w-4" />
-                            Abrir chat de soporte
-                        </Button>
-                    </div>
-                </CardContent>
-            </Card>
-        </div>
-    );
-  }
-
   return (
     <div className="p-4 sm:p-6 lg:p-8 space-y-8 flex flex-col min-h-screen">
       <header>
@@ -188,103 +253,107 @@ export default function SettingsPage() {
       </header>
 
       <div className="space-y-8 flex-grow">
-        {isAdmin && user && <UserManagement userId={user.id} />}
+        {profile?.is_admin && <UserManagement />}
         
-        <Card>
-          <CardHeader>
-            <CardTitle>Configuración de IA</CardTitle>
-            <CardDescription>Configura tu proveedor de IA y la clave API para funciones como el resumen de chat.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="ai-provider">Proveedor de IA</Label>
-              <Select value={aiProvider} onValueChange={setAiProvider}>
-                <SelectTrigger id="ai-provider">
-                  <SelectValue placeholder="Seleccionar Proveedor de IA" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="gemini">Gemini</SelectItem>
-                  <SelectItem value="openai" disabled>OpenAI (próximamente)</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="api-key">{aiProvider === 'gemini' ? 'Gemini' : 'OpenAI'} Clave API</Label>
-              <Input
-                id="api-key"
-                type="password"
-                placeholder="Introduce tu clave API"
-                value={apiKey}
-                onChange={(e) => setApiKey(e.target.value)}
-              />
-            </div>
-          </CardContent>
-        </Card>
+        {profile?.is_admin && (
+          <>
+            <Card>
+              <CardHeader>
+                <CardTitle>Configuración de IA</CardTitle>
+                <CardDescription>Configura tu proveedor de IA y la clave API para funciones como el resumen de chat.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="ai-provider">Proveedor de IA</Label>
+                  <Select value={aiProvider} onValueChange={setAiProvider}>
+                    <SelectTrigger id="ai-provider">
+                      <SelectValue placeholder="Seleccionar Proveedor de IA" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="gemini">Gemini</SelectItem>
+                      <SelectItem value="openai" disabled>OpenAI (próximamente)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="api-key">{aiProvider === 'gemini' ? 'Gemini' : 'OpenAI'} Clave API</Label>
+                  <Input
+                    id="api-key"
+                    type="password"
+                    placeholder="Introduce tu clave API"
+                    value={apiKey}
+                    onChange={(e) => setApiKey(e.target.value)}
+                  />
+                </div>
+              </CardContent>
+            </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Integración de n8n</CardTitle>
-            <CardDescription>Gestiona tus webhooks para la agenda, disponibilidad y clientes.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="agenda-webhook">URL del Webhook de Sincronización de Agenda</Label>
-              <Input
-                id="agenda-webhook"
-                placeholder="https://n8n.example.com/webhook/..."
-                value={agendaWebhook}
-                onChange={(e) => setAgendaWebhook(e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="availability-webhook">URL del Webhook de Disponibilidad</Label>
-              <Input
-                id="availability-webhook"
-                placeholder="https://n8n.example.com/webhook/..."
-                value={availabilityWebhook}
-                onChange={(e) => setAvailabilityWebhook(e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="citas-webhook">URL del Webhook de Crear/Eliminar Cita</Label>
-              <Input
-                id="citas-webhook"
-                placeholder="https://n8n.example.com/webhook/..."
-                value={citasWebhook}
-                onChange={(e) => setCitasWebhook(e.target.value)}
-              />
-            </div>
-             <div className="space-y-2">
-              <Label htmlFor="clients-webhook">URL del Webhook de Clientes y Facturas</Label>
-              <Input
-                id="clients-webhook"
-                placeholder="https://n8n.example.com/webhook/..."
-                value={clientsWebhook}
-                onChange={(e) => setClientsWebhook(e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="pdf-webhook">URL del Webhook de PDF</Label>
-              <Input
-                id="pdf-webhook"
-                placeholder="https://n8n.example.com/webhook/..."
-                value={pdfWebhook}
-                onChange={(e) => setPdfWebhook(e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-                <Label htmlFor="sync-interval">Intervalo de Sincronización Automática de Agenda (minutos)</Label>
-                <Input
-                    id="sync-interval"
-                    type="number"
-                    placeholder="ej. 5"
-                    value={syncInterval}
-                    onChange={(e) => setSyncInterval(e.target.value)}
-                    min="1"
-                />
-            </div>
-          </CardContent>
-        </Card>
+            <Card>
+              <CardHeader>
+                <CardTitle>Integración de n8n</CardTitle>
+                <CardDescription>Gestiona tus webhooks para la agenda, disponibilidad y clientes.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="agenda-webhook">URL del Webhook de Sincronización de Agenda</Label>
+                  <Input
+                    id="agenda-webhook"
+                    placeholder="https://n8n.example.com/webhook/..."
+                    value={agendaWebhook}
+                    onChange={(e) => setAgendaWebhook(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="availability-webhook">URL del Webhook de Disponibilidad</Label>
+                  <Input
+                    id="availability-webhook"
+                    placeholder="https://n8n.example.com/webhook/..."
+                    value={availabilityWebhook}
+                    onChange={(e) => setAvailabilityWebhook(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="citas-webhook">URL del Webhook de Crear/Eliminar Cita</Label>
+                  <Input
+                    id="citas-webhook"
+                    placeholder="https://n8n.example.com/webhook/..."
+                    value={citasWebhook}
+                    onChange={(e) => setCitasWebhook(e.target.value)}
+                  />
+                </div>
+                 <div className="space-y-2">
+                  <Label htmlFor="clients-webhook">URL del Webhook de Clientes y Facturas</Label>
+                  <Input
+                    id="clients-webhook"
+                    placeholder="https://n8n.example.com/webhook/..."
+                    value={clientsWebhook}
+                    onChange={(e) => setClientsWebhook(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="pdf-webhook">URL del Webhook de PDF</Label>
+                  <Input
+                    id="pdf-webhook"
+                    placeholder="https://n8n.example.com/webhook/..."
+                    value={pdfWebhook}
+                    onChange={(e) => setPdfWebhook(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                    <Label htmlFor="sync-interval">Intervalo de Sincronización Automática de Agenda (minutos)</Label>
+                    <Input
+                        id="sync-interval"
+                        type="number"
+                        placeholder="ej. 5"
+                        value={syncInterval}
+                        onChange={(e) => setSyncInterval(e.target.value)}
+                        min="1"
+                    />
+                </div>
+              </CardContent>
+            </Card>
+          </>
+        )}
 
         <Card>
             <CardHeader>
@@ -305,12 +374,14 @@ export default function SettingsPage() {
         </Card>
 
 
-        <div className="flex justify-end">
-          <Button onClick={handleSaveChanges} disabled={isSaving}>
-            {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-            Guardar Cambios
-          </Button>
-        </div>
+        {profile?.is_admin && (
+          <div className="flex justify-end">
+            <Button onClick={handleSaveChanges} disabled={isSaving}>
+              {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              Guardar Cambios
+            </Button>
+          </div>
+        )}
       </div>
        <footer className="text-center text-sm text-muted-foreground pt-8">
             <p>By: AirmateAi</p>
