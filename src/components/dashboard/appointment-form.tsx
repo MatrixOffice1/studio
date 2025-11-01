@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -14,8 +15,6 @@ import { Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import type { CalendarEvent } from './agenda-view';
 import { PROFESSIONALS } from './agenda-view';
-import { useUserSettings } from '@/hooks/use-user-settings';
-
 
 const appointmentFormSchema = z.object({
   clientName: z.string().min(1, { message: 'El nombre del cliente es obligatorio.' }),
@@ -38,10 +37,10 @@ interface AppointmentFormProps {
   currentDate: DateTime;
 }
 
+const CITAS_WEBHOOK_URL = 'https://n8n.srv1002935.hstgr.cloud/webhook/calendar-citas-modf';
 
 export function AppointmentForm({ isOpen, onOpenChange, onAppointmentCreated, currentDate }: AppointmentFormProps) {
   const { toast } = useToast();
-  const { settings } = useUserSettings();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<AppointmentFormValues>({
@@ -63,11 +62,11 @@ export function AppointmentForm({ isOpen, onOpenChange, onAppointmentCreated, cu
   }, [isOpen, form]);
 
   const onSubmit = async (values: AppointmentFormValues) => {
-    if (!settings?.citas_webhook_url) {
+    if (!CITAS_WEBHOOK_URL) {
       toast({
         variant: 'destructive',
         title: 'Error de Configuración',
-        description: 'Falta la URL del webhook de citas en los ajustes de administrador.',
+        description: 'Falta la URL del webhook de citas.',
       });
       return;
     }
@@ -94,7 +93,7 @@ export function AppointmentForm({ isOpen, onOpenChange, onAppointmentCreated, cu
     };
     
     try {
-        await fetch(settings.citas_webhook_url, {
+        await fetch(CITAS_WEBHOOK_URL, {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({
@@ -233,5 +232,3 @@ export function AppointmentForm({ isOpen, onOpenChange, onAppointmentCreated, cu
     </Dialog>
   );
 }
-
-    

@@ -18,8 +18,6 @@ import { AppointmentCard } from './appointment-card';
 import { ProfessionalAvailability } from './professional-availability';
 import { AppointmentForm } from './appointment-form';
 import { useAuth } from '@/providers/auth-provider';
-import { useUserSettings } from '@/hooks/use-user-settings';
-
 
 export type CalendarEvent = {
   uid: string;
@@ -36,9 +34,13 @@ export type CalendarEvent = {
 
 export const PROFESSIONALS = ['Ana', 'Joana', 'Maria'];
 
+// Hardcoded Webhook URLs as a definitive fix
+const AGENDA_WEBHOOK_URL = 'https://n8n.srv1002935.hstgr.cloud/webhook/calendar-tony';
+const CITAS_WEBHOOK_URL = 'https://n8n.srv1002935.hstgr.cloud/webhook/calendar-citas-modf';
+const SYNC_INTERVAL = 5; // Sync interval in minutes
+
 export function AgendaView() {
   const { toast } = useToast();
-  const { settings, isLoading: isLoadingSettings } = useUserSettings();
   
   const [allEvents, setAllEvents] = useState<CalendarEvent[]>([]);
   const [currentDate, setCurrentDate] = useState(DateTime.now().setZone('Europe/Madrid'));
@@ -61,12 +63,10 @@ export function AgendaView() {
   const [isDeleting, setIsDeleting] = useState(false);
 
   const fetchCalendarEvents = useCallback(async (isManualSync = false) => {
-    const webhookUrl = settings?.agenda_webhook_url;
-
-    if (!webhookUrl) {
-      setAgendaError("Por favor, un administrador debe configurar la URL del Webhook para la agenda en la sección de Ajustes.");
+    if (!AGENDA_WEBHOOK_URL) {
+      setAgendaError("La URL del Webhook de la agenda no está configurada.");
       setAgendaLoading(false);
-      if(isManualSync) setIsSyncing(false);
+      if (isManualSync) setIsSyncing(false);
       return;
     }
     
@@ -78,7 +78,7 @@ export function AgendaView() {
     setAgendaError(null);
     
     try {
-      const response = await fetch(webhookUrl, {
+      const response = await fetch(AGENDA_WEBHOOK_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
@@ -125,19 +125,11 @@ export function AgendaView() {
       if(isManualSync) setIsSyncing(false);
       setAgendaLoading(false);
     }
-  }, [settings, toast]);
+  }, [toast]);
   
   useEffect(() => {
-    if (!isLoadingSettings) {
-        if(settings?.agenda_webhook_url) {
-            fetchCalendarEvents(false);
-        } else {
-            setAgendaError("No se pudieron cargar los ajustes globales para la agenda.");
-            setAgendaLoading(false);
-        }
-    }
-  }, [isLoadingSettings, settings, fetchCalendarEvents]);
-
+    fetchCalendarEvents(false);
+  }, [fetchCalendarEvents]);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -147,8 +139,8 @@ export function AgendaView() {
 
   useEffect(() => {
     let intervalId: NodeJS.Timeout | null = null;
-    if (isAutoSyncEnabled && settings?.sync_interval && settings.sync_interval > 0) {
-        const syncIntervalMs = settings.sync_interval * 60 * 1000;
+    if (isAutoSyncEnabled && SYNC_INTERVAL > 0) {
+        const syncIntervalMs = SYNC_INTERVAL * 60 * 1000;
         if (syncIntervalMs > 0) {
             intervalId = setInterval(() => {
                 fetchCalendarEvents(false);
@@ -158,7 +150,7 @@ export function AgendaView() {
     return () => {
         if (intervalId) clearInterval(intervalId);
     };
-  }, [isAutoSyncEnabled, settings, fetchCalendarEvents]);
+  }, [isAutoSyncEnabled, fetchCalendarEvents]);
 
 
   const eventsForSelectedDay = useMemo(() => {
@@ -249,13 +241,13 @@ export function AgendaView() {
   };
 
   const handleDeleteAppointment = async () => {
-    if (!selectedEvent || !settings?.citas_webhook_url) {
+    if (!selectedEvent || !CITAS_WEBHOOK_URL) {
       toast({ variant: 'destructive', title: 'Error', description: 'No se puede eliminar la cita. Falta información o configuración del webhook.' });
       return;
     }
     setIsDeleting(true);
     try {
-      const response = await fetch(settings.citas_webhook_url, {
+      const response = await fetch(CITAS_WEBHOOK_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -289,8 +281,6 @@ export function AgendaView() {
       setIsDeleting(false);
     }
   };
-
-  const showLoading = agendaLoading || isLoadingSettings;
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 space-y-6 flex flex-col h-full">
@@ -350,7 +340,7 @@ export function AgendaView() {
         </CardContent>
       </Card>
       
-      {showLoading ? (
+      {agendaLoading ? (
          <div className="flex-1 flex items-center justify-center">
             <Loader2 className="h-12 w-12 animate-spin text-primary" />
          </div>

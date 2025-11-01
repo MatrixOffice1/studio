@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -8,7 +9,6 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import type { DateTime } from 'luxon';
 import { useAuth } from '@/providers/auth-provider';
-import { useUserSettings } from '@/hooks/use-user-settings';
 
 const PROFESSIONALS = [
   { name: 'Ana', color: '#ef4444' },
@@ -20,25 +20,24 @@ type ProfessionalAvailabilityProps = {
   currentDate: DateTime;
 };
 
+const AVAILABILITY_WEBHOOK_URL = 'https://n8n.srv1002935.hstgr.cloud/webhook/calendar-tony-airmate';
+
 export function ProfessionalAvailability({ currentDate }: ProfessionalAvailabilityProps) {
   const { profile } = useAuth();
-  const { settings, isLoading: isLoadingSettings } = useUserSettings();
   const [availability, setAvailability] = useState<Record<string, boolean>>({});
   const [loading, setLoading] = useState<Record<string, boolean>>({});
   const { toast } = useToast();
-
-  const webhookUrl = settings?.availability_webhook_url;
 
   useEffect(() => {
     setAvailability({});
   }, [currentDate]);
 
   const handleToggle = async (professionalName: string) => {
-    if (!webhookUrl) {
+    if (!AVAILABILITY_WEBHOOK_URL) {
       toast({
         variant: 'destructive',
         title: 'Falta Webhook',
-        description: 'Por favor, un administrador debe configurar la URL del webhook de disponibilidad en Ajustes.',
+        description: 'La URL del webhook de disponibilidad no está configurada.',
       });
       return;
     }
@@ -52,7 +51,7 @@ export function ProfessionalAvailability({ currentDate }: ProfessionalAvailabili
     const endDateTime = currentDate.set({ hour: 21, minute: 0, second: 0, millisecond: 0 });
 
     try {
-      await fetch(webhookUrl, {
+      await fetch(AVAILABILITY_WEBHOOK_URL, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -83,7 +82,7 @@ export function ProfessionalAvailability({ currentDate }: ProfessionalAvailabili
     }
   };
   
-  const isFeatureDisabled = !webhookUrl && !isLoadingSettings;
+  const isFeatureDisabled = !AVAILABILITY_WEBHOOK_URL;
 
   return (
     <Card>
@@ -91,7 +90,7 @@ export function ProfessionalAvailability({ currentDate }: ProfessionalAvailabili
         <CardTitle>Disponibilidad de Profesionales</CardTitle>
         <CardDescription>
           {isFeatureDisabled 
-            ? "Un administrador debe configurar la URL del webhook de disponibilidad en Ajustes para habilitar esta función."
+            ? "La URL del webhook de disponibilidad no está configurada."
             : "Activa o desactiva para marcar a un profesional como ausente o presente para el día seleccionado."
           }
         </CardDescription>
@@ -99,13 +98,13 @@ export function ProfessionalAvailability({ currentDate }: ProfessionalAvailabili
       <CardContent className="flex flex-wrap items-center gap-4">
         {PROFESSIONALS.map(prof => {
           const isPresent = availability[prof.name] !== false;
-          const isLoading = loading[prof.name] || isLoadingSettings;
+          const isLoading = loading[prof.name];
           
           return (
             <Button
               key={prof.name}
               onClick={() => handleToggle(prof.name)}
-              disabled={isLoading || isFeatureDisabled || !profile?.is_admin}
+              disabled={isLoading || isFeatureDisabled}
               variant="outline"
               className="transition-all duration-200 border-2"
               style={{ borderColor: prof.color }}
@@ -131,5 +130,3 @@ export function ProfessionalAvailability({ currentDate }: ProfessionalAvailabili
     </Card>
   );
 }
-
-    
