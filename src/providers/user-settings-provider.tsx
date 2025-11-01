@@ -22,56 +22,111 @@ type UserSettingsContextType = {
   settings: UserSettings | null;
   isLoading: boolean;
   refreshSettings: (() => void) | null;
+  adminUserId: string | null; // Expose the admin user ID for saving
+  userSpecificSettings: Pick<UserSettings, 'sync_interval'> | null;
+  saveUserSpecificSettings: (settings: Pick<UserSettings, 'sync_interval'>) => Promise<void>;
 };
 
 export const UserSettingsContext = createContext<UserSettingsContextType | undefined>(undefined);
 
 export function UserSettingsProvider({ children, userId }: { children: ReactNode, userId?: string }) {
-  const [settings, setSettings] = useState<UserSettings | null>(null);
+  const [adminSettings, setAdminSettings] = useState<UserSettings | null>(null);
+  const [userSpecificSettings, setUserSpecificSettings] = useState<Pick<UserSettings, 'sync_interval'> | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [adminUserId, setAdminUserId] = useState<string | null>(null);
 
   const fetchSettings = useCallback(async () => {
     setIsLoading(true);
 
-    // 1. Find the admin user
+    // 1. Find the primary admin user (assuming the first created admin)
     const { data: adminProfile, error: adminError } = await supabase
       .from('profiles')
       .select('id')
       .eq('is_admin', true)
+      .order('created_at', { ascending: true })
       .limit(1)
       .single();
 
     if (adminError || !adminProfile) {
       console.error('Could not find admin user to load settings:', adminError?.message);
-      setSettings(null);
-      setIsLoading(false);
-      return;
-    }
-
-    // 2. Fetch the admin's settings using the found admin ID
-    const { data, error } = await supabase
-      .from('user_settings')
-      .select('settings')
-      .eq('user_id', adminProfile.id)
-      .single();
-
-    if (error && error.code !== 'PGRST116') { // PGRST116 = no rows found, which is a valid empty state
-      console.error("Error fetching admin's user settings:", error);
-      setSettings(null);
+      setAdminSettings({});
+      setAdminUserId(null);
     } else {
-      setSettings(data?.settings || {}); // Provide settings or an empty object
+      setAdminUserId(adminProfile.id);
+      // 2. Fetch the admin's settings using the found admin ID
+      const { data, error } = await supabase
+        .from('user_settings')
+        .select('settings')
+        .eq('user_id', adminProfile.id)
+        .single();
+      
+      if (error && error.code !== 'PGRST116') {
+        console.error("Error fetching admin's user settings:", error);
+        setAdminSettings({});
+      } else {
+        setAdminSettings(data?.settings || {});
+      }
     }
+
+    // 3. Fetch user-specific settings for the logged-in user
+    if (userId) {
+        const { data: userSettingsData, error: userSettingsError } = await supabase
+            .from('user_settings')
+            .select('settings')
+            .eq('user_id', userId)
+            .single();
+        
+        if (userSettingsData?.settings) {
+            setUserSpecificSettings({
+                sync_interval: userSettingsData.settings.sync_interval
+            });
+        } else {
+            setUserSpecificSettings({});
+        }
+    }
+
     setIsLoading(false);
-  }, []);
+  }, [userId]);
 
   useEffect(() => {
     fetchSettings();
   }, [fetchSettings]);
 
-  const value = {
-    settings,
+  const saveUserSpecificSettings = async (newSettings: Pick<UserSettings, 'sync_interval'>) => {
+    if (!userId) {
+        throw new Error("User is not logged in.");
+    }
+
+    const { data: existingSettings, error: fetchError } = await supabase
+        .from('user_settings')
+        .select('settings')
+        .eq('user_id', userId)
+        .single();
+
+    if (fetchError && fetchError.code !== 'PGRST116') {
+        throw fetchError;
+    }
+
+    const finalSettings = { ...(existingSettings?.settings || {}), ...newSettings };
+
+    const { error } = await supabase
+        .from('user_settings')
+        .upsert({ user_id: userId, settings: finalSettings }, { onConflict: 'user_id' });
+
+    if (error) {
+        throw error;
+    }
+    
+    setUserSpecificSettings(current => ({...current, ...newSettings}));
+  };
+
+  const value: UserSettingsContextType = {
+    settings: adminSettings,
     isLoading,
     refreshSettings: fetchSettings,
+    adminUserId,
+    userSpecificSettings,
+    saveUserSpecificSettings,
   };
 
   return <UserSettingsContext.Provider value={value}>{children}</UserSettingsContext.Provider>;

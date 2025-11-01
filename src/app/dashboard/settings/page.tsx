@@ -350,21 +350,27 @@ function WebhookInput({ id, label, value, onChange, disabled }: { id: string, la
 
 export default function SettingsPage() {
   const { profile } = useAuth();
-  const { settings, isLoading: isLoadingSettings, refreshSettings } = useUserSettings();
-  const [aiProvider, setAiProvider] = useState('gemini');
+  const { settings, isLoading: isLoadingSettings, refreshSettings, adminUserId, userSpecificSettings, saveUserSpecificSettings } = useUserSettings();
+  
+  // Admin-level settings state
+  const [aiProvider, setAiProvider] = useState('');
   const [apiKey, setApiKey] = useState('');
   const [agendaWebhook, setAgendaWebhook] = useState('');
   const [availabilityWebhook, setAvailabilityWebhook] = useState('');
   const [citasWebhook, setCitasWebhook] = useState('');
   const [clientsWebhook, setClientsWebhook] = useState('');
   const [pdfWebhook, setPdfWebhook] = useState('');
+  
+  // User-specific settings state
   const [syncInterval, setSyncInterval] = useState('5');
+
   const [isSaving, setIsSaving] = useState(false);
   const { toast } = useToast();
 
   const isUserAdmin = profile?.is_admin === true;
 
   useEffect(() => {
+    // Populate admin settings when they load
     if (settings) {
       setAiProvider(settings.aiProvider || 'gemini');
       setApiKey(settings.gemini_api_key || '');
@@ -373,9 +379,12 @@ export default function SettingsPage() {
       setCitasWebhook(settings.citas_webhook_url || '');
       setClientsWebhook(settings.clients_webhook_url || '');
       setPdfWebhook(settings.pdf_webhook_url || '');
-      setSyncInterval(String(settings.sync_interval || '5'));
     }
-  }, [settings]);
+    // Populate user-specific settings when they load
+    if (userSpecificSettings) {
+        setSyncInterval(String(userSpecificSettings.sync_interval || '5'));
+    }
+  }, [settings, userSpecificSettings]);
 
   const handleSaveChanges = async () => {
     if (!profile) {
@@ -389,42 +398,50 @@ export default function SettingsPage() {
 
     setIsSaving(true);
 
-    const newSettings: any = {
-        sync_interval: parseInt(syncInterval, 10) || 5,
-    };
-    
-    if (isUserAdmin) {
-        newSettings.aiProvider = aiProvider;
-        newSettings.gemini_api_key = apiKey;
-        newSettings.agenda_webhook_url = agendaWebhook;
-        newSettings.availability_webhook_url = availabilityWebhook;
-        newSettings.citas_webhook_url = citasWebhook;
-        newSettings.clients_webhook_url = clientsWebhook;
-        newSettings.pdf_webhook_url = pdfWebhook;
-    }
+    try {
+        // Save user-specific settings (sync_interval)
+        await saveUserSpecificSettings({
+            sync_interval: parseInt(syncInterval, 10) || 5,
+        });
 
-    const { error } = await supabase
-      .from('user_settings')
-      .upsert({ user_id: profile.id, settings: newSettings }, { onConflict: 'user_id' });
+        // Save admin-level settings only if the user is an admin
+        if (isUserAdmin && adminUserId) {
+            const adminSettings: any = {
+                aiProvider: aiProvider,
+                gemini_api_key: apiKey,
+                agenda_webhook_url: agendaWebhook,
+                availability_webhook_url: availabilityWebhook,
+                citas_webhook_url: citasWebhook,
+                clients_webhook_url: clientsWebhook,
+                pdf_webhook_url: pdfWebhook,
+            };
 
-    if (error) {
-      console.error('Error saving settings:', error);
-      toast({
-        variant: 'destructive',
-        title: 'Error al Guardar',
-        description: error.message || 'No se pudo guardar la configuración en la base de datos.',
-      });
-    } else {
-      toast({
-        title: 'Configuración Guardada',
-        description: 'Tu configuración se ha actualizado correctamente.',
-      });
-      if (refreshSettings) {
-        refreshSettings();
-      }
+            const { error } = await supabase
+                .from('user_settings')
+                .upsert({ user_id: adminUserId, settings: adminSettings }, { onConflict: 'user_id' });
+            
+            if (error) throw error;
+        }
+        
+        toast({
+            title: 'Configuración Guardada',
+            description: 'Tu configuración se ha actualizado correctamente.',
+        });
+
+        if (refreshSettings) {
+            refreshSettings();
+        }
+
+    } catch (error: any) {
+        console.error('Error saving settings:', error);
+        toast({
+            variant: 'destructive',
+            title: 'Error al Guardar',
+            description: error.message || 'No se pudo guardar la configuración en la base de datos.',
+        });
+    } finally {
+        setIsSaving(false);
     }
-    
-    setIsSaving(false);
   };
   
   const openSupportChat = () => {
