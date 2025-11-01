@@ -1,3 +1,4 @@
+
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { TrendingUp, MessageSquare, Users, Percent } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
@@ -28,7 +29,7 @@ async function getAnalyticsData() {
   // Fetch all daily data for all-time stats
   const { data: allDailyData, error: allDailyError } = await supabase
     .from('messages_daily_v')
-    .select('*');
+    .select('total');
 
   // Fetch last 7 days for trend
   const { data: last7Days, error: last7DaysError } = await supabase
@@ -53,15 +54,17 @@ async function getAnalyticsData() {
   
   const chats = chatsData.filter(chat => chat.created_at);
 
-  const totalMessagesAllTime = allDailyData.reduce((acc, row) => acc + row.total, 0);
-  const totalMessages7Days = last7Days.reduce((acc, row) => acc + row.total, 0);
-  const totalInbound7Days = last7Days.reduce((acc, row) => acc + row.inbound, 0);
+  const totalMessagesAllTime = allDailyData ? allDailyData.reduce((acc, row) => acc + (row.total || 0), 0) : 0;
+  
+  const last7DaysData = last7Days || [];
+  const totalMessages7Days = last7DaysData.reduce((acc, row) => acc + (row.total || 0), 0);
+  const totalInbound7Days = last7DaysData.reduce((acc, row) => acc + (row.inbound || 0), 0);
   
   const incomingPercentage = totalMessages7Days > 0 ? Math.round((totalInbound7Days / totalMessages7Days) * 100) : 0;
-  const avgDailyComm = last7Days.length > 0 ? Math.round(totalMessages7Days / last7Days.length) : 0;
+  const avgDailyComm = last7DaysData.length > 0 ? Math.round(totalMessages7Days / last7DaysData.length) : 0;
 
   const dateMap = new Map<string, number>();
-  last7Days.forEach(row => {
+  last7DaysData.forEach(row => {
     dateMap.set(row.day, row.total);
   });
 
@@ -195,3 +198,5 @@ export default async function AnalyticsPage() {
     </div>
   );
 }
+
+    
