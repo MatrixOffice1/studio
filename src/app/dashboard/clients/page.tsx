@@ -116,6 +116,17 @@ export default function ClientsPage() {
   const [error, setError] = useState<string | null>(null);
 
   const isAdmin = user?.email === 'tony@abbaglia.com';
+  
+  const parseDate = (dateString: string): DateTime => {
+    let dt = DateTime.fromFormat(dateString, 'dd/MM/yyyy HH:mm:ss', { zone: 'Europe/Madrid' });
+    if (dt.isValid) return dt;
+
+    dt = DateTime.fromFormat(dateString, 'd/M/yyyy HH:mm:ss', { zone: 'Europe/Madrid' });
+    if (dt.isValid) return dt;
+    
+    dt = DateTime.fromSQL(dateString, { zone: 'Europe/Madrid' });
+    return dt;
+  };
 
   const fetchClientData = useCallback(async (isManualSync = false) => {
     if (!isAdmin) {
@@ -150,7 +161,7 @@ export default function ClientsPage() {
       const normalizePhone = (phone: string | number): string => {
         let phoneStr = String(phone).replace(/\s+/g, '');
         if (phoneStr.startsWith('+')) {
-          phoneStr = phoneStr.substring(1);
+          return phoneStr;
         }
         if (phoneStr.length === 9 && !phoneStr.startsWith('34')) {
            return `+34${phoneStr}`;
@@ -170,7 +181,7 @@ export default function ClientsPage() {
 
         const normalizedPhone = normalizePhone(clientPhone);
         const key = `${clientName.trim().toLowerCase()}-${normalizedPhone}`;
-        const visitDate = DateTime.fromSQL(visitDateStr, { zone: 'Europe/Madrid' });
+        const visitDate = parseDate(visitDateStr);
 
         if (!visitDate.isValid) return;
 
@@ -365,3 +376,5 @@ export default function ClientsPage() {
     </div>
   );
 }
+
+    
