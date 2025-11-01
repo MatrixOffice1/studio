@@ -6,8 +6,20 @@ import { cookies } from 'next/headers';
 
 export async function POST(request: Request) {
   const cookieStore = cookies();
-  // 1. Create a client that can read the session of the user making the request
-  const supabase = createRouteHandlerClient({ cookies: () => cookieStore });
+  
+  // 1. Create a client with a custom storage adapter to correctly read the session
+  const supabase = createRouteHandlerClient({
+    cookies: () => cookieStore,
+    storage: {
+      getItem: (key) => {
+        // The key from Supabase might be "sb-...", but the cookie name is just "...".
+        // This logic correctly extracts the cookie name.
+        return cookieStore.get(key.split('.').pop()!)?.value ?? null;
+      },
+      setItem: () => {}, // setItem/removeItem are not needed for server-side auth checks
+      removeItem: () => {},
+    },
+  });
 
   // 2. Check if the user making the request is authenticated
   const { data: { user } } = await supabase.auth.getUser();
