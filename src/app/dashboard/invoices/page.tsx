@@ -13,8 +13,11 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, Wallet, Calendar, AlertTriangle, FileDown, Search, RefreshCw } from 'lucide-react';
+import { Loader2, Wallet, Calendar, AlertTriangle, FileDown, Search, RefreshCw, Sparkles, CheckCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { generateInvoiceAnalysis } from '@/ai/flows/generate-invoice-analysis';
+import { AnalysisParser } from '@/components/dashboard/analysis-parser';
+
 
 type RawReservation = {
   "id "?: string;
@@ -28,7 +31,7 @@ type RawReservation = {
   "Estado"?: 'Pagado' | 'Pendiente' | '';
 };
 
-type Invoice = {
+export type Invoice = {
   invoiceNumber: string;
   clientName: string;
   clientPhone: string;
@@ -72,19 +75,18 @@ export default function InvoicesPage() {
   const [statusLoading, setStatusLoading] = useState<Record<string, boolean>>({});
   const [pdfLoading, setPdfLoading] = useState<Record<string, boolean>>({});
 
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [analysisResult, setAnalysisResult] = useState('');
 
   const isAdmin = user?.email === 'tony@abbaglia.com';
   
   const parseDate = (dateString: string): DateTime => {
-    // Try 'DD/MM/YYYY HH:mm:ss'
     let dt = DateTime.fromFormat(dateString, 'dd/MM/yyyy HH:mm:ss', { zone: 'Europe/Madrid' });
     if (dt.isValid) return dt;
 
-    // Try 'D/M/YYYY HH:mm:ss'
     dt = DateTime.fromFormat(dateString, 'd/M/yyyy HH:mm:ss', { zone: 'Europe/Madrid' });
     if (dt.isValid) return dt;
-
-    // Try 'YYYY-MM-DD HH:mm:ss'
+    
     dt = DateTime.fromSQL(dateString, { zone: 'Europe/Madrid' });
     return dt;
   };
@@ -118,15 +120,8 @@ export default function InvoicesPage() {
       
       const normalizePhone = (phone: string | number): string => {
         let phoneStr = String(phone).replace(/\s+/g, '');
-        if (phoneStr.startsWith('+')) {
-          return phoneStr;
-        }
-        if (phoneStr.length === 9 && !phoneStr.startsWith('34')) {
-           return `+34${phoneStr}`;
-        }
-        if (!phoneStr.startsWith('+')) {
-            return `+${phoneStr}`;
-        }
+        if (phoneStr.startsWith('+')) return phoneStr;
+        if (phoneStr.length >= 9 && !phoneStr.startsWith('+')) return `+${phoneStr}`;
         return phoneStr;
       };
 
@@ -136,11 +131,11 @@ export default function InvoicesPage() {
         const priceString = String(rawPrice || "0").replace(/[€\s]/g, '').replace(',', '.');
         const price = parseFloat(priceString);
         const status = reservation.Estado === 'Pagado' ? 'Pagado' : 'Pendiente';
-        const idKey = 'id ' as keyof RawReservation; // Handle space in key
+        const idKey = 'id ' as keyof RawReservation;
         const invoiceNumber = reservation[idKey] || `F-${date.toFormat('yyMMdd')}-${String(index).padStart(3, '0')}`;
         
         return {
-          invoiceNumber: invoiceNumber,
+          invoiceNumber: String(invoiceNumber).trim(),
           clientName: reservation["Nombre completo"],
           clientPhone: normalizePhone(String(reservation["Telefono"])),
           date: date,
@@ -217,7 +212,7 @@ export default function InvoicesPage() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ 
             ...updatedInvoice, 
-            date: updatedInvoice.date.toISO() // Serialize date for JSON
+            date: updatedInvoice.date.toISO()
           }),
         });
         toast({
@@ -262,7 +257,7 @@ export default function InvoicesPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...invoice,
-          date: invoice.date.toISO(), // Serialize date for JSON
+          date: invoice.date.toISO(),
         }),
       });
 
@@ -279,17 +274,14 @@ export default function InvoicesPage() {
       
       const pdf = new jsPDF('p', 'pt', 'a4');
       
-      // We need to create a temporary element to render the HTML for html2canvas
       const container = document.createElement('div');
       container.innerHTML = htmlContent;
       container.style.width = '210mm';
       container.style.position = 'fixed';
-      container.style.left = '-300mm'; // Position off-screen
+      container.style.left = '-300mm';
       document.body.appendChild(container);
 
-      const canvas = await html2canvas(container, {
-          scale: 2, // Increase scale for better quality
-      });
+      const canvas = await html2canvas(container, { scale: 2 });
       
       document.body.removeChild(container);
 
@@ -334,19 +326,55 @@ export default function InvoicesPage() {
 
   const kpiData = useMemo(() => {
     const now = DateTime.now().setZone('Europe/Madrid');
-    const currentMonthInvoices = invoices.filter(inv => {
-      const invDate = inv.date.setZone('Europe/Madrid');
-      return invDate.hasSame(now, 'month') && invDate.hasSame(now, 'year');
-    });
+    const startOfMonth = now.startOf('month');
+    const sevenDaysAgo = now.minus({ days: 7 });
+
+    const currentMonthInvoices = invoices.filter(inv => inv.date >= startOfMonth);
+    const last7DaysInvoices = invoices.filter(inv => inv.date >= sevenDaysAgo);
+
     const totalBilledThisMonth = currentMonthInvoices.reduce((acc, inv) => acc + inv.totalPrice, 0);
+    const totalBilledLast7Days = last7DaysInvoices.reduce((acc, inv) => acc + inv.totalPrice, 0);
     const pendingInvoices = invoices.filter(inv => inv.status === 'Pendiente').length;
+    const paidInvoicesThisMonth = currentMonthInvoices.filter(inv => inv.status === 'Pagado').length;
+    
+    const formatCurrency = (amount: number) => amount.toLocaleString('es-ES', { style: 'currency', currency: 'EUR' });
 
     return {
-      totalBilledThisMonth: totalBilledThisMonth.toLocaleString('es-ES', { style: 'currency', currency: 'EUR' }),
-      totalInvoices: invoices.length,
+      totalBilledThisMonth: formatCurrency(totalBilledThisMonth),
+      totalBilledLast7Days: formatCurrency(totalBilledLast7Days),
       pendingInvoices,
+      paidInvoicesThisMonth,
     };
   }, [invoices]);
+
+  const handleAnalyze = async () => {
+    setIsAnalyzing(true);
+    setAnalysisResult('');
+    try {
+      if (invoices.length === 0) {
+        toast({
+          variant: "default",
+          title: "No hay datos",
+          description: "No hay facturas para analizar.",
+        });
+        return;
+      }
+      
+      const result = await generateInvoiceAnalysis({
+        invoicesJson: JSON.stringify(invoices),
+      });
+      setAnalysisResult(result.analysis);
+
+    } catch (e: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Error de Análisis',
+        description: `No se pudo generar el análisis: ${e.message}`
+      });
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
   
   if (!isAdmin) {
     return (
@@ -397,10 +425,11 @@ export default function InvoicesPage() {
         </div>
       </header>
 
-      <section className="grid gap-4 md:grid-cols-3">
-          <KpiCard title="Total Facturado (Mes Actual)" value={kpiData.totalBilledThisMonth} icon={Wallet} />
-          <KpiCard title="Total Citas Facturadas" value={kpiData.totalInvoices} icon={Calendar} />
-          <KpiCard title="Facturas Pendientes" value={kpiData.pendingInvoices} icon={AlertTriangle} />
+      <section className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <KpiCard title="Facturado (Mes Actual)" value={kpiData.totalBilledThisMonth} icon={Wallet} />
+          <KpiCard title="Facturado (Últ. 7 días)" value={kpiData.totalBilledLast7Days} icon={Calendar} />
+          <KpiCard title="Facturas Pagadas (Mes)" value={kpiData.paidInvoicesThisMonth} icon={CheckCircle} />
+          <KpiCard title="Facturas Pendientes (Total)" value={kpiData.pendingInvoices} icon={AlertTriangle} />
       </section>
 
       <Card>
@@ -430,7 +459,7 @@ export default function InvoicesPage() {
                   <SelectItem value="Pendiente">Pendiente</SelectItem>
                 </SelectContent>
               </Select>
-              <Select value={professionalFilter} onValueChange={setProfessionalFilter}>
+              <Select value={professionalFilter} onValuechange={setProfessionalFilter}>
                 <SelectTrigger className="w-full md:w-[160px]">
                   <SelectValue placeholder="Profesional" />
                 </SelectTrigger>
@@ -501,8 +530,39 @@ export default function InvoicesPage() {
           </div>
         </CardContent>
       </Card>
+      
+      <Card className="bg-gradient-to-br from-card to-muted/50">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Sparkles className="text-accent" />
+            <span>Insights Financieros con IA</span>
+          </CardTitle>
+          <CardDescription>
+            Genera un análisis de tus datos de facturación para identificar tendencias, patrones de ingresos y oportunidades de crecimiento.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col items-start gap-4">
+            <Button onClick={handleAnalyze} disabled={isAnalyzing}>
+              {isAnalyzing ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Generando Análisis...
+                </>
+              ) : (
+                'Analizar Rendimiento Financiero'
+              )}
+            </Button>
+            {analysisResult && (
+              <div className="w-full p-4 border rounded-lg bg-background mt-4">
+                <h4 className="font-semibold mb-2 text-lg">Resultado del Análisis</h4>
+                <AnalysisParser content={analysisResult} />
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
     </div>
   );
 }
-
-    
