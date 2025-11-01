@@ -162,21 +162,23 @@ export function AgendaView() {
     }
   }, [isSyncing, toast]);
   
- useEffect(() => {
-    const loadSettingsAndThenEvents = async () => {
-        setAgendaLoading(true);
-        const settings = await getAdminSettings();
-        if (settings) {
-            setGlobalSettings(settings);
-            await fetchCalendarEvents(settings, false);
-        } else {
-            setAgendaError("No se pudieron cargar los ajustes globales para la agenda.");
-            setAgendaLoading(false);
-        }
+  useEffect(() => {
+    const loadInitialData = async () => {
+      setAgendaLoading(true);
+      const settings = await getAdminSettings();
+      if (settings) {
+        setGlobalSettings(settings);
+        // Now that settings are loaded, fetch events
+        await fetchCalendarEvents(settings, false);
+      } else {
+        setAgendaError("No se pudieron cargar los ajustes globales para la agenda.");
+        setAgendaLoading(false);
+      }
     };
 
-    loadSettingsAndThenEvents();
+    loadInitialData();
   }, [fetchCalendarEvents]);
+
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -338,7 +340,7 @@ export function AgendaView() {
         isSyncing={isSyncing}
       />
       
-      {profile?.is_admin && <ProfessionalAvailability currentDate={currentDate} />}
+      <ProfessionalAvailability currentDate={currentDate} />
 
       <AgendaKpiCards stats={agendaStats} />
 
@@ -369,19 +371,17 @@ export function AgendaView() {
                     <Plus className="mr-2 h-4 w-4" />
                     Añadir Cita
                 </Button>
-              {profile?.is_admin && (
-                  <Button onClick={handleAnalyzeWeek} disabled={isAnalyzing}>
-                    {isAnalyzing ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Analizando...
-                      </>
-                    ) : (
-                      <>
-                        <Sparkles className="mr-2 h-4 w-4" /> Analizar Próximos 7 Días
-                      </>
-                    )}
-                  </Button>
-              )}
+              <Button onClick={handleAnalyzeWeek} disabled={isAnalyzing}>
+                {isAnalyzing ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Analizando...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="mr-2 h-4 w-4" /> Analizar Próximos 7 Días
+                  </>
+                )}
+              </Button>
             </div>
           </div>
         </CardContent>
@@ -392,7 +392,7 @@ export function AgendaView() {
             <Loader2 className="h-12 w-12 animate-spin text-primary" />
          </div>
       ) : agendaError ? (
-        <Card className="flex-1 flex items-center justify-center">
+        <Card className="flex-1 flex items-center justify-center bg-destructive/10 border-destructive">
             <CardContent className="text-center text-destructive p-6">
                 <CardTitle>Error</CardTitle>
                 <p>{agendaError}</p>
@@ -483,3 +483,5 @@ export function AgendaView() {
     </div>
   );
 }
+
+    
