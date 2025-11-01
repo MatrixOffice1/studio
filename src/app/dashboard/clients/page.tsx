@@ -13,7 +13,6 @@ import { es } from 'date-fns/locale';
 import { format, isValid } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/providers/auth-provider';
-import { supabase } from '@/lib/supabase';
 import { Input } from '@/components/ui/input';
 
 type RawReservation = {
@@ -115,7 +114,8 @@ export default function ClientsPage() {
 
       const clientMap = new Map<string, { visits: RawReservation[], lastVisit: DateTime, normalizedPhone: string, name: string }>();
       
-      const normalizePhone = (phone: string | number): string => {
+      const normalizePhone = (phone: string | number | undefined | null): string => {
+        if (!phone) return 'No especificado';
         let phoneStr = String(phone).replace(/\s+/g, '');
         if (phoneStr.startsWith('+')) {
           return phoneStr;
@@ -131,10 +131,10 @@ export default function ClientsPage() {
 
       data.forEach(reservation => {
         const clientName = reservation["Nombre completo"];
-        const clientPhone = String(reservation["Telefono"]);
+        const clientPhone = reservation["Telefono"];
         const visitDateStr = reservation["Fecha y hora"];
         
-        if (!clientName || !clientPhone || !visitDateStr) return;
+        if (!clientName || !visitDateStr) return;
 
         const normalizedPhone = normalizePhone(clientPhone);
         const key = `${clientName.trim().toLowerCase()}-${normalizedPhone}`;
