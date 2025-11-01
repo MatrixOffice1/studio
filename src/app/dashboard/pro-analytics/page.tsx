@@ -5,10 +5,10 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { DateTime } from 'luxon';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Loader2, RefreshCw, Phone, BarChart, PieChart } from 'lucide-react';
+import { Loader2, RefreshCw, Phone, BarChart as BarChartIcon, PieChart as PieChartIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/providers/auth-provider';
-import { ResponsiveContainer, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Pie, Cell, Legend } from 'recharts';
+import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, PieChart, Pie, Cell, Legend } from 'recharts';
 
 const WhatsAppIcon = (props: React.SVGProps<SVGSVGElement>) => (
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512" {...props}>
@@ -203,7 +203,7 @@ export default function ProAnalyticsPage() {
       </header>
 
       <section className="grid gap-4 md:grid-cols-3">
-          <KpiCard title="Reservas Totales" value={analyticsData.total} icon={BarChart} />
+          <KpiCard title="Reservas Totales" value={analyticsData.total} icon={BarChartIcon} />
           <KpiCard title="Reservas por WhatsApp" value={analyticsData.fromWhatsapp} icon={WhatsAppIcon} color={PIE_CHART_COLORS.whatsapp} />
           <KpiCard title="Reservas por Teléfono" value={analyticsData.fromTelefono} icon={Phone} color={PIE_CHART_COLORS.telefono} />
       </section>
@@ -236,15 +236,15 @@ export default function ProAnalyticsPage() {
           </CardHeader>
           <CardContent className="h-[300px]">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={analyticsData.barData}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                <XAxis dataKey="date" tickFormatter={(str) => DateTime.fromISO(str).toFormat('dd-MM')} />
-                <YAxis />
-                <RechartsTooltip />
-                <Legend />
-                <Bar dataKey="whatsapp" name="WhatsApp" fill={PIE_CHART_COLORS.whatsapp} stackId="a" />
-                <Bar dataKey="telefono" name="Teléfono" fill={PIE_CHART_COLORS.telefono} stackId="a" />
-              </BarChart>
+                <BarChart data={analyticsData.barData}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                    <XAxis dataKey="date" tickFormatter={(str) => DateTime.fromISO(str).toFormat('dd-MM')} />
+                    <YAxis />
+                    <RechartsTooltip />
+                    <Legend />
+                    <Bar dataKey="whatsapp" name="WhatsApp" fill={PIE_CHART_COLORS.whatsapp} stackId="a" />
+                    <Bar dataKey="telefono" name="Teléfono" fill={PIE_CHART_COLORS.telefono} stackId="a" />
+                </BarChart>
             </ResponsiveContainer>
           </CardContent>
         </Card>
