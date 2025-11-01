@@ -364,27 +364,22 @@ export default function SettingsPage() {
       });
       return;
     }
-    if (!isUserAdmin) {
-      toast({
-        variant: 'destructive',
-        title: 'Acceso Denegado',
-        description: 'No tienes permiso para guardar la configuración.',
-      });
-      return;
-    }
 
     setIsSaving(true);
 
-    const newSettings = {
-      aiProvider,
-      gemini_api_key: apiKey,
-      agenda_webhook_url: agendaWebhook,
-      availability_webhook_url: availabilityWebhook,
-      citas_webhook_url: citasWebhook,
-      clients_webhook_url: clientsWebhook,
-      pdf_webhook_url: pdfWebhook,
-      sync_interval: parseInt(syncInterval, 10) || 5,
+    const newSettings: any = {
+        sync_interval: parseInt(syncInterval, 10) || 5,
     };
+    
+    if (isUserAdmin) {
+        newSettings.aiProvider = aiProvider;
+        newSettings.gemini_api_key = apiKey;
+        newSettings.agenda_webhook_url = agendaWebhook;
+        newSettings.availability_webhook_url = availabilityWebhook;
+        newSettings.citas_webhook_url = citasWebhook;
+        newSettings.clients_webhook_url = clientsWebhook;
+        newSettings.pdf_webhook_url = pdfWebhook;
+    }
 
     const { error } = await supabase
       .from('user_settings')
@@ -514,8 +509,19 @@ export default function SettingsPage() {
                     disabled={!isUserAdmin || isLoadingSettings}
                   />
                 </div>
-                <div className="space-y-2">
-                    <Label htmlFor="sync-interval">Intervalo de Sincronización Automática de Agenda (minutos)</Label>
+              </CardContent>
+            </Card>
+          </>
+        )}
+
+        <Card>
+            <CardHeader>
+                <CardTitle>Configuración de la Agenda</CardTitle>
+                <CardDescription>Ajusta cómo se sincroniza la agenda de citas.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+                 <div className="space-y-2">
+                    <Label htmlFor="sync-interval">Intervalo de Sincronización Automática (minutos)</Label>
                     <Input
                         id="sync-interval"
                         type="number"
@@ -523,13 +529,11 @@ export default function SettingsPage() {
                         value={syncInterval}
                         onChange={(e) => setSyncInterval(e.target.value)}
                         min="1"
-                        disabled={!isUserAdmin || isLoadingSettings}
+                        disabled={isLoadingSettings}
                     />
                 </div>
-              </CardContent>
-            </Card>
-          </>
-        )}
+            </CardContent>
+        </Card>
 
         <Card>
             <CardHeader>
@@ -555,15 +559,12 @@ export default function SettingsPage() {
             </CardContent>
         </Card>
 
-
-        {isUserAdmin && (
-          <div className="flex justify-end">
-            <Button onClick={handleSaveChanges} disabled={isSaving || !isUserAdmin}>
-              {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-              Guardar Cambios
-            </Button>
-          </div>
-        )}
+        <div className="flex justify-end">
+          <Button onClick={handleSaveChanges} disabled={isSaving}>
+            {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+            Guardar Cambios
+          </Button>
+        </div>
       </div>
        <footer className="text-center text-sm text-muted-foreground pt-8">
             <p>By: AirmateAi</p>
