@@ -1,13 +1,14 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import type { DateTime } from 'luxon';
-import { useUserSettings } from '@/hooks/use-user-settings';
+import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/providers/auth-provider';
 
 const PROFESSIONALS = [
   { name: 'Ana', color: '#ef4444' },
@@ -15,17 +16,56 @@ const PROFESSIONALS = [
   { name: 'Maria', color: '#3b82f6' },
 ];
 
+const getAdminSettings = async () => {
+    const { data: adminProfile, error: adminError } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('is_admin', true)
+      .limit(1)
+      .single();
+  
+    if (adminError || !adminProfile) {
+      console.error('Could not find admin user:', adminError);
+      return null;
+    }
+  
+    const { data: settingsData, error: settingsError } = await supabase
+      .from('user_settings')
+      .select('settings')
+      .eq('user_id', adminProfile.id)
+      .single();
+  
+    if (settingsError) {
+      console.error('Could not fetch admin settings:', settingsError);
+      return null;
+    }
+  
+    return settingsData?.settings || null;
+};
+
 type ProfessionalAvailabilityProps = {
   currentDate: DateTime;
 };
 
 export function ProfessionalAvailability({ currentDate }: ProfessionalAvailabilityProps) {
-  const { settings, isLoading: isLoadingSettings } = useUserSettings();
+  const { profile } = useAuth();
+  const [globalSettings, setGlobalSettings] = useState<any>(null);
+  const [isLoadingSettings, setIsLoadingSettings] = useState(true);
   const [availability, setAvailability] = useState<Record<string, boolean>>({});
   const [loading, setLoading] = useState<Record<string, boolean>>({});
   const { toast } = useToast();
 
-  const webhookUrl = settings?.availability_webhook_url;
+  useEffect(() => {
+    const loadSettings = async () => {
+        setIsLoadingSettings(true);
+        const settings = await getAdminSettings();
+        setGlobalSettings(settings);
+        setIsLoadingSettings(false);
+    }
+    loadSettings();
+  }, []);
+
+  const webhookUrl = globalSettings?.availability_webhook_url;
 
   useEffect(() => {
     setAvailability({});
@@ -36,7 +76,7 @@ export function ProfessionalAvailability({ currentDate }: ProfessionalAvailabili
       toast({
         variant: 'destructive',
         title: 'Falta Webhook',
-        description: 'Por favor, configura la URL del webhook de disponibilidad en los Ajustes.',
+        description: 'Por favor, un administrador debe configurar la URL del webhook de disponibilidad en Ajustes.',
       });
       return;
     }
@@ -80,6 +120,10 @@ export function ProfessionalAvailability({ currentDate }: ProfessionalAvailabili
       setLoading(prev => ({ ...prev, [professionalName]: false }));
     }
   };
+  
+  if (!profile?.is_admin) {
+    return null;
+  }
 
   const isFeatureDisabled = !webhookUrl && !isLoadingSettings;
 

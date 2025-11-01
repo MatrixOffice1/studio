@@ -17,6 +17,8 @@ import { AppointmentDetails } from './appointment-details';
 import { AppointmentCard } from './appointment-card';
 import { ProfessionalAvailability } from './professional-availability';
 import { AppointmentForm } from './appointment-form';
+import { useAuth } from '@/providers/auth-provider';
+import { supabase } from '@/lib/supabase';
 
 
 export type CalendarEvent = {
@@ -34,8 +36,39 @@ export type CalendarEvent = {
 
 export const PROFESSIONALS = ['Ana', 'Joana', 'Maria'];
 
+// Helper to fetch admin settings
+const getAdminSettings = async () => {
+    // 1. Find the admin user
+    const { data: adminProfile, error: adminError } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('is_admin', true)
+      .limit(1)
+      .single();
+  
+    if (adminError || !adminProfile) {
+      console.error('Could not find admin user:', adminError);
+      return null;
+    }
+  
+    // 2. Fetch the admin's settings
+    const { data: settingsData, error: settingsError } = await supabase
+      .from('user_settings')
+      .select('settings')
+      .eq('user_id', adminProfile.id)
+      .single();
+  
+    if (settingsError) {
+      console.error('Could not fetch admin settings:', settingsError);
+      return null;
+    }
+  
+    return settingsData?.settings || null;
+  };
+
+
 export function AgendaView() {
-  const { settings } = useUserSettings();
+  const { profile } = useAuth();
   const { toast } = useToast();
   
   const [allEvents, setAllEvents] = useState<CalendarEvent[]>([]);
@@ -57,13 +90,20 @@ export function AgendaView() {
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [isAppointmentFormOpen, setIsAppointmentFormOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [globalSettings, setGlobalSettings] = useState<any>(null);
 
 
   const fetchCalendarEvents = useCallback(async (isManualSync = false) => {
-    const webhookUrl = settings?.agenda_webhook_url;
+    if (!globalSettings) {
+        setAgendaError("No se pudieron cargar los ajustes globales para la agenda.");
+        setAgendaLoading(false);
+        return;
+    }
+    
+    const webhookUrl = globalSettings?.agenda_webhook_url;
 
     if (!webhookUrl) {
-      setAgendaError("Por favor, configure una URL de Webhook para la agenda en la sección de Ajustes.");
+      setAgendaError("Por favor, un administrador debe configurar la URL del Webhook para la agenda en la sección de Ajustes.");
       setAgendaLoading(false);
       return;
     }
@@ -90,7 +130,6 @@ export function AgendaView() {
       
       const responseText = await response.text();
       if (!responseText) {
-          // Handle empty response gracefully
           setAllEvents([]);
           return;
       }
@@ -122,13 +161,27 @@ export function AgendaView() {
       setIsSyncing(false);
       setAgendaLoading(false);
     }
-  }, [settings, isSyncing, toast]);
+  }, [globalSettings, isSyncing, toast]);
   
   useEffect(() => {
-    if (settings) {
+    const loadSettingsAndEvents = async () => {
+        setAgendaLoading(true);
+        const settings = await getAdminSettings();
+        if (settings) {
+            setGlobalSettings(settings);
+        } else {
+            setAgendaError("No se pudieron cargar los ajustes de administrador.");
+            setAgendaLoading(false);
+        }
+    }
+    loadSettingsAndEvents();
+  }, []);
+  
+  useEffect(() => {
+    if (globalSettings) {
         fetchCalendarEvents(true);
     }
-  }, [settings?.agenda_webhook_url]); // Fetch on initial load/webhook URL change
+  }, [globalSettings]);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -138,15 +191,15 @@ export function AgendaView() {
 
   useEffect(() => {
     let intervalId: NodeJS.Timeout | null = null;
-    if (isAutoSyncEnabled && settings?.sync_interval && settings.sync_interval > 0) {
+    if (isAutoSyncEnabled && globalSettings?.sync_interval && globalSettings.sync_interval > 0) {
         intervalId = setInterval(() => {
             fetchCalendarEvents(false);
-        }, settings.sync_interval * 60 * 1000);
+        }, globalSettings.sync_interval * 60 * 1000);
     }
     return () => {
         if (intervalId) clearInterval(intervalId);
     };
-  }, [isAutoSyncEnabled, settings?.sync_interval, fetchCalendarEvents]);
+  }, [isAutoSyncEnabled, globalSettings?.sync_interval, fetchCalendarEvents]);
 
 
   const eventsForSelectedDay = useMemo(() => {
@@ -242,13 +295,13 @@ export function AgendaView() {
   };
 
   const handleDeleteAppointment = async () => {
-    if (!selectedEvent || !settings?.citas_webhook_url) {
+    if (!selectedEvent || !globalSettings?.citas_webhook_url) {
       toast({ variant: 'destructive', title: 'Error', description: 'No se puede eliminar la cita. Falta información o configuración del webhook.' });
       return;
     }
     setIsDeleting(true);
     try {
-      await fetch(settings.citas_webhook_url, {
+      await fetch(globalSettings.citas_webhook_url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -317,21 +370,25 @@ export function AgendaView() {
               ))}
             </div>
             <div className="flex items-center gap-2">
-              <Button onClick={() => setIsAppointmentFormOpen(true)}>
-                <Plus className="mr-2 h-4 w-4" />
-                Añadir Cita
-              </Button>
-              <Button onClick={handleAnalyzeWeek} disabled={isAnalyzing}>
-                {isAnalyzing ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Analizando...
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="mr-2 h-4 w-4" /> Analizar Próximos 7 Días
-                  </>
-                )}
-              </Button>
+              {profile?.is_admin && (
+                <>
+                  <Button onClick={() => setIsAppointmentFormOpen(true)}>
+                    <Plus className="mr-2 h-4 w-4" />
+                    Añadir Cita
+                  </Button>
+                  <Button onClick={handleAnalyzeWeek} disabled={isAnalyzing}>
+                    {isAnalyzing ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Analizando...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="mr-2 h-4 w-4" /> Analizar Próximos 7 Días
+                      </>
+                    )}
+                  </Button>
+                </>
+              )}
             </div>
           </div>
         </CardContent>
@@ -414,13 +471,15 @@ export function AgendaView() {
                 <DialogTitle>Detalles de la Cita</DialogTitle>
             </DialogHeader>
             <AppointmentDetails event={selectedEvent} />
-            <DialogFooter className="sm:justify-between gap-2 pt-4">
-                <Button variant="destructive" onClick={handleDeleteAppointment} disabled={isDeleting}>
-                  {isDeleting ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Trash2 className="mr-2 h-4 w-4" />}
-                  Eliminar Cita
-                </Button>
-                <Button variant="outline" onClick={() => setSelectedEvent(null)}>Cerrar</Button>
-            </DialogFooter>
+            {profile?.is_admin && (
+                <DialogFooter className="sm:justify-between gap-2 pt-4">
+                    <Button variant="destructive" onClick={handleDeleteAppointment} disabled={isDeleting}>
+                      {isDeleting ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Trash2 className="mr-2 h-4 w-4" />}
+                      Eliminar Cita
+                    </Button>
+                    <Button variant="outline" onClick={() => setSelectedEvent(null)}>Cerrar</Button>
+                </DialogFooter>
+            )}
         </DialogContent>
       </Dialog>
       
