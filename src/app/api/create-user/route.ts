@@ -1,15 +1,9 @@
 
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '@/utils/supabase/server';
 import { NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
 
 export async function POST(request: Request) {
-  const cookieStore = cookies();
-  
-  // This is the standard and correct way to initialize the client in a Route Handler.
-  // It allows the client to correctly read the session cookies from the request.
-  const supabase = createRouteHandlerClient({ cookies });
+  const supabase = createClient();
 
   // 1. Check if the user making the request is authenticated
   const { data: { user } } = await supabase.auth.getUser();
@@ -19,10 +13,8 @@ export async function POST(request: Request) {
   }
 
   // 2. Create a separate, admin client with service_role to perform privileged operations
-  const supabaseAdmin = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
+  // Note: We are creating a new client here because the one from createClient() is a user-level client.
+  const supabaseAdmin = createClient(true);
 
   // 3. Check if the authenticated user is an admin by querying their profile with the admin client
   const { data: profile, error: profileError } = await supabaseAdmin
