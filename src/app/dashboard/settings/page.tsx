@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -14,6 +15,11 @@ import { useAuth, type UserProfile } from '@/providers/auth-provider';
 import Image from 'next/image';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Switch } from '@/components/ui/switch';
+import { z } from 'zod';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+
 
 const WhatsAppIcon = (props: React.SVGProps<SVGSVGElement>) => (
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512" {...props}>
@@ -26,7 +32,7 @@ function UserManagement() {
     const { toast } = useToast();
     const [users, setUsers] = useState<UserProfile[]>([]);
     const [isLoading, setIsLoading] = useState(true);
-    const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
+    const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [editingUser, setEditingUser] = useState<UserProfile | null>(null);
 
@@ -44,19 +50,6 @@ function UserManagement() {
     useEffect(() => {
         fetchUsers();
     }, []);
-
-    const handleInviteUser = async (email: string) => {
-      setIsSubmitting(true);
-      const { data, error } = await supabase.auth.admin.inviteUserByEmail(email);
-      if (error) {
-        toast({ variant: 'destructive', title: 'Error al invitar', description: error.message });
-      } else {
-        toast({ title: 'Invitación Enviada', description: `Se ha enviado una invitación a ${email}.` });
-        setIsInviteDialogOpen(false);
-        fetchUsers(); // Refresh user list
-      }
-      setIsSubmitting(false);
-    };
     
     const handleUpdateUser = async (updatedProfile: Partial<UserProfile>) => {
       if (!editingUser) return;
@@ -81,9 +74,9 @@ function UserManagement() {
         <CardHeader className="flex flex-row justify-between items-center">
             <div>
                 <CardTitle>Gestionar Usuarios</CardTitle>
-                <CardDescription>Invita y gestiona los roles de los usuarios de tu equipo.</CardDescription>
+                <CardDescription>Crea y gestiona los roles de los usuarios de tu equipo.</CardDescription>
             </div>
-            <Button onClick={() => setIsInviteDialogOpen(true)}><UserPlus className="mr-2" /> Invitar Usuario</Button>
+            <Button onClick={() => setIsCreateDialogOpen(true)}><UserPlus className="mr-2" /> Crear Usuario</Button>
         </CardHeader>
         <CardContent>
           {isLoading ? (
@@ -132,36 +125,120 @@ function UserManagement() {
             </div>
           )}
         </CardContent>
-         <InviteUserDialog 
-            isOpen={isInviteDialogOpen} 
-            onOpenChange={setIsInviteDialogOpen}
-            onInvite={handleInviteUser}
-            isSubmitting={isSubmitting}
+         <CreateUserDialog 
+            isOpen={isCreateDialogOpen} 
+            onOpenChange={setIsCreateDialogOpen}
+            onUserCreated={fetchUsers}
         />
       </Card>
     );
 }
 
-function InviteUserDialog({isOpen, onOpenChange, onInvite, isSubmitting}: {isOpen: boolean, onOpenChange: (open: boolean) => void, onInvite: (email: string) => void, isSubmitting: boolean}) {
-    const [email, setEmail] = useState('');
+const createUserSchema = z.object({
+    email: z.string().email({ message: 'Introduce un correo electrónico válido.' }),
+    password: z.string().min(8, { message: 'La contraseña debe tener al menos 8 caracteres.' }),
+    full_name: z.string().min(2, { message: 'Introduce un nombre completo.' }),
+    is_admin: z.boolean().default(false),
+});
+
+type CreateUserFormValues = z.infer<typeof createUserSchema>;
+
+function CreateUserDialog({ isOpen, onOpenChange, onUserCreated }: { isOpen: boolean, onOpenChange: (open: boolean) => void, onUserCreated: () => void }) {
+    const { toast } = useToast();
+    const form = useForm<CreateUserFormValues>({
+        resolver: zodResolver(createUserSchema),
+        defaultValues: { email: '', password: '', full_name: '', is_admin: false },
+    });
+
+    const { formState: { isSubmitting } } = form;
+
+    const onSubmit = async (values: CreateUserFormValues) => {
+        try {
+            const response = await fetch('/api/create-user', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(values),
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.error || 'Ocurrió un error desconocido.');
+            }
+
+            toast({
+                title: 'Usuario Creado',
+                description: `El usuario ${data.full_name} ha sido creado con éxito.`,
+            });
+            onUserCreated(); // Refresh the user list
+            onOpenChange(false); // Close the dialog
+            form.reset();
+
+        } catch (error: any) {
+            toast({
+                variant: 'destructive',
+                title: 'Error al Crear Usuario',
+                description: error.message,
+            });
+        }
+    };
+    
+    useEffect(() => {
+        if (!isOpen) {
+            form.reset();
+        }
+    }, [isOpen, form]);
+
     return (
         <Dialog open={isOpen} onOpenChange={onOpenChange}>
             <DialogContent>
                 <DialogHeader>
-                    <DialogTitle>Invitar Nuevo Usuario</DialogTitle>
-                    <DialogDescription>Introduce el correo electrónico del usuario que quieres invitar. Recibirá un enlace para configurar su cuenta.</DialogDescription>
+                    <DialogTitle>Crear Nuevo Usuario</DialogTitle>
+                    <DialogDescription>
+                        Completa el formulario para crear una nueva cuenta de usuario.
+                    </DialogDescription>
                 </DialogHeader>
-                <div className="space-y-2 py-4">
-                    <Label htmlFor="invite-email">Correo Electrónico</Label>
-                    <Input id="invite-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="correo@ejemplo.com"/>
-                </div>
-                <DialogFooter>
-                    <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-                    <Button onClick={() => onInvite(email)} disabled={isSubmitting || !email}>
-                        {isSubmitting && <Loader2 className="mr-2 animate-spin"/>}
-                        Enviar Invitación
-                    </Button>
-                </DialogFooter>
+                <Form {...form}>
+                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4">
+                        <FormField control={form.control} name="full_name" render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Nombre Completo</FormLabel>
+                                <FormControl><Input placeholder="Ej: Juan Pérez" {...field} /></FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )} />
+                        <FormField control={form.control} name="email" render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Correo Electrónico</FormLabel>
+                                <FormControl><Input type="email" placeholder="usuario@ejemplo.com" {...field} /></FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )} />
+                        <FormField control={form.control} name="password" render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Contraseña</FormLabel>
+                                <FormControl><Input type="password" placeholder="Mínimo 8 caracteres" {...field} /></FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )} />
+                        <FormField control={form.control} name="is_admin" render={({ field }) => (
+                            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+                                <div className="space-y-0.5">
+                                    <FormLabel>¿Es Administrador?</FormLabel>
+                                    <FormDescription>Los administradores pueden ver todas las secciones y gestionar usuarios.</FormDescription>
+                                </div>
+                                <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
+                            </FormItem>
+                        )} />
+                        <DialogFooter>
+                            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>Cancelar</Button>
+                            <Button type="submit" disabled={isSubmitting}>
+                                {isSubmitting && <Loader2 className="mr-2 animate-spin"/>}
+                                Crear Usuario
+                            </Button>
+                        </DialogFooter>
+                    </form>
+                </Form>
             </DialogContent>
         </Dialog>
     )
