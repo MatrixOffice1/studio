@@ -345,105 +345,101 @@ export default function SettingsPage() {
       <div className="space-y-8 flex-grow">
         {profile?.is_admin && <UserManagement />}
         
-        {profile?.is_admin && (
-          <>
-            <Card>
-              <CardHeader>
-                <CardTitle>Configuración de IA</CardTitle>
-                <CardDescription>Configura tu proveedor de IA y la clave API para funciones como el resumen de chat.</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="ai-provider">Proveedor de IA</Label>
-                  <Select value={aiProvider} onValueChange={setAiProvider}>
-                    <SelectTrigger id="ai-provider">
-                      <SelectValue placeholder="Seleccionar Proveedor de IA" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="gemini">Gemini</SelectItem>
-                      <SelectItem value="openai" disabled>OpenAI (próximamente)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="api-key">{aiProvider === 'gemini' ? 'Gemini' : 'OpenAI'} Clave API</Label>
-                  <Input
-                    id="api-key"
-                    type="password"
-                    placeholder="Introduce tu clave API"
-                    value={apiKey}
-                    onChange={(e) => setApiKey(e.target.value)}
-                  />
-                </div>
-              </CardContent>
-            </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>Configuración de IA</CardTitle>
+            <CardDescription>Configura tu proveedor de IA y la clave API para funciones como el resumen de chat.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="ai-provider">Proveedor de IA</Label>
+              <Select value={aiProvider} onValueChange={setAiProvider}>
+                <SelectTrigger id="ai-provider">
+                  <SelectValue placeholder="Seleccionar Proveedor de IA" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="gemini">Gemini</SelectItem>
+                  <SelectItem value="openai" disabled>OpenAI (próximamente)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="api-key">{aiProvider === 'gemini' ? 'Gemini' : 'OpenAI'} Clave API</Label>
+              <Input
+                id="api-key"
+                type="password"
+                placeholder="Introduce tu clave API"
+                value={apiKey}
+                onChange={(e) => setApiKey(e.target.value)}
+              />
+            </div>
+          </CardContent>
+        </Card>
 
-            <Card>
-              <CardHeader>
-                <CardTitle>Integración de n8n</CardTitle>
-                <CardDescription>Gestiona tus webhooks para la agenda, disponibilidad y clientes.</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="agenda-webhook">URL del Webhook de Sincronización de Agenda</Label>
-                  <Input
-                    id="agenda-webhook"
-                    placeholder="https://n8n.example.com/webhook/..."
-                    value={agendaWebhook}
-                    onChange={(e) => setAgendaWebhook(e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="availability-webhook">URL del Webhook de Disponibilidad</Label>
-                  <Input
-                    id="availability-webhook"
-                    placeholder="https://n8n.example.com/webhook/..."
-                    value={availabilityWebhook}
-                    onChange={(e) => setAvailabilityWebhook(e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="citas-webhook">URL del Webhook de Crear/Eliminar Cita</Label>
-                  <Input
-                    id="citas-webhook"
-                    placeholder="https://n8n.example.com/webhook/..."
-                    value={citasWebhook}
-                    onChange={(e) => setCitasWebhook(e.target.value)}
-                  />
-                </div>
-                 <div className="space-y-2">
-                  <Label htmlFor="clients-webhook">URL del Webhook de Clientes y Facturas</Label>
-                  <Input
-                    id="clients-webhook"
-                    placeholder="https://n8n.example.com/webhook/..."
-                    value={clientsWebhook}
-                    onChange={(e) => setClientsWebhook(e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="pdf-webhook">URL del Webhook de PDF</Label>
-                  <Input
-                    id="pdf-webhook"
-                    placeholder="https://n8n.example.com/webhook/..."
-                    value={pdfWebhook}
-                    onChange={(e) => setPdfWebhook(e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                    <Label htmlFor="sync-interval">Intervalo de Sincronización Automática de Agenda (minutos)</Label>
-                    <Input
-                        id="sync-interval"
-                        type="number"
-                        placeholder="ej. 5"
-                        value={syncInterval}
-                        onChange={(e) => setSyncInterval(e.target.value)}
-                        min="1"
-                    />
-                </div>
-              </CardContent>
-            </Card>
-          </>
-        )}
+        <Card>
+          <CardHeader>
+            <CardTitle>Integración de n8n</CardTitle>
+            <CardDescription>Gestiona tus webhooks para la agenda, disponibilidad y clientes.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="agenda-webhook">URL del Webhook de Sincronización de Agenda</Label>
+              <Input
+                id="agenda-webhook"
+                placeholder="https://n8n.example.com/webhook/..."
+                value={agendaWebhook}
+                onChange={(e) => setAgendaWebhook(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="availability-webhook">URL del Webhook de Disponibilidad</Label>
+              <Input
+                id="availability-webhook"
+                placeholder="https://n8n.example.com/webhook/..."
+                value={availabilityWebhook}
+                onChange={(e) => setAvailabilityWebhook(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="citas-webhook">URL del Webhook de Crear/Eliminar Cita</Label>
+              <Input
+                id="citas-webhook"
+                placeholder="https://n8n.example.com/webhook/..."
+                value={citasWebhook}
+                onChange={(e) => setCitasWebhook(e.target.value)}
+              />
+            </div>
+             <div className="space-y-2">
+              <Label htmlFor="clients-webhook">URL del Webhook de Clientes y Facturas</Label>
+              <Input
+                id="clients-webhook"
+                placeholder="https://n8n.example.com/webhook/..."
+                value={clientsWebhook}
+                onChange={(e) => setClientsWebhook(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="pdf-webhook">URL del Webhook de PDF</Label>
+              <Input
+                id="pdf-webhook"
+                placeholder="https://n8n.example.com/webhook/..."
+                value={pdfWebhook}
+                onChange={(e) => setPdfWebhook(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+                <Label htmlFor="sync-interval">Intervalo de Sincronización Automática de Agenda (minutos)</Label>
+                <Input
+                    id="sync-interval"
+                    type="number"
+                    placeholder="ej. 5"
+                    value={syncInterval}
+                    onChange={(e) => setSyncInterval(e.target.value)}
+                    min="1"
+                />
+            </div>
+          </CardContent>
+        </Card>
 
         <Card>
             <CardHeader>
@@ -464,14 +460,12 @@ export default function SettingsPage() {
         </Card>
 
 
-        {profile?.is_admin && (
-          <div className="flex justify-end">
-            <Button onClick={handleSaveChanges} disabled={isSaving}>
-              {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-              Guardar Cambios
-            </Button>
-          </div>
-        )}
+        <div className="flex justify-end">
+          <Button onClick={handleSaveChanges} disabled={isSaving}>
+            {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+            Guardar Cambios
+          </Button>
+        </div>
       </div>
        <footer className="text-center text-sm text-muted-foreground pt-8">
             <p>By: AirmateAi</p>

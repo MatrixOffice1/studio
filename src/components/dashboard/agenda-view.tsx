@@ -93,17 +93,17 @@ export function AgendaView() {
   const [globalSettings, setGlobalSettings] = useState<any>(null);
 
 
-  const fetchCalendarEvents = useCallback(async (isManualSync = false) => {
-    if (!globalSettings) {
-        setAgendaError("No se pudieron cargar los ajustes globales para la agenda.");
+  const fetchCalendarEvents = useCallback(async (settingsToUse: any, isManualSync = false) => {
+    if (!settingsToUse) {
+        setAgendaError("No se pudieron cargar los ajustes para la agenda.");
         setAgendaLoading(false);
         return;
     }
     
-    const webhookUrl = globalSettings?.agenda_webhook_url;
+    const webhookUrl = settingsToUse?.agenda_webhook_url;
 
     if (!webhookUrl) {
-      setAgendaError("Por favor, un administrador debe configurar la URL del Webhook para la agenda en la sección de Ajustes.");
+      setAgendaError("Por favor, configura la URL del Webhook para la agenda en la sección de Ajustes.");
       setAgendaLoading(false);
       return;
     }
@@ -161,56 +161,15 @@ export function AgendaView() {
       setIsSyncing(false);
       setAgendaLoading(false);
     }
-  }, [globalSettings, isSyncing, toast]);
+  }, [isSyncing, toast]);
   
-  useEffect(() => {
+ useEffect(() => {
     const loadSettingsAndThenEvents = async () => {
         setAgendaLoading(true);
         const settings = await getAdminSettings();
         if (settings) {
             setGlobalSettings(settings);
-            // Now that settings are loaded, fetch events.
-            // We pass the loaded settings directly to avoid race conditions with state updates.
-            const webhookUrl = settings?.agenda_webhook_url;
-            if (!webhookUrl) {
-                setAgendaError("Por favor, un administrador debe configurar la URL del Webhook para la agenda en la sección de Ajustes.");
-                setAgendaLoading(false);
-                return;
-            }
-
-            try {
-                const response = await fetch(webhookUrl, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
-                        day: DateTime.now().setZone('Europe/Madrid').toISODate(), 
-                        cb: Date.now() 
-                    })
-                });
-                if (!response.ok) throw new Error(`Error de red: ${response.statusText}`);
-                
-                const responseText = await response.text();
-                if (!responseText) {
-                    setAllEvents([]);
-                } else {
-                    const data = JSON.parse(responseText);
-                    if (data.ok && Array.isArray(data.items)) {
-                        const processed = data.items.map((ev: any) => ({
-                            ...ev,
-                            start: DateTime.fromISO(ev.start, { zone: 'Europe/Madrid' }),
-                            end: DateTime.fromISO(ev.end, { zone: 'Europe/Madrid' }),
-                            uid: ev.id,
-                        }));
-                        setAllEvents(processed);
-                    } else {
-                        setAllEvents([]);
-                    }
-                }
-            } catch (err: any) {
-                setAgendaError(`Error al cargar la agenda: ${err.message}`);
-                setAllEvents([]);
-            }
-
+            await fetchCalendarEvents(settings, false);
         } else {
             setAgendaError("No se pudieron cargar los ajustes de administrador.");
         }
@@ -218,7 +177,7 @@ export function AgendaView() {
     };
 
     loadSettingsAndThenEvents();
-  }, []);
+  }, [fetchCalendarEvents]);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -230,13 +189,13 @@ export function AgendaView() {
     let intervalId: NodeJS.Timeout | null = null;
     if (isAutoSyncEnabled && globalSettings?.sync_interval && globalSettings.sync_interval > 0) {
         intervalId = setInterval(() => {
-            fetchCalendarEvents(false);
+            fetchCalendarEvents(globalSettings, false);
         }, globalSettings.sync_interval * 60 * 1000);
     }
     return () => {
         if (intervalId) clearInterval(intervalId);
     };
-  }, [isAutoSyncEnabled, globalSettings?.sync_interval, fetchCalendarEvents]);
+  }, [isAutoSyncEnabled, globalSettings, fetchCalendarEvents]);
 
 
   const eventsForSelectedDay = useMemo(() => {
@@ -376,7 +335,7 @@ export function AgendaView() {
         setCurrentDate={setCurrentDate}
         isAutoSyncEnabled={isAutoSyncEnabled}
         setIsAutoSyncEnabled={setIsAutoSyncEnabled}
-        onSync={() => fetchCalendarEvents(true)}
+        onSync={() => fetchCalendarEvents(globalSettings, true)}
         isSyncing={isSyncing}
       />
       
@@ -407,12 +366,11 @@ export function AgendaView() {
               ))}
             </div>
             <div className="flex items-center gap-2">
-              {profile?.is_admin && (
-                <>
-                  <Button onClick={() => setIsAppointmentFormOpen(true)}>
+                <Button onClick={() => setIsAppointmentFormOpen(true)}>
                     <Plus className="mr-2 h-4 w-4" />
                     Añadir Cita
-                  </Button>
+                </Button>
+              {profile?.is_admin && (
                   <Button onClick={handleAnalyzeWeek} disabled={isAnalyzing}>
                     {isAnalyzing ? (
                       <>
@@ -424,7 +382,6 @@ export function AgendaView() {
                       </>
                     )}
                   </Button>
-                </>
               )}
             </div>
           </div>
@@ -508,15 +465,13 @@ export function AgendaView() {
                 <DialogTitle>Detalles de la Cita</DialogTitle>
             </DialogHeader>
             <AppointmentDetails event={selectedEvent} />
-            {profile?.is_admin && (
-                <DialogFooter className="sm:justify-between gap-2 pt-4">
-                    <Button variant="destructive" onClick={handleDeleteAppointment} disabled={isDeleting}>
-                      {isDeleting ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Trash2 className="mr-2 h-4 w-4" />}
-                      Eliminar Cita
-                    </Button>
-                    <Button variant="outline" onClick={() => setSelectedEvent(null)}>Cerrar</Button>
-                </DialogFooter>
-            )}
+            <DialogFooter className="sm:justify-between gap-2 pt-4">
+                <Button variant="destructive" onClick={handleDeleteAppointment} disabled={isDeleting}>
+                  {isDeleting ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Trash2 className="mr-2 h-4 w-4" />}
+                  Eliminar Cita
+                </Button>
+                <Button variant="outline" onClick={() => setSelectedEvent(null)}>Cerrar</Button>
+            </DialogFooter>
         </DialogContent>
       </Dialog>
       
