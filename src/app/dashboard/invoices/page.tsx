@@ -327,10 +327,11 @@ export default function InvoicesPage() {
 
   const kpiData = useMemo(() => {
     const now = DateTime.now().setZone('Europe/Madrid');
-    const startOfMonth = now.startOf('month');
     const sevenDaysAgo = now.minus({ days: 7 });
 
-    const currentMonthInvoices = invoices.filter(inv => inv.date >= startOfMonth && inv.date <= now);
+    const currentMonthInvoices = invoices.filter(inv => 
+        inv.date.year === now.year && inv.date.month === now.month
+    );
     const last7DaysInvoices = invoices.filter(inv => inv.date >= sevenDaysAgo && inv.date <= now);
 
     const totalBilledThisMonth = currentMonthInvoices.reduce((acc, inv) => acc + inv.totalPrice, 0);
@@ -467,7 +468,7 @@ export default function InvoicesPage() {
                   <SelectItem value="Pendiente">Pendiente</SelectItem>
                 </SelectContent>
               </Select>
-              <Select value={professionalFilter} onValuechange={setProfessionalFilter}>
+              <Select value={professionalFilter} onValueChange={setProfessionalFilter}>
                 <SelectTrigger className="w-full md:w-[160px]">
                   <SelectValue placeholder="Profesional" />
                 </SelectTrigger>
