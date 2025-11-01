@@ -92,7 +92,7 @@ export function AgendaView() {
     if (!settingsToUse) {
         setAgendaError("No se pudieron cargar los ajustes para la agenda.");
         setAgendaLoading(false);
-        setIsSyncing(false);
+        if(isManualSync) setIsSyncing(false);
         return;
     }
     
@@ -101,11 +101,11 @@ export function AgendaView() {
     if (!webhookUrl) {
       setAgendaError("Por favor, un administrador debe configurar la URL del Webhook para la agenda en la sección de Ajustes.");
       setAgendaLoading(false);
-      setIsSyncing(false);
+      if(isManualSync) setIsSyncing(false);
       return;
     }
     
-    setIsSyncing(true);
+    if(isManualSync) setIsSyncing(true);
     setAgendaError(null);
     
     try {
@@ -153,7 +153,7 @@ export function AgendaView() {
         });
       }
     } finally {
-      setIsSyncing(false);
+      if(isManualSync) setIsSyncing(false);
       setAgendaLoading(false); // Ensure loading is false after fetch completes
     }
   }, [toast]);
@@ -485,5 +485,3 @@ export function AgendaView() {
     </div>
   );
 }
-
-    
