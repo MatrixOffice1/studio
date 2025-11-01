@@ -1,39 +1,28 @@
 
+import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
 import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 
-// This is the secure, server-side Supabase client
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
-
 export async function POST(request: Request) {
   const cookieStore = cookies();
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      auth: {
-        storage: {
-          getItem: (key) => {
-            return cookieStore.get(key.split('.').pop()!)?.value ?? null;
-          },
-          setItem: () => {},
-          removeItem: () => {},
-        },
-      },
-    }
-  );
+  // Create a Supabase client that can read the user's session from the cookies
+  const supabase = createRouteHandlerClient({ cookies: () => cookieStore });
 
-  // 1. Check if the user making the request is an admin
+  // 1. Check if the user making the request is authenticated
   const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) {
     return NextResponse.json({ error: 'No estás autenticado.' }, { status: 401 });
   }
 
+  // Create a separate, admin client to perform privileged operations
+  const supabaseAdmin = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+
+  // 2. Check if the authenticated user is an admin
   const { data: profile, error: profileError } = await supabaseAdmin
     .from('profiles')
     .select('is_admin')
@@ -44,18 +33,18 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Acceso denegado. No tienes permisos de administrador.' }, { status: 403 });
   }
 
-  // 2. If the user is an admin, proceed to create the new user
+  // 3. If the user is an admin, proceed to get the new user's data from the request
   const { email, password, full_name, is_admin } = await request.json();
 
-  if (!email || !password || !full_name) {
+  if (!email || !password || !full_name === undefined) {
     return NextResponse.json({ error: 'Faltan campos obligatorios (email, password, full_name).' }, { status: 400 });
   }
   
-  // 3. Create the user in auth.users
+  // 4. Create the new user in auth.users using the admin client
   const { data: newUserData, error: createError } = await supabaseAdmin.auth.admin.createUser({
     email: email,
     password: password,
-    email_confirm: true, // Auto-confirm email since admin is creating the account
+    email_confirm: true, // Auto-confirm email since admin is creating it
   });
 
   if (createError) {
@@ -68,7 +57,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'No se pudo crear el usuario.' }, { status: 500 });
   }
 
-  // 4. Insert the profile into public.profiles
+  // 5. Insert the profile into public.profiles
   const { data: newProfile, error: insertProfileError } = await supabaseAdmin
     .from('profiles')
     .insert({
@@ -82,11 +71,11 @@ export async function POST(request: Request) {
 
   if (insertProfileError) {
     console.error('Error inserting profile:', insertProfileError);
-    // If profile insert fails, we should probably delete the auth user to avoid orphaned accounts
+    // Important: If profile insert fails, delete the auth user to prevent orphaned accounts
     await supabaseAdmin.auth.admin.deleteUser(newUser.id);
     return NextResponse.json({ error: `Error al crear el perfil: ${insertProfileError.message}` }, { status: 500 });
   }
   
-  // 5. Return the newly created profile
+  // 6. Return the newly created profile
   return NextResponse.json(newProfile, { status: 201 });
 }
