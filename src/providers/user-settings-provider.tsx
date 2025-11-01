@@ -48,18 +48,18 @@ export function UserSettingsProvider({ children, userId }: { children: ReactNode
       return;
     }
 
-    // 2. Fetch the admin's settings
+    // 2. Fetch the admin's settings using the found admin ID
     const { data, error } = await supabase
       .from('user_settings')
       .select('settings')
       .eq('user_id', adminProfile.id)
       .single();
 
-    if (error && error.code !== 'PGRST116') { // PGRST116 = no rows found
+    if (error && error.code !== 'PGRST116') { // PGRST116 = no rows found, which is a valid empty state
       console.error("Error fetching admin's user settings:", error);
       setSettings(null);
     } else {
-      setSettings(data?.settings || {});
+      setSettings(data?.settings || {}); // Provide settings or an empty object
     }
     setIsLoading(false);
   }, []);
