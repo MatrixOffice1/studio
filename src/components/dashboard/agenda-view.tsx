@@ -164,24 +164,61 @@ export function AgendaView() {
   }, [globalSettings, isSyncing, toast]);
   
   useEffect(() => {
-    const loadSettingsAndEvents = async () => {
+    const loadSettingsAndThenEvents = async () => {
         setAgendaLoading(true);
         const settings = await getAdminSettings();
         if (settings) {
             setGlobalSettings(settings);
+            // Now that settings are loaded, fetch events.
+            // We pass the loaded settings directly to avoid race conditions with state updates.
+            const webhookUrl = settings?.agenda_webhook_url;
+            if (!webhookUrl) {
+                setAgendaError("Por favor, un administrador debe configurar la URL del Webhook para la agenda en la sección de Ajustes.");
+                setAgendaLoading(false);
+                return;
+            }
+
+            try {
+                const response = await fetch(webhookUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        day: DateTime.now().setZone('Europe/Madrid').toISODate(), 
+                        cb: Date.now() 
+                    })
+                });
+                if (!response.ok) throw new Error(`Error de red: ${response.statusText}`);
+                
+                const responseText = await response.text();
+                if (!responseText) {
+                    setAllEvents([]);
+                } else {
+                    const data = JSON.parse(responseText);
+                    if (data.ok && Array.isArray(data.items)) {
+                        const processed = data.items.map((ev: any) => ({
+                            ...ev,
+                            start: DateTime.fromISO(ev.start, { zone: 'Europe/Madrid' }),
+                            end: DateTime.fromISO(ev.end, { zone: 'Europe/Madrid' }),
+                            uid: ev.id,
+                        }));
+                        setAllEvents(processed);
+                    } else {
+                        setAllEvents([]);
+                    }
+                }
+            } catch (err: any) {
+                setAgendaError(`Error al cargar la agenda: ${err.message}`);
+                setAllEvents([]);
+            }
+
         } else {
             setAgendaError("No se pudieron cargar los ajustes de administrador.");
-            setAgendaLoading(false);
         }
-    }
-    loadSettingsAndEvents();
+        setAgendaLoading(false);
+    };
+
+    loadSettingsAndThenEvents();
   }, []);
-  
-  useEffect(() => {
-    if (globalSettings) {
-        fetchCalendarEvents(true);
-    }
-  }, [globalSettings]);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
