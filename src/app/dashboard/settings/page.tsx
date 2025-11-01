@@ -353,7 +353,6 @@ export default function SettingsPage() {
   const { settings, isLoading: isLoadingSettings, refreshSettings } = useUserSettings();
   const [aiProvider, setAiProvider] = useState('gemini');
   const [apiKey, setApiKey] = useState('');
-  const [isApiKeyVisible, setIsApiKeyVisible] = useState(false);
   const [agendaWebhook, setAgendaWebhook] = useState('');
   const [availabilityWebhook, setAvailabilityWebhook] = useState('');
   const [citasWebhook, setCitasWebhook] = useState('');
@@ -463,20 +462,15 @@ export default function SettingsPage() {
                   </Select>
                 </div>
                  <div className="space-y-2">
-                  <Label htmlFor="api-key">{aiProvider === 'gemini' ? 'Gemini' : 'OpenAI'} Clave API</Label>
-                   <div className="flex items-center gap-2">
+                    <Label htmlFor="api-key">{aiProvider === 'gemini' ? 'Gemini' : 'OpenAI'} Clave API</Label>
                     <Input
-                      id="api-key"
-                      type={isApiKeyVisible ? 'text' : 'password'}
-                      placeholder="Introduce tu clave API"
-                      value={apiKey}
-                      onChange={(e) => setApiKey(e.target.value)}
-                      disabled={!isUserAdmin || isLoadingSettings}
+                        id="api-key"
+                        type="password"
+                        placeholder="Introduce tu clave API"
+                        value={apiKey}
+                        onChange={(e) => setApiKey(e.target.value)}
+                        disabled={!isUserAdmin || isLoadingSettings}
                     />
-                    <Button type="button" variant="ghost" size="icon" onClick={() => setIsApiKeyVisible(!isApiKeyVisible)} disabled={!isUserAdmin || isLoadingSettings}>
-                        {isApiKeyVisible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                    </Button>
-                   </div>
                 </div>
               </CardContent>
             </Card>
