@@ -17,7 +17,7 @@ import { AppointmentCard } from './appointment-card';
 import { ProfessionalAvailability } from './professional-availability';
 import { AppointmentForm } from './appointment-form';
 import { useAuth } from '@/providers/auth-provider';
-import { supabase } from '@/lib/supabase';
+import { useUserSettings } from '@/hooks/use-user-settings';
 
 
 export type CalendarEvent = {
@@ -35,36 +35,9 @@ export type CalendarEvent = {
 
 export const PROFESSIONALS = ['Ana', 'Joana', 'Maria'];
 
-const getAdminSettings = async () => {
-    const { data: adminProfile, error: adminError } = await supabase
-      .from('profiles')
-      .select('id')
-      .eq('is_admin', true)
-      .limit(1)
-      .single();
-  
-    if (adminError || !adminProfile) {
-      console.error('Could not find admin user:', adminError);
-      return null;
-    }
-  
-    const { data: settingsData, error: settingsError } = await supabase
-      .from('user_settings')
-      .select('settings')
-      .eq('user_id', adminProfile.id)
-      .single();
-  
-    if (settingsError) {
-      console.error('Could not fetch admin settings:', settingsError);
-      return null;
-    }
-  
-    return settingsData?.settings || null;
-};
-
-
 export function AgendaView() {
   const { toast } = useToast();
+  const { settings, isLoading: isLoadingSettings } = useUserSettings();
   
   const [allEvents, setAllEvents] = useState<CalendarEvent[]>([]);
   const [currentDate, setCurrentDate] = useState(DateTime.now().setZone('Europe/Madrid'));
@@ -85,18 +58,9 @@ export function AgendaView() {
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [isAppointmentFormOpen, setIsAppointmentFormOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [globalSettings, setGlobalSettings] = useState<any>(null);
 
-
-  const fetchCalendarEvents = useCallback(async (settingsToUse: any, isManualSync = false) => {
-    if (!settingsToUse) {
-        setAgendaError("No se pudieron cargar los ajustes para la agenda.");
-        setAgendaLoading(false);
-        if(isManualSync) setIsSyncing(false);
-        return;
-    }
-    
-    const webhookUrl = settingsToUse?.agenda_webhook_url;
+  const fetchCalendarEvents = useCallback(async (isManualSync = false) => {
+    const webhookUrl = settings?.agenda_webhook_url;
 
     if (!webhookUrl) {
       setAgendaError("Por favor, un administrador debe configurar la URL del Webhook para la agenda en la sección de Ajustes.");
@@ -160,23 +124,15 @@ export function AgendaView() {
       if(isManualSync) setIsSyncing(false);
       setAgendaLoading(false);
     }
-  }, [toast]);
+  }, [settings, toast]);
   
   useEffect(() => {
-    const loadInitialData = async () => {
+    if (!isLoadingSettings) {
+      fetchCalendarEvents(false);
+    } else {
       setAgendaLoading(true);
-      const settings = await getAdminSettings();
-      if (settings) {
-        setGlobalSettings(settings);
-        await fetchCalendarEvents(settings, false);
-      } else {
-        setAgendaError("No se pudieron cargar los ajustes globales para la agenda.");
-        setAgendaLoading(false);
-      }
-    };
-
-    loadInitialData();
-  }, [fetchCalendarEvents]);
+    }
+  }, [isLoadingSettings, fetchCalendarEvents]);
 
 
   useEffect(() => {
@@ -187,18 +143,18 @@ export function AgendaView() {
 
   useEffect(() => {
     let intervalId: NodeJS.Timeout | null = null;
-    if (isAutoSyncEnabled && globalSettings?.sync_interval && globalSettings.sync_interval > 0) {
-        const syncIntervalMs = globalSettings.sync_interval * 60 * 1000;
+    if (isAutoSyncEnabled && settings?.sync_interval && settings.sync_interval > 0) {
+        const syncIntervalMs = settings.sync_interval * 60 * 1000;
         if (syncIntervalMs > 0) {
             intervalId = setInterval(() => {
-                fetchCalendarEvents(globalSettings, false);
+                fetchCalendarEvents(false);
             }, syncIntervalMs);
         }
     }
     return () => {
         if (intervalId) clearInterval(intervalId);
     };
-  }, [isAutoSyncEnabled, globalSettings, fetchCalendarEvents]);
+  }, [isAutoSyncEnabled, settings, fetchCalendarEvents]);
 
 
   const eventsForSelectedDay = useMemo(() => {
@@ -289,13 +245,13 @@ export function AgendaView() {
   };
 
   const handleDeleteAppointment = async () => {
-    if (!selectedEvent || !globalSettings?.citas_webhook_url) {
+    if (!selectedEvent || !settings?.citas_webhook_url) {
       toast({ variant: 'destructive', title: 'Error', description: 'No se puede eliminar la cita. Falta información o configuración del webhook.' });
       return;
     }
     setIsDeleting(true);
     try {
-      const response = await fetch(globalSettings.citas_webhook_url, {
+      const response = await fetch(settings.citas_webhook_url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -330,6 +286,8 @@ export function AgendaView() {
     }
   };
 
+  const showLoading = agendaLoading || isLoadingSettings;
+
   return (
     <div className="p-4 sm:p-6 lg:p-8 space-y-6 flex flex-col h-full">
       <AgendaHeader 
@@ -337,7 +295,7 @@ export function AgendaView() {
         setCurrentDate={setCurrentDate}
         isAutoSyncEnabled={isAutoSyncEnabled}
         setIsAutoSyncEnabled={setIsAutoSyncEnabled}
-        onSync={() => fetchCalendarEvents(globalSettings, true)}
+        onSync={() => fetchCalendarEvents(true)}
         isSyncing={isSyncing}
       />
       
@@ -388,7 +346,7 @@ export function AgendaView() {
         </CardContent>
       </Card>
       
-      {agendaLoading ? (
+      {showLoading ? (
          <div className="flex-1 flex items-center justify-center">
             <Loader2 className="h-12 w-12 animate-spin text-primary" />
          </div>
@@ -484,5 +442,7 @@ export function AgendaView() {
     </div>
   );
 }
+
+    
 
     

@@ -30,29 +30,38 @@ export function UserSettingsProvider({ children, userId }: { children: ReactNode
   const [isLoading, setIsLoading] = useState(true);
 
   const fetchSettings = useCallback(async () => {
-    if (!userId) {
-      setIsLoading(false);
+    setIsLoading(true);
+
+    // 1. Find the admin user
+    const { data: adminProfile, error: adminError } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('is_admin', true)
+      .limit(1)
+      .single();
+
+    if (adminError || !adminProfile) {
+      console.error('Could not find admin user to load settings:', adminError?.message);
       setSettings(null);
+      setIsLoading(false);
       return;
     }
 
-    setIsLoading(true);
-    // Select the whole row, specifically the 'settings' column which is JSONB
+    // 2. Fetch the admin's settings
     const { data, error } = await supabase
       .from('user_settings')
       .select('settings')
-      .eq('user_id', userId)
+      .eq('user_id', adminProfile.id)
       .single();
 
     if (error && error.code !== 'PGRST116') { // PGRST116 = no rows found
-      console.error('Error fetching user settings:', error);
+      console.error("Error fetching admin's user settings:", error);
       setSettings(null);
     } else {
-      // The 'settings' field from the DB is the JSON object
       setSettings(data?.settings || {});
     }
     setIsLoading(false);
-  }, [userId]);
+  }, []);
 
   useEffect(() => {
     fetchSettings();
@@ -66,3 +75,5 @@ export function UserSettingsProvider({ children, userId }: { children: ReactNode
 
   return <UserSettingsContext.Provider value={value}>{children}</UserSettingsContext.Provider>;
 }
+
+    

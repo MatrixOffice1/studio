@@ -14,7 +14,8 @@ import { Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import type { CalendarEvent } from './agenda-view';
 import { PROFESSIONALS } from './agenda-view';
-import { supabase } from '@/lib/supabase';
+import { useUserSettings } from '@/hooks/use-user-settings';
+
 
 const appointmentFormSchema = z.object({
   clientName: z.string().min(1, { message: 'El nombre del cliente es obligatorio.' }),
@@ -37,37 +38,11 @@ interface AppointmentFormProps {
   currentDate: DateTime;
 }
 
-const getAdminSettings = async () => {
-    const { data: adminProfile, error: adminError } = await supabase
-      .from('profiles')
-      .select('id')
-      .eq('is_admin', true)
-      .limit(1)
-      .single();
-  
-    if (adminError || !adminProfile) {
-      console.error('Could not find admin user:', adminError);
-      return null;
-    }
-  
-    const { data: settingsData, error: settingsError } = await supabase
-      .from('user_settings')
-      .select('settings')
-      .eq('user_id', adminProfile.id)
-      .single();
-  
-    if (settingsError) {
-      console.error('Could not fetch admin settings:', settingsError);
-      return null;
-    }
-  
-    return settingsData?.settings || null;
-};
 
 export function AppointmentForm({ isOpen, onOpenChange, onAppointmentCreated, currentDate }: AppointmentFormProps) {
   const { toast } = useToast();
+  const { settings } = useUserSettings();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [globalSettings, setGlobalSettings] = useState<any>(null);
 
   const form = useForm<AppointmentFormValues>({
     resolver: zodResolver(appointmentFormSchema),
@@ -83,17 +58,12 @@ export function AppointmentForm({ isOpen, onOpenChange, onAppointmentCreated, cu
   
   useEffect(() => {
     if (isOpen) {
-      const loadSettings = async () => {
-        const settings = await getAdminSettings();
-        setGlobalSettings(settings);
-      };
-      loadSettings();
       form.reset();
     }
   }, [isOpen, form]);
 
   const onSubmit = async (values: AppointmentFormValues) => {
-    if (!globalSettings?.citas_webhook_url) {
+    if (!settings?.citas_webhook_url) {
       toast({
         variant: 'destructive',
         title: 'Error de Configuración',
@@ -124,7 +94,7 @@ export function AppointmentForm({ isOpen, onOpenChange, onAppointmentCreated, cu
     };
     
     try {
-        await fetch(globalSettings.citas_webhook_url, {
+        await fetch(settings.citas_webhook_url, {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({
@@ -263,3 +233,5 @@ export function AppointmentForm({ isOpen, onOpenChange, onAppointmentCreated, cu
     </Dialog>
   );
 }
+
+    

@@ -259,7 +259,7 @@ function CreateUserDialog({ isOpen, onOpenChange, onUserCreated }: { isOpen: boo
 
 export default function SettingsPage() {
   const { profile } = useAuth();
-  const { settings, refreshSettings } = useUserSettings();
+  const { settings, isLoading: isLoadingSettings, refreshSettings } = useUserSettings();
   const [aiProvider, setAiProvider] = useState('gemini');
   const [apiKey, setApiKey] = useState('');
   const [agendaWebhook, setAgendaWebhook] = useState('');
@@ -270,6 +270,8 @@ export default function SettingsPage() {
   const [syncInterval, setSyncInterval] = useState('5');
   const [isSaving, setIsSaving] = useState(false);
   const { toast } = useToast();
+
+  const isUserAdmin = profile?.is_admin === true;
 
   useEffect(() => {
     if (settings) {
@@ -290,6 +292,14 @@ export default function SettingsPage() {
         variant: 'destructive',
         title: 'Error',
         description: 'Debes iniciar sesión para guardar la configuración.',
+      });
+      return;
+    }
+    if (!isUserAdmin) {
+      toast({
+        variant: 'destructive',
+        title: 'Acceso Denegado',
+        description: 'No tienes permiso para guardar la configuración.',
       });
       return;
     }
@@ -343,7 +353,7 @@ export default function SettingsPage() {
       </header>
 
       <div className="space-y-8 flex-grow">
-        {profile?.is_admin && <UserManagement />}
+        {isUserAdmin && <UserManagement />}
         
         <Card>
           <CardHeader>
@@ -353,7 +363,7 @@ export default function SettingsPage() {
           <CardContent className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="ai-provider">Proveedor de IA</Label>
-              <Select value={aiProvider} onValueChange={setAiProvider}>
+              <Select value={aiProvider} onValueChange={setAiProvider} disabled={!isUserAdmin || isLoadingSettings}>
                 <SelectTrigger id="ai-provider">
                   <SelectValue placeholder="Seleccionar Proveedor de IA" />
                 </SelectTrigger>
@@ -371,6 +381,7 @@ export default function SettingsPage() {
                 placeholder="Introduce tu clave API"
                 value={apiKey}
                 onChange={(e) => setApiKey(e.target.value)}
+                disabled={!isUserAdmin || isLoadingSettings}
               />
             </div>
           </CardContent>
@@ -389,6 +400,7 @@ export default function SettingsPage() {
                 placeholder="https://n8n.example.com/webhook/..."
                 value={agendaWebhook}
                 onChange={(e) => setAgendaWebhook(e.target.value)}
+                disabled={!isUserAdmin || isLoadingSettings}
               />
             </div>
             <div className="space-y-2">
@@ -398,6 +410,7 @@ export default function SettingsPage() {
                 placeholder="https://n8n.example.com/webhook/..."
                 value={availabilityWebhook}
                 onChange={(e) => setAvailabilityWebhook(e.target.value)}
+                disabled={!isUserAdmin || isLoadingSettings}
               />
             </div>
             <div className="space-y-2">
@@ -407,6 +420,7 @@ export default function SettingsPage() {
                 placeholder="https://n8n.example.com/webhook/..."
                 value={citasWebhook}
                 onChange={(e) => setCitasWebhook(e.target.value)}
+                disabled={!isUserAdmin || isLoadingSettings}
               />
             </div>
              <div className="space-y-2">
@@ -416,6 +430,7 @@ export default function SettingsPage() {
                 placeholder="https://n8n.example.com/webhook/..."
                 value={clientsWebhook}
                 onChange={(e) => setClientsWebhook(e.target.value)}
+                disabled={!isUserAdmin || isLoadingSettings}
               />
             </div>
             <div className="space-y-2">
@@ -425,6 +440,7 @@ export default function SettingsPage() {
                 placeholder="https://n8n.example.com/webhook/..."
                 value={pdfWebhook}
                 onChange={(e) => setPdfWebhook(e.target.value)}
+                disabled={!isUserAdmin || isLoadingSettings}
               />
             </div>
             <div className="space-y-2">
@@ -436,6 +452,7 @@ export default function SettingsPage() {
                     value={syncInterval}
                     onChange={(e) => setSyncInterval(e.target.value)}
                     min="1"
+                    disabled={!isUserAdmin || isLoadingSettings}
                 />
             </div>
           </CardContent>
@@ -461,7 +478,7 @@ export default function SettingsPage() {
 
 
         <div className="flex justify-end">
-          <Button onClick={handleSaveChanges} disabled={isSaving}>
+          <Button onClick={handleSaveChanges} disabled={isSaving || !isUserAdmin}>
             {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
             Guardar Cambios
           </Button>
@@ -474,3 +491,5 @@ export default function SettingsPage() {
     </div>
   );
 }
+
+    
