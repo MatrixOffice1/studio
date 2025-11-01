@@ -63,21 +63,21 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'No se pudo crear el usuario.' }, { status: 500 });
   }
 
-  // 8. Insert the profile into public.profiles
-  const { error: insertProfileError } = await supabaseAdmin
+  // 8. Upsert the profile into public.profiles to prevent duplicate key errors
+  const { error: upsertProfileError } = await supabaseAdmin
     .from('profiles')
-    .insert({
+    .upsert({
       id: newUser.id,
       email: email,
       full_name: full_name,
       is_admin: is_admin,
-    });
+    }, { onConflict: 'id' });
 
-  if (insertProfileError) {
-    console.error('Error inserting profile:', insertProfileError);
-    // Important: If profile insert fails, delete the auth user to prevent orphaned accounts
+  if (upsertProfileError) {
+    console.error('Error upserting profile:', upsertProfileError);
+    // Important: If profile upsert fails, delete the auth user to prevent orphaned accounts
     await supabaseAdmin.auth.admin.deleteUser(newUser.id);
-    return NextResponse.json({ error: `Error al crear el perfil: ${insertProfileError.message}` }, { status: 500 });
+    return NextResponse.json({ error: `Error al crear el perfil: ${upsertProfileError.message}` }, { status: 500 });
   }
   
   // 9. Return the newly created user's data (without sensitive info)
