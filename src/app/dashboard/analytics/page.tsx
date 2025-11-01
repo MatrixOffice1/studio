@@ -25,15 +25,21 @@ function classifyMessage(message: string): string {
 async function getAnalyticsData() {
   const sevenDaysAgo = format(subDays(new Date(), 7), 'yyyy-MM-dd');
 
-  const { data: dailyData, error: dailyError } = await supabase
+  // Fetch all daily data for all-time stats
+  const { data: allDailyData, error: allDailyError } = await supabase
+    .from('messages_daily_v')
+    .select('*');
+
+  // Fetch last 7 days for trend
+  const { data: last7Days, error: last7DaysError } = await supabase
     .from('messages_daily_v')
     .select('*')
     .gte('day', sevenDaysAgo);
     
   const { data: chatsData, error: chatsError } = await supabase.from('chats_v').select('*');
 
-  if (dailyError || chatsError) {
-    console.error('Error fetching Supabase data:', dailyError || chatsError);
+  if (allDailyError || last7DaysError || chatsError) {
+    console.error('Error fetching Supabase data:', allDailyError || last7DaysError || chatsError);
     return {
       kpiData: {
         totalMessages: 0,
@@ -47,14 +53,15 @@ async function getAnalyticsData() {
   
   const chats = chatsData.filter(chat => chat.created_at);
 
-  const totalMessages = dailyData.reduce((acc, row) => acc + row.total, 0);
-  const totalInbound = dailyData.reduce((acc, row) => acc + row.inbound, 0);
+  const totalMessagesAllTime = allDailyData.reduce((acc, row) => acc + row.total, 0);
+  const totalMessages7Days = last7Days.reduce((acc, row) => acc + row.total, 0);
+  const totalInbound7Days = last7Days.reduce((acc, row) => acc + row.inbound, 0);
   
-  const incomingPercentage = totalMessages > 0 ? Math.round((totalInbound / totalMessages) * 100) : 0;
-  const avgDailyComm = dailyData.length > 0 ? Math.round(totalMessages / dailyData.length) : 0;
+  const incomingPercentage = totalMessages7Days > 0 ? Math.round((totalInbound7Days / totalMessages7Days) * 100) : 0;
+  const avgDailyComm = last7Days.length > 0 ? Math.round(totalMessages7Days / last7Days.length) : 0;
 
   const dateMap = new Map<string, number>();
-  dailyData.forEach(row => {
+  last7Days.forEach(row => {
     dateMap.set(row.day, row.total);
   });
 
@@ -109,7 +116,7 @@ async function getAnalyticsData() {
 
   return {
     kpiData: {
-      totalMessages,
+      totalMessages: totalMessagesAllTime,
       avgDailyComm,
       incomingPercentage,
       last7DaysTrend,
@@ -137,7 +144,7 @@ export default async function AnalyticsPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{kpiData.totalMessages}</div>
-            <p className="text-xs text-muted-foreground">Últimos 7 días</p>
+            <p className="text-xs text-muted-foreground">Desde el inicio</p>
           </CardContent>
         </Card>
         <Card>
@@ -157,7 +164,7 @@ export default async function AnalyticsPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{kpiData.incomingPercentage}%</div>
-            <p className="text-xs text-muted-foreground">vs {100 - kpiData.incomingPercentage}% Salientes</p>
+            <p className="text-xs text-muted-foreground">En los últimos 7 días</p>
           </CardContent>
         </Card>
         <Card>
