@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -42,7 +42,7 @@ function UserManagement({ isUserAdmin }: { isUserAdmin: boolean }) {
     const [isDeleting, setIsDeleting] = useState(false);
 
 
-    const fetchUsers = async () => {
+    const fetchUsers = useCallback(async () => {
       setIsLoading(true);
       const { data, error } = await supabase.from('profiles').select('*');
       if (error) {
@@ -51,11 +51,11 @@ function UserManagement({ isUserAdmin }: { isUserAdmin: boolean }) {
         setUsers(data || []);
       }
       setIsLoading(false);
-    };
+    }, [toast]);
 
     useEffect(() => {
         fetchUsers();
-    }, []);
+    }, [fetchUsers]);
     
     const handleUpdateUser = async (updatedProfile: Partial<UserProfile>) => {
       if (!editingUser) return;
