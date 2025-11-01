@@ -76,10 +76,10 @@ export default function ClientsPage() {
   const parseDate = (dateString: string): DateTime => {
     let dt = DateTime.fromFormat(dateString, 'dd/MM/yyyy HH:mm:ss', { zone: 'Europe/Madrid' });
     if (dt.isValid) return dt;
-
+    
     dt = DateTime.fromFormat(dateString, 'd/M/yyyy HH:mm:ss', { zone: 'Europe/Madrid' });
     if (dt.isValid) return dt;
-    
+
     dt = DateTime.fromSQL(dateString, { zone: 'Europe/Madrid' });
     return dt;
   };
@@ -210,15 +210,15 @@ export default function ClientsPage() {
   
   const kpiData = useMemo(() => {
     if (!clients || clients.length === 0) {
-      return { total: 0, mostFrequent: 'N/A', avgVisits: 0 };
+      return { total: 0, topClients: [], avgVisits: 0 };
     }
     
     const totalVisits = clients.reduce((acc, client) => acc + client.totalVisits, 0);
-    const mostFrequentClient = clients[0];
+    const topClients = clients.slice(0, 5);
     
     return {
       total: clients.length,
-      mostFrequent: mostFrequentClient.name,
+      topClients,
       avgVisits: parseFloat((totalVisits / clients.length).toFixed(1)),
     };
   }, [clients]);
@@ -294,10 +294,31 @@ export default function ClientsPage() {
         </div>
       </header>
 
-      <section className="grid gap-4 md:grid-cols-3">
+      <section className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           <KpiCard title="Clientes Únicos" value={kpiData.total} icon={Users} />
-          <KpiCard title="Cliente Más Frecuente" value={kpiData.mostFrequent} icon={Star} description="Basado en el número de visitas" />
           <KpiCard title="Promedio de Visitas" value={kpiData.avgVisits} icon={Repeat} description="Por cliente" />
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Top 5 Clientes Frecuentes</CardTitle>
+              <Star className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              {kpiData.topClients.length > 0 ? (
+                <ul className="space-y-2 text-sm">
+                  {kpiData.topClients.map((client, index) => (
+                    <li key={client.id} className="flex justify-between items-center">
+                      <span className="font-medium text-foreground truncate">
+                        {index + 1}. {client.name}
+                      </span>
+                      <Badge variant="secondary">{client.totalVisits} visitas</Badge>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-sm text-muted-foreground">No hay datos de clientes.</p>
+              )}
+            </CardContent>
+          </Card>
       </section>
 
       <section>
