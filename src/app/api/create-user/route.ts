@@ -6,7 +6,6 @@ import { cookies } from 'next/headers';
 
 export async function POST(request: Request) {
   const cookieStore = cookies();
-  // Create a Supabase client that can read the user's session from the cookies
   const supabase = createRouteHandlerClient({ cookies: () => cookieStore });
 
   // 1. Check if the user making the request is authenticated
@@ -36,7 +35,7 @@ export async function POST(request: Request) {
   // 3. If the user is an admin, proceed to get the new user's data from the request
   const { email, password, full_name, is_admin } = await request.json();
 
-  if (!email || !password || !full_name === undefined) {
+  if (!email || !password || full_name === undefined) {
     return NextResponse.json({ error: 'Faltan campos obligatorios (email, password, full_name).' }, { status: 400 });
   }
   
@@ -58,16 +57,14 @@ export async function POST(request: Request) {
   }
 
   // 5. Insert the profile into public.profiles
-  const { data: newProfile, error: insertProfileError } = await supabaseAdmin
+  const { error: insertProfileError } = await supabaseAdmin
     .from('profiles')
     .insert({
       id: newUser.id,
       email: email,
       full_name: full_name,
       is_admin: is_admin,
-    })
-    .select()
-    .single();
+    });
 
   if (insertProfileError) {
     console.error('Error inserting profile:', insertProfileError);
@@ -76,6 +73,14 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: `Error al crear el perfil: ${insertProfileError.message}` }, { status: 500 });
   }
   
-  // 6. Return the newly created profile
-  return NextResponse.json(newProfile, { status: 201 });
+  // 6. Return the newly created user's data (without sensitive info)
+  const responsePayload = {
+    id: newUser.id,
+    email: newUser.email,
+    full_name: full_name,
+    is_admin: is_admin,
+    created_at: newUser.created_at,
+  };
+
+  return NextResponse.json(responsePayload, { status: 201 });
 }

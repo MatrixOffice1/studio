@@ -13,12 +13,12 @@ import { useUserSettings } from '@/hooks/use-user-settings';
 import { supabase } from '@/lib/supabase';
 import { useAuth, type UserProfile } from '@/providers/auth-provider';
 import Image from 'next/image';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription as DialogDescriptionComponent, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Switch } from '@/components/ui/switch';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription as FormDescriptionComponent } from '@/components/ui/form';
 
 
 const WhatsAppIcon = (props: React.SVGProps<SVGSVGElement>) => (
@@ -194,9 +194,9 @@ function CreateUserDialog({ isOpen, onOpenChange, onUserCreated }: { isOpen: boo
             <DialogContent>
                 <DialogHeader>
                     <DialogTitle>Crear Nuevo Usuario</DialogTitle>
-                    <DialogDescriptionComponent>
+                    <DialogDescription>
                         Completa el formulario para crear una nueva cuenta de usuario.
-                    </DialogDescriptionComponent>
+                    </DialogDescription>
                 </DialogHeader>
                 <Form {...form}>
                     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4">
@@ -225,7 +225,7 @@ function CreateUserDialog({ isOpen, onOpenChange, onUserCreated }: { isOpen: boo
                             <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
                                 <div className="space-y-0.5">
                                     <FormLabel>¿Es Administrador?</FormLabel>
-                                    <FormDescription>Los administradores pueden ver todas las secciones y gestionar usuarios.</FormDescription>
+                                    <FormDescriptionComponent>Los administradores pueden ver todas las secciones y gestionar usuarios.</FormDescriptionComponent>
                                 </div>
                                 <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
                             </FormItem>
