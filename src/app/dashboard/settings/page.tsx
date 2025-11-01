@@ -86,7 +86,6 @@ export default function SettingsPage() {
   const [citasWebhook, setCitasWebhook] = useState('');
   const [clientsWebhook, setClientsWebhook] = useState('');
   const [pdfWebhook, setPdfWebhook] = useState('');
-  const [sheetWebhook, setSheetWebhook] = useState('');
   const [syncInterval, setSyncInterval] = useState('5');
   const [isSaving, setIsSaving] = useState(false);
   const { toast } = useToast();
@@ -102,7 +101,6 @@ export default function SettingsPage() {
       setCitasWebhook(settings.citas_webhook_url || 'https://n8n.srv1002935.hstgr.cloud/webhook-test/calendar-citas-modf');
       setClientsWebhook(settings.clients_webhook_url || '');
       setPdfWebhook(settings.pdf_webhook_url || 'https://n8n.srv1002935.hstgr.cloud/webhook/pdf');
-      setSheetWebhook(settings.sheet_webhook_url || 'https://n8n.srv1002935.hstgr.cloud/webhook/sheet');
       setSyncInterval(String(settings.sync_interval || '5'));
     }
   }, [settings]);
@@ -127,7 +125,6 @@ export default function SettingsPage() {
       citas_webhook_url: citasWebhook,
       clients_webhook_url: clientsWebhook,
       pdf_webhook_url: pdfWebhook,
-      sheet_webhook_url: sheetWebhook,
       sync_interval: parseInt(syncInterval, 10) || 5,
     };
 
@@ -273,15 +270,6 @@ export default function SettingsPage() {
                 placeholder="https://n8n.example.com/webhook/..."
                 value={pdfWebhook}
                 onChange={(e) => setPdfWebhook(e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="sheet-webhook">URL del Webhook de Google Sheet (Estado)</Label>
-              <Input
-                id="sheet-webhook"
-                placeholder="https://n8n.example.com/webhook/..."
-                value={sheetWebhook}
-                onChange={(e) => setSheetWebhook(e.target.value)}
               />
             </div>
             <div className="space-y-2">

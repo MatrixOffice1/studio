@@ -212,12 +212,12 @@ export default function InvoicesPage() {
   }, [settings, fetchInvoiceData, isAdmin]);
 
   const handleStatusToggle = async (invoiceNumber: string) => {
-    const sheetWebhookUrl = settings?.sheet_webhook_url;
+    const sheetWebhookUrl = settings?.clients_webhook_url;
     if (!sheetWebhookUrl) {
       toast({
         variant: 'destructive',
         title: 'Error de Configuración',
-        description: 'Falta la URL del webhook de Google Sheet en los ajustes.',
+        description: 'Falta la URL del webhook de Clientes y Facturas en los ajustes.',
       });
       return;
     }
