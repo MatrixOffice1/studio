@@ -36,9 +36,7 @@ export type CalendarEvent = {
 
 export const PROFESSIONALS = ['Ana', 'Joana', 'Maria'];
 
-// Helper to fetch admin settings
 const getAdminSettings = async () => {
-    // 1. Find the admin user
     const { data: adminProfile, error: adminError } = await supabase
       .from('profiles')
       .select('id')
@@ -51,7 +49,6 @@ const getAdminSettings = async () => {
       return null;
     }
   
-    // 2. Fetch the admin's settings
     const { data: settingsData, error: settingsError } = await supabase
       .from('user_settings')
       .select('settings')
@@ -64,7 +61,7 @@ const getAdminSettings = async () => {
     }
   
     return settingsData?.settings || null;
-  };
+};
 
 
 export function AgendaView() {
@@ -97,7 +94,7 @@ export function AgendaView() {
     if (!settingsToUse) {
         setAgendaError("No se pudieron cargar los ajustes para la agenda.");
         setAgendaLoading(false);
-        if (isSyncing) setIsSyncing(false);
+        if (isManualSync) setIsSyncing(false);
         return;
     }
     
@@ -106,7 +103,7 @@ export function AgendaView() {
     if (!webhookUrl) {
       setAgendaError("Por favor, un administrador debe configurar la URL del Webhook para la agenda en la sección de Ajustes.");
       setAgendaLoading(false);
-      if (isSyncing) setIsSyncing(false);
+      if (isManualSync) setIsSyncing(false);
       return;
     }
 
@@ -341,7 +338,7 @@ export function AgendaView() {
         isSyncing={isSyncing}
       />
       
-      <ProfessionalAvailability currentDate={currentDate} />
+      {profile?.is_admin && <ProfessionalAvailability currentDate={currentDate} />}
 
       <AgendaKpiCards stats={agendaStats} />
 
