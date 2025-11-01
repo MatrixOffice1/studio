@@ -9,9 +9,7 @@ export async function POST(request: Request) {
   
   // This is the standard and correct way to initialize the client in a Route Handler.
   // It allows the client to correctly read the session cookies from the request.
-  const supabase = createRouteHandlerClient({
-    cookies: () => cookieStore,
-  });
+  const supabase = createRouteHandlerClient({ cookies });
 
   // 1. Check if the user making the request is authenticated
   const { data: { user } } = await supabase.auth.getUser();
