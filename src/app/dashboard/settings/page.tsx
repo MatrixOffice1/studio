@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, UserPlus, Users, Edit, Check, X } from 'lucide-react';
+import { Loader2, UserPlus, Users, Edit, Check, X, LifeBuoy } from 'lucide-react';
 import { useUserSettings } from '@/hooks/use-user-settings';
 import { supabase } from '@/lib/supabase';
 import { useAuth, type UserProfile } from '@/providers/auth-provider';
@@ -93,13 +93,15 @@ function UserManagement({ isUserAdmin }: { isUserAdmin: boolean }) {
                                 defaultValue={user.full_name} 
                                 onBlur={(e) => setEditingUser({...editingUser, full_name: e.target.value})}
                                 className="h-8"
+                                disabled={!isUserAdmin}
                             />
                             <Switch 
                                 checked={editingUser.is_admin}
                                 onCheckedChange={(checked) => setEditingUser({...editingUser, is_admin: checked})}
+                                disabled={!isUserAdmin}
                             />
                             <Label>{editingUser.is_admin ? "Admin" : "Usuario"}</Label>
-                            <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => handleUpdateUser({ full_name: editingUser.full_name, is_admin: editingUser.is_admin })} disabled={isSubmitting}>
+                            <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => handleUpdateUser({ full_name: editingUser.full_name, is_admin: editingUser.is_admin })} disabled={isSubmitting || !isUserAdmin}>
                                 <Check className="text-green-500"/>
                             </Button>
                             <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setEditingUser(null)}>
@@ -465,7 +467,7 @@ export default function SettingsPage() {
             </CardHeader>
             <CardContent className="flex flex-col items-center justify-center text-center gap-4 p-6">
                  <Image
-                    src="https://i.postimg.cc/kGtCyQCD/logo2.png"
+                    src="https://i.postimg.cc/FsTSyft0/df.png"
                     alt="AirmateAI Logo"
                     width={100}
                     height={100}
@@ -497,7 +499,3 @@ export default function SettingsPage() {
     </div>
   );
 }
-
-    
-
-    
