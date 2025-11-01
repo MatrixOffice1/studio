@@ -23,67 +23,87 @@ type AuthContextType = {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  const refreshProfile = useCallback(async (user: User | null) => {
+  const fetchProfile = useCallback(async (user: User | null) => {
     if (!user) {
       setProfile(null);
-      return;
+      return null;
     }
-    const { data: profileData, error: profileError } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', user.id)
-      .single();
+    try {
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single();
 
-    if (profileError && profileError.code !== 'PGRST116') { // PGRST116 = no rows found
-      console.error('Error fetching profile:', profileError);
-      setProfile(null);
-    } else {
+      if (profileError && profileError.code !== 'PGRST116') {
+        console.error('Error fetching profile:', profileError);
+        setProfile(null);
+        return null;
+      }
       setProfile(profileData);
+      return profileData;
+    } catch (e) {
+      console.error('Exception fetching profile', e);
+      setProfile(null);
+      return null;
     }
   }, []);
 
   useEffect(() => {
-    const fetchSessionAndProfile = async () => {
-      setIsLoading(true);
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-      
-      setSession(session);
-      const user = session?.user ?? null;
-      await refreshProfile(user);
-      
+    const getInitialSession = async () => {
+      const { data: { session: initialSession } } = await supabase.auth.getSession();
+      setUser(initialSession?.user ?? null);
+      setSession(initialSession);
+      if (initialSession?.user) {
+        await fetchProfile(initialSession.user);
+      }
       setIsLoading(false);
+
+      const { data: authListener } = supabase.auth.onAuthStateChange(
+        async (_event, newSession) => {
+          setUser(newSession?.user ?? null);
+          setSession(newSession);
+          if (newSession?.user) {
+            await fetchProfile(newSession.user);
+          } else {
+            setProfile(null);
+          }
+        }
+      );
+
+      return () => {
+        authListener?.subscription.unsubscribe();
+      };
     };
 
-    fetchSessionAndProfile();
-
-    const { data: authListener } = supabase.auth.onAuthStateChange(
-      async (event, newSession) => {
-        setIsLoading(true);
-        setSession(newSession);
-        const user = newSession?.user ?? null;
-        await refreshProfile(user);
-        setIsLoading(false);
-      }
-    );
+    const unsubscribe = getInitialSession();
 
     return () => {
-      authListener?.subscription.unsubscribe();
+      unsubscribe.then(cleanup => cleanup && cleanup());
     };
-  }, [refreshProfile]);
+  }, [fetchProfile]);
+
+
+  const refreshProfileCallback = useCallback(async () => {
+    if (user) {
+      await fetchProfile(user);
+    }
+  }, [user, fetchProfile]);
 
   const value = {
-    user: session?.user ?? null,
+    user,
     session,
     profile,
     isLoading,
-    refreshProfile: () => refreshProfile(session?.user ?? null),
+    refreshProfile: refreshProfileCallback,
   };
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return <AuthContext.Provider value={value}>{!isLoading && children}</AuthContext.Provider>;
 }
 
 export function useAuth() {
