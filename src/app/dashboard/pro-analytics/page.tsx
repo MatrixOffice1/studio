@@ -5,10 +5,10 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { DateTime } from 'luxon';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Loader2, RefreshCw, Phone, BarChart as BarChartIcon, PieChart as PieChartIcon } from 'lucide-react';
+import { Loader2, RefreshCw, Phone, BarChart as BarChartIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/providers/auth-provider';
-import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, PieChart, Pie, Cell, Legend } from 'recharts';
+import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend } from 'recharts';
 
 const WhatsAppIcon = (props: React.SVGProps<SVGSVGElement>) => (
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512" {...props}>
@@ -28,7 +28,6 @@ type ProcessedReservation = {
 };
 
 const SHEET_WEBHOOK_URL = 'https://n8n.srv1002935.hstgr.cloud/webhook/sheet';
-const PIE_CHART_COLORS = { whatsapp: '#25D366', telefono: '#3b82f6' };
 
 function KpiCard({ title, value, icon: Icon, color }: { title: string, value: string | number, icon: React.ElementType, color?: string }) {
   return (
@@ -121,16 +120,11 @@ export default function ProAnalyticsPage() {
 
   const analyticsData = useMemo(() => {
     if (reservations.length === 0) {
-      return { total: 0, fromWhatsapp: 0, fromTelefono: 0, pieData: [], barData: [] };
+      return { total: 0, fromWhatsapp: 0, fromTelefono: 0, barData: [] };
     }
 
     const fromWhatsapp = reservations.filter(r => r.from === 'whatsapp').length;
     const fromTelefono = reservations.length - fromWhatsapp;
-
-    const pieData = [
-      { name: 'WhatsApp', value: fromWhatsapp, fill: PIE_CHART_COLORS.whatsapp },
-      { name: 'Teléfono', value: fromTelefono, fill: PIE_CHART_COLORS.telefono },
-    ];
     
     const thirtyDaysAgo = DateTime.now().minus({ days: 30 }).startOf('day');
     const dailyCounts = reservations
@@ -149,7 +143,6 @@ export default function ProAnalyticsPage() {
       total: reservations.length,
       fromWhatsapp,
       fromTelefono,
-      pieData,
       barData,
     };
   }, [reservations]);
@@ -204,52 +197,35 @@ export default function ProAnalyticsPage() {
 
       <section className="grid gap-4 md:grid-cols-3">
           <KpiCard title="Reservas Totales" value={analyticsData.total} icon={BarChartIcon} />
-          <KpiCard title="Reservas por WhatsApp" value={analyticsData.fromWhatsapp} icon={WhatsAppIcon} color={PIE_CHART_COLORS.whatsapp} />
-          <KpiCard title="Reservas por Teléfono" value={analyticsData.fromTelefono} icon={Phone} color={PIE_CHART_COLORS.telefono} />
+          <KpiCard title="Reservas por WhatsApp" value={analyticsData.fromWhatsapp} icon={WhatsAppIcon} color={'hsl(var(--chart-1))'} />
+          <KpiCard title="Reservas por Teléfono" value={analyticsData.fromTelefono} icon={Phone} color={'hsl(var(--chart-2))'} />
       </section>
 
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
-        <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle>Distribución de Canales</CardTitle>
-            <CardDescription>Comparativa de reservas por canal.</CardDescription>
-          </CardHeader>
-          <CardContent className="h-[300px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie data={analyticsData.pieData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} label>
-                  {analyticsData.pieData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.fill} />
-                  ))}
-                </Pie>
-                <RechartsTooltip />
-                <Legend />
-              </PieChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-
-        <Card className="lg:col-span-3">
-          <CardHeader>
-            <CardTitle>Tendencia de Reservas por Canal</CardTitle>
-            <CardDescription>Volumen de reservas diarias en los últimos 30 días.</CardDescription>
-          </CardHeader>
-          <CardContent className="h-[300px]">
-            <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={analyticsData.barData}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                    <XAxis dataKey="date" tickFormatter={(str) => DateTime.fromISO(str).toFormat('dd-MM')} />
-                    <YAxis />
-                    <RechartsTooltip />
-                    <Legend />
-                    <Bar dataKey="whatsapp" name="WhatsApp" fill={PIE_CHART_COLORS.whatsapp} stackId="a" />
-                    <Bar dataKey="telefono" name="Teléfono" fill={PIE_CHART_COLORS.telefono} stackId="a" />
-                </BarChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-      </div>
-
+      <Card>
+        <CardHeader>
+          <CardTitle>Rendimiento del Negocio</CardTitle>
+          <CardDescription>Volumen de reservas diarias en los últimos 30 días, por canal.</CardDescription>
+        </CardHeader>
+        <CardContent className="h-[400px] pt-6">
+          <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={analyticsData.barData}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                  <XAxis dataKey="date" tickFormatter={(str) => DateTime.fromISO(str).toFormat('dd-MM')} tick={{ fill: 'hsl(var(--muted-foreground))' }} />
+                  <YAxis tick={{ fill: 'hsl(var(--muted-foreground))' }}/>
+                  <RechartsTooltip 
+                    contentStyle={{
+                      background: 'hsl(var(--background))',
+                      borderColor: 'hsl(var(--border))',
+                      borderRadius: 'var(--radius)'
+                    }}
+                  />
+                  <Legend />
+                  <Bar dataKey="whatsapp" name="WhatsApp" fill={'hsl(var(--chart-1))'} stackId="a" />
+                  <Bar dataKey="telefono" name="Teléfono" fill={'hsl(var(--chart-2))'} stackId="a" />
+              </BarChart>
+          </ResponsiveContainer>
+        </CardContent>
+      </Card>
     </div>
   );
 }
