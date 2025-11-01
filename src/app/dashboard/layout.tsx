@@ -43,32 +43,21 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
 }
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const { user, isLoading } = useAuth(); // Use isLoading from useAuth
-  const router = useRouter();
+  const { user } = useAuth();
 
-  // This effect handles the initial redirection if the user is not authenticated.
-  useEffect(() => {
-    if (!isLoading && !user) {
-      router.push('/login');
-    }
-  }, [user, isLoading, router]);
-  
-  // Show a full-page loader only during the initial auth check.
-  if (isLoading) {
-    return (
+  // The UserSettingsProvider needs a stable userId.
+  // We only render it when we are sure we have a user.
+  if (!user?.id) {
+    // While waiting for the user, we can show a loader or nothing.
+    // A loader is better to indicate something is happening.
+    // The redirect logic is handled inside DashboardContent.
+     return (
       <div className="flex items-center justify-center min-h-screen bg-background">
         <Loader2 className="h-16 w-16 animate-spin text-primary" />
       </div>
     );
   }
 
-  // If there's no user after loading, don't render the dashboard layout.
-  // The useEffect above will handle the redirect.
-  if (!user) {
-    return null;
-  }
-
-  // Once the user is confirmed, render the main layout with providers.
   return (
     <UserSettingsProvider userId={user.id}>
       <DashboardContent>
