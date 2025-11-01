@@ -38,7 +38,6 @@ const prompt = ai.definePrompt({
   - NO uses Markdown complejo (###, ---).
 
   **Análisis de Rendimiento de Negocio**
-  Peluquería Abbaglia Nails & Beauty - Últimos 7 Días
 
   **RESUMEN EJECUTIVO**
   [Un párrafo breve y directo que resuma los hallazgos clave combinando ambos conjuntos de datos: rendimiento general de comunicación, canales de reserva más efectivos, puntos fuertes y la oportunidad más importante.]
@@ -82,5 +81,3 @@ const generateCommunicationPerformanceAnalysisFlow = ai.defineFlow(
     return output!;
   }
 );
-
-    

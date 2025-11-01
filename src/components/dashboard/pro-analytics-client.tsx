@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { generateCommunicationPerformanceAnalysis } from '@/ai/flows/generate-communication-performance-analysis';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Sparkles, Loader2 } from 'lucide-react';
+import { Sparkles, Loader2, EyeOff } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/lib/supabase';
 import { AnalysisParser } from './analysis-parser';
@@ -18,11 +18,13 @@ const SHEET_WEBHOOK_URL = 'https://n8n.srv1002935.hstgr.cloud/webhook/sheet';
 export function ProAnalyticsClient() {
   const [analysisResult, setAnalysisResult] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isAnalysisVisible, setIsAnalysisVisible] = useState(false);
   const { toast } = useToast();
 
   const handleAnalysis = async () => {
     setIsLoading(true);
     setAnalysisResult('');
+    setIsAnalysisVisible(true);
     try {
       // Fetch messages
       const { data: messages, error: messagesError } = await supabase.from('chats_v').select('*');
@@ -52,6 +54,7 @@ export function ProAnalyticsClient() {
         title: "Falló el Análisis",
         description: errorMessage,
       });
+      setIsAnalysisVisible(false); // Hide on error
     } finally {
       setIsLoading(false);
     }
@@ -70,20 +73,33 @@ export function ProAnalyticsClient() {
       </CardHeader>
       <CardContent>
         <div className="flex flex-col items-start gap-4">
-          <Button onClick={handleAnalysis} disabled={isLoading}>
-            {isLoading ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Generando...
-              </>
-            ) : (
-              'Generar Análisis de Rendimiento'
-            )}
-          </Button>
-          {analysisResult && (
+          {!isAnalysisVisible && (
+            <Button onClick={handleAnalysis} disabled={isLoading}>
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Generando...
+                </>
+              ) : (
+                'Generar Análisis de Rendimiento'
+              )}
+            </Button>
+          )}
+
+          {isAnalysisVisible && (
             <div className="w-full p-4 border rounded-lg bg-background mt-4">
-              <h4 className="font-semibold mb-2 text-lg">Resultado del Análisis</h4>
-              <AnalysisParser content={analysisResult} />
+                <div className="flex justify-between items-center mb-2">
+                    <h4 className="font-semibold text-lg">Resultado del Análisis</h4>
+                    <Button variant="ghost" size="sm" onClick={() => setIsAnalysisVisible(false)}>
+                        <EyeOff className="mr-2 h-4 w-4"/>
+                        Ocultar Análisis
+                    </Button>
+                </div>
+              {isLoading ? (
+                <div className="flex items-center justify-center h-24"><Loader2 className="animate-spin text-primary"/></div>
+              ) : (
+                <AnalysisParser content={analysisResult} />
+              )}
             </div>
           )}
         </div>
@@ -91,5 +107,3 @@ export function ProAnalyticsClient() {
     </Card>
   );
 }
-
-    

@@ -7,15 +7,15 @@ interface AnalysisParserProps {
 }
 
 export function AnalysisParser({ content }: AnalysisParserProps) {
+  if (!content) return null;
+
   const lines = content.split('\n');
 
   return (
-    <div className="space-y-2 text-sm text-muted-foreground">
+    <div className="prose prose-sm dark:prose-invert max-w-none text-muted-foreground">
       {lines.map((line, index) => {
-        // Trim the line to handle potential leading/trailing whitespace
         const trimmedLine = line.trim();
 
-        // Check if the line is a title (e.g., **TITLE**)
         if (trimmedLine.startsWith('**') && trimmedLine.endsWith('**')) {
           const title = trimmedLine.substring(2, trimmedLine.length - 2);
           return (
@@ -25,13 +25,15 @@ export function AnalysisParser({ content }: AnalysisParserProps) {
           );
         }
 
-        // Check if the line is empty, which we use for spacing
-        if (trimmedLine === '') {
-          return <div key={index} className="h-2" />; // Creates a small vertical gap
+        if (trimmedLine.startsWith('- ')) {
+           return <p key={index} className="my-1">{line}</p>;
         }
 
-        // Render a regular text line
-        return <p key={index}>{line}</p>;
+        if (trimmedLine === '') {
+          return <br key={index} />;
+        }
+
+        return <p key={index} className="my-2">{line}</p>;
       })}
     </div>
   );
