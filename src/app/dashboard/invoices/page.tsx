@@ -13,7 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, Wallet, Calendar, AlertTriangle, FileDown, Search, RefreshCw, Sparkles, CheckCircle } from 'lucide-react';
+import { Loader2, Wallet, Calendar, AlertTriangle, FileDown, Search, RefreshCw, Sparkles, CheckCircle, EyeOff } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { generateInvoiceAnalysis } from '@/ai/flows/generate-invoice-analysis';
 import { AnalysisParser } from '@/components/dashboard/analysis-parser';
@@ -77,6 +77,7 @@ export default function InvoicesPage() {
 
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisResult, setAnalysisResult] = useState('');
+  const [isAnalysisVisible, setIsAnalysisVisible] = useState(false);
 
   const isAdmin = user?.email === 'tony@abbaglia.com';
   
@@ -329,8 +330,8 @@ export default function InvoicesPage() {
     const startOfMonth = now.startOf('month');
     const sevenDaysAgo = now.minus({ days: 7 });
 
-    const currentMonthInvoices = invoices.filter(inv => inv.date >= startOfMonth);
-    const last7DaysInvoices = invoices.filter(inv => inv.date >= sevenDaysAgo);
+    const currentMonthInvoices = invoices.filter(inv => inv.date >= startOfMonth && inv.date <= now);
+    const last7DaysInvoices = invoices.filter(inv => inv.date >= sevenDaysAgo && inv.date <= now);
 
     const totalBilledThisMonth = currentMonthInvoices.reduce((acc, inv) => acc + inv.totalPrice, 0);
     const totalBilledLast7Days = last7DaysInvoices.reduce((acc, inv) => acc + inv.totalPrice, 0);
@@ -348,8 +349,13 @@ export default function InvoicesPage() {
   }, [invoices]);
 
   const handleAnalyze = async () => {
+    if (analysisResult) {
+      setIsAnalysisVisible(true);
+      return;
+    }
+    
     setIsAnalyzing(true);
-    setAnalysisResult('');
+    setIsAnalysisVisible(true);
     try {
       if (invoices.length === 0) {
         toast({
@@ -357,6 +363,7 @@ export default function InvoicesPage() {
           title: "No hay datos",
           description: "No hay facturas para analizar.",
         });
+        setAnalysisResult("No hay facturas para analizar.");
         return;
       }
       
@@ -371,6 +378,7 @@ export default function InvoicesPage() {
         title: 'Error de Análisis',
         description: `No se pudo generar el análisis: ${e.message}`
       });
+      setIsAnalysisVisible(false);
     } finally {
       setIsAnalyzing(false);
     }
@@ -553,9 +561,15 @@ export default function InvoicesPage() {
                 'Analizar Rendimiento Financiero'
               )}
             </Button>
-            {analysisResult && (
+            {isAnalysisVisible && (
               <div className="w-full p-4 border rounded-lg bg-background mt-4">
-                <h4 className="font-semibold mb-2 text-lg">Resultado del Análisis</h4>
+                <div className="flex justify-between items-center mb-2">
+                    <h4 className="font-semibold text-lg">Resultado del Análisis</h4>
+                    <Button variant="ghost" size="sm" onClick={() => setIsAnalysisVisible(false)}>
+                        <EyeOff className="mr-2 h-4 w-4"/>
+                        Ocultar Análisis
+                    </Button>
+                </div>
                 <AnalysisParser content={analysisResult} />
               </div>
             )}
