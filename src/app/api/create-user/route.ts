@@ -21,18 +21,18 @@ export async function POST(request: Request) {
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   );
 
-  // 2. Check if the authenticated user is an admin
+  // 2. Check if the authenticated user is an admin by querying their profile
   const { data: profile, error: profileError } = await supabaseAdmin
     .from('profiles')
     .select('is_admin')
     .eq('id', user.id)
     .single();
 
-  if (profileError || !profile?.is_admin) {
+  if (profileError || !profile || !profile.is_admin) {
     return NextResponse.json({ error: 'Acceso denegado. No tienes permisos de administrador.' }, { status: 403 });
   }
 
-  // 3. If the user is an admin, proceed to get the new user's data from the request
+  // 3. If the user is a confirmed admin, proceed to get the new user's data from the request
   const { email, password, full_name, is_admin } = await request.json();
 
   if (!email || !password || full_name === undefined) {
