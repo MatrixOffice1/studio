@@ -83,16 +83,19 @@ function UserManagement({ isUserAdmin }: { isUserAdmin: boolean }) {
 
         setIsDeleting(true);
         try {
-            const { data, error } = await supabase.functions.invoke('delete-user', {
-              body: { userId: userToDelete.id },
+            const response = await fetch('/api/delete-user', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${session.access_token}`,
+              },
+              body: JSON.stringify({ userId: userToDelete.id }),
             });
 
-            if (error) {
-                throw new Error(error.message || 'Ocurrió un error en la función de Supabase.');
-            }
+            const data = await response.json();
 
-            if (data.error) {
-                 throw new Error(data.error);
+            if (!response.ok) {
+                throw new Error(data.error || 'Ocurrió un error desconocido.');
             }
             
             toast({ title: 'Usuario Eliminado', description: `El usuario ${userToDelete.full_name} ha sido eliminado.` });
