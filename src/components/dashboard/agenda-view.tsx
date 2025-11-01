@@ -91,8 +91,8 @@ export function AgendaView() {
   const fetchCalendarEvents = useCallback(async (settingsToUse: any, isManualSync = false) => {
     if (!settingsToUse) {
         setAgendaError("No se pudieron cargar los ajustes para la agenda.");
-        if (!isManualSync) setAgendaLoading(false);
-        if (isManualSync) setIsSyncing(false);
+        setAgendaLoading(false);
+        setIsSyncing(false);
         return;
     }
     
@@ -100,17 +100,12 @@ export function AgendaView() {
 
     if (!webhookUrl) {
       setAgendaError("Por favor, un administrador debe configurar la URL del Webhook para la agenda en la sección de Ajustes.");
-      if (!isManualSync) setAgendaLoading(false);
-      if (isManualSync) setIsSyncing(false);
+      setAgendaLoading(false);
+      setIsSyncing(false);
       return;
     }
-
-    if (isSyncing && !isManualSync) return;
     
     setIsSyncing(true);
-    if (!isManualSync) {
-      setAgendaLoading(true);
-    }
     setAgendaError(null);
     
     try {
@@ -159,16 +154,16 @@ export function AgendaView() {
       }
     } finally {
       setIsSyncing(false);
-      if (!isManualSync) setAgendaLoading(false);
+      setAgendaLoading(false); // Ensure loading is false after fetch completes
     }
-  }, [isSyncing, toast]);
+  }, [toast]);
   
   useEffect(() => {
     const loadInitialData = async () => {
       setAgendaLoading(true);
       const settings = await getAdminSettings();
-      setGlobalSettings(settings); // Store settings once
       if (settings) {
+        setGlobalSettings(settings);
         await fetchCalendarEvents(settings, false);
       } else {
         setAgendaError("No se pudieron cargar los ajustes globales para la agenda.");
@@ -177,10 +172,7 @@ export function AgendaView() {
     };
 
     loadInitialData();
-    // This effect runs only once on mount to fetch settings and initial data.
-    // fetchCalendarEvents is now outside the dependency array.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [fetchCalendarEvents]);
 
 
   useEffect(() => {
@@ -195,7 +187,6 @@ export function AgendaView() {
         const syncIntervalMs = globalSettings.sync_interval * 60 * 1000;
         if (syncIntervalMs > 0) {
             intervalId = setInterval(() => {
-                // Pass the stored globalSettings to the fetch function
                 fetchCalendarEvents(globalSettings, false);
             }, syncIntervalMs);
         }
