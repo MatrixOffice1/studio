@@ -17,6 +17,7 @@ import { Loader2, Wallet, Calendar, AlertTriangle, FileDown, Search, RefreshCw }
 import { cn } from '@/lib/utils';
 
 type RawReservation = {
+  "id "?: string;
   "Nombre completo": string;
   "Telefono": string | number;
   "Servicio": string;
@@ -24,6 +25,7 @@ type RawReservation = {
   "Profesional deseado": string;
   "Precio": number | string;
   "Precio (€)": number | string;
+  "Estado"?: 'Pagado' | 'Pendiente' | '';
 };
 
 type Invoice = {
@@ -74,13 +76,16 @@ export default function InvoicesPage() {
   const isAdmin = user?.email === 'tony@abbaglia.com';
   
   const parseDate = (dateString: string): DateTime => {
-    // Try parsing 'YYYY-MM-DD HH:mm:ss'
-    let dt = DateTime.fromSQL(dateString, { zone: 'Europe/Madrid' });
-    if (dt.isValid) {
-      return dt;
-    }
-    // Try parsing 'DD/MM/YYYY HH:mm:ss'
-    dt = DateTime.fromFormat(dateString, 'dd/MM/yyyy HH:mm:ss', { zone: 'Europe/Madrid' });
+    // Try 'DD/MM/YYYY HH:mm:ss'
+    let dt = DateTime.fromFormat(dateString, 'dd/MM/yyyy HH:mm:ss', { zone: 'Europe/Madrid' });
+    if (dt.isValid) return dt;
+
+    // Try 'D/M/YYYY HH:mm:ss'
+    dt = DateTime.fromFormat(dateString, 'd/M/yyyy HH:mm:ss', { zone: 'Europe/Madrid' });
+    if (dt.isValid) return dt;
+
+    // Try 'YYYY-MM-DD HH:mm:ss'
+    dt = DateTime.fromSQL(dateString, { zone: 'Europe/Madrid' });
     return dt;
   };
 
@@ -110,14 +115,11 @@ export default function InvoicesPage() {
       if (!response.ok) throw new Error(`Error de red: ${response.statusText}`);
       
       const data: RawReservation[] = await response.json();
-
-      const dailyInvoicesMap = new Map<string, Invoice>();
-      const invoiceNumberCounters: { [date: string]: number } = {};
       
       const normalizePhone = (phone: string | number): string => {
         let phoneStr = String(phone).replace(/\s+/g, '');
         if (phoneStr.startsWith('+')) {
-          phoneStr = phoneStr.substring(1);
+          return phoneStr;
         }
         if (phoneStr.length === 9 && !phoneStr.startsWith('34')) {
            return `+34${phoneStr}`;
@@ -128,62 +130,33 @@ export default function InvoicesPage() {
         return phoneStr;
       };
 
-      data.forEach((reservation) => {
-        const clientName = reservation["Nombre completo"];
-        if (!clientName || typeof clientName !== 'string' || clientName.trim() === '') {
-            return; 
-        }
-
+      const processedInvoices = data.map((reservation, index) => {
         const date = parseDate(reservation["Fecha y hora"]);
-        
-        if (!date.isValid) {
-            return; 
-        }
-
-        const clientKey = `${clientName.trim().toLowerCase()}-${date.toISODate()}`;
-        
         const rawPrice = reservation["Precio (€)"] || reservation["Precio"];
         const priceString = String(rawPrice || "0").replace(/[€\s]/g, '').replace(',', '.');
         const price = parseFloat(priceString);
-
-        if (isNaN(price)) {
-          return;
-        }
-
-        if (dailyInvoicesMap.has(clientKey)) {
-          const existingInvoice = dailyInvoicesMap.get(clientKey)!;
-          existingInvoice.items.push({
+        const status = reservation.Estado === 'Pagado' ? 'Pagado' : 'Pendiente';
+        const idKey = 'id ' as keyof RawReservation; // Handle space in key
+        const invoiceNumber = reservation[idKey] || `F-${date.toFormat('yyMMdd')}-${String(index).padStart(3, '0')}`;
+        
+        return {
+          invoiceNumber: invoiceNumber,
+          clientName: reservation["Nombre completo"],
+          clientPhone: normalizePhone(String(reservation["Telefono"])),
+          date: date,
+          items: [{
             service: reservation["Servicio"],
             professional: reservation["Profesional deseado"],
-            price: price,
-          });
-          existingInvoice.totalPrice += price;
-        } else {
-          const dateString = date.toFormat('yyyy-MM-dd');
-          if (!invoiceNumberCounters[dateString]) {
-            invoiceNumberCounters[dateString] = 0;
-          }
-          invoiceNumberCounters[dateString]++;
-          const invoiceNum = invoiceNumberCounters[dateString].toString().padStart(3, '0');
-          
-          dailyInvoicesMap.set(clientKey, {
-            invoiceNumber: `F-${date.toFormat('yyMMdd')}-${invoiceNum}`,
-            clientName: clientName,
-            clientPhone: normalizePhone(String(reservation["Telefono"])),
-            date: date,
-            items: [{
-              service: reservation["Servicio"],
-              professional: reservation["Profesional deseado"],
-              price: price,
-            }],
-            totalPrice: price,
-            status: 'Pendiente', // Default status
-          });
-        }
-      });
+            price: isNaN(price) ? 0 : price,
+          }],
+          totalPrice: isNaN(price) ? 0 : price,
+          status: status,
+        };
+      }).filter(inv => inv.clientName && inv.date.isValid);
+
       
-      const processedInvoices = Array.from(dailyInvoicesMap.values()).sort((a, b) => b.date.toMillis() - a.date.toMillis());
-      setInvoices(processedInvoices);
+      const finalInvoices = Array.from(processedInvoices.values()).sort((a, b) => b.date.toMillis() - a.date.toMillis());
+      setInvoices(finalInvoices);
 
       if (isManualSync) {
         toast({ title: "Sincronizado", description: "La lista de facturas ha sido actualizada." });
@@ -361,9 +334,10 @@ export default function InvoicesPage() {
 
   const kpiData = useMemo(() => {
     const now = DateTime.now().setZone('Europe/Madrid');
-    const currentMonthInvoices = invoices.filter(inv => 
-      inv.date.setZone('Europe/Madrid').hasSame(now, 'month') && inv.date.setZone('Europe/Madrid').hasSame(now, 'year')
-    );
+    const currentMonthInvoices = invoices.filter(inv => {
+      const invDate = inv.date.setZone('Europe/Madrid');
+      return invDate.hasSame(now, 'month') && invDate.hasSame(now, 'year');
+    });
     const totalBilledThisMonth = currentMonthInvoices.reduce((acc, inv) => acc + inv.totalPrice, 0);
     const pendingInvoices = invoices.filter(inv => inv.status === 'Pendiente').length;
 
@@ -530,3 +504,5 @@ export default function InvoicesPage() {
     </div>
   );
 }
+
+    
