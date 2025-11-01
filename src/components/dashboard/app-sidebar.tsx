@@ -9,6 +9,7 @@ import {
   User,
   Users,
   Wallet,
+  LineChart,
 } from "lucide-react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
@@ -39,6 +40,7 @@ import { supabase } from "@/lib/supabase"
 const menuItems = [
   { href: "/dashboard/messages", label: "Mensajes", icon: MessagesSquare, adminOnly: true },
   { href: "/dashboard/analytics", label: "Analíticas", icon: BarChart3, adminOnly: true },
+  { href: "/dashboard/pro-analytics", label: "Analítica PRO", icon: LineChart, adminOnly: true },
   { href: "/dashboard/appointments", label: "Agenda", icon: CalendarDays, adminOnly: false },
   { href: "/dashboard/clients", label: "Clientes", icon: Users, adminOnly: true },
   { href: "/dashboard/invoices", label: "Facturas", icon: Wallet, adminOnly: true },
