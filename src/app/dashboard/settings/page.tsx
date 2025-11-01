@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, UserPlus, Users, Edit, Check, X } from 'lucide-react';
+import { Loader2, UserPlus, Users, Edit, Check, X, LifeBuoy } from 'lucide-react';
 import { useUserSettings } from '@/hooks/use-user-settings';
 import { supabase } from '@/lib/supabase';
 import { useAuth, type UserProfile } from '@/providers/auth-provider';
@@ -279,7 +279,7 @@ export default function SettingsPage() {
       setApiKey(settings.gemini_api_key || '');
       setAgendaWebhook(settings.agenda_webhook_url || '');
       setAvailabilityWebhook(settings.availability_webhook_url || 'https://n8n.srv1002935.hstgr.cloud/webhook/calendar-tony-airmate');
-      setCitasWebhook(settings.citas_webhook_url || 'https://n8n.srv1002935.hstgr.cloud/webhook-test/calendar-citas-modf');
+      setCitasWebhook(settings.citas_webhook_url || 'https://n8n.srv1002935.hstgr.cloud/webhook/calendar-citas-modf');
       setClientsWebhook(settings.clients_webhook_url || '');
       setPdfWebhook(settings.pdf_webhook_url || 'https://n8n.srv1002935.hstgr.cloud/webhook/pdf');
       setSyncInterval(String(settings.sync_interval || '5'));
@@ -463,9 +463,11 @@ export default function SettingsPage() {
                 <CardTitle>Soporte</CardTitle>
                 <CardDescription>¿Necesitas ayuda? Contacta con nuestro equipo de soporte.</CardDescription>
             </CardHeader>
-            <CardContent className="flex items-center gap-6">
-                <Image src="https://i.postimg.cc/FsTSyft0/df.png" alt="Soporte Airmate" width={150} height={150} className="rounded-full flex-shrink-0" />
-                <div className='space-y-2 flex-grow'>
+            <CardContent className="flex flex-col items-center justify-center text-center gap-4 p-6">
+                <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center">
+                    <LifeBuoy className="w-10 h-10 text-muted-foreground" />
+                </div>
+                <div className='space-y-2'>
                     <p className="font-semibold text-lg">Soporte Técnico AirmateAi</p>
                     <p className="text-muted-foreground">+34 603 02 86 68</p>
                     <Button onClick={openSupportChat} className="mt-4">
@@ -491,3 +493,5 @@ export default function SettingsPage() {
     </div>
   );
 }
+
+    
