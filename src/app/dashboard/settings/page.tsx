@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, UserPlus, Users, Edit, Check, X, LifeBuoy, Trash2 } from 'lucide-react';
+import { Loader2, UserPlus, Users, Edit, Check, X, LifeBuoy, Trash2, Eye, EyeOff } from 'lucide-react';
 import { useUserSettings } from '@/hooks/use-user-settings';
 import { supabase } from '@/lib/supabase';
 import { useAuth, type UserProfile } from '@/providers/auth-provider';
@@ -326,11 +326,34 @@ function CreateUserDialog({ isOpen, onOpenChange, onUserCreated }: { isOpen: boo
     )
 }
 
+function WebhookInput({ id, label, value, onChange, disabled }: { id: string, label: string, value: string, onChange: (e: React.ChangeEvent<HTMLInputElement>) => void, disabled: boolean }) {
+    const [isVisible, setIsVisible] = useState(false);
+    return (
+        <div className="space-y-2">
+            <Label htmlFor={id}>{label}</Label>
+            <div className="flex items-center gap-2">
+                <Input
+                    id={id}
+                    type={isVisible ? 'text' : 'password'}
+                    placeholder="https://n8n.example.com/webhook/..."
+                    value={value}
+                    onChange={onChange}
+                    disabled={disabled}
+                />
+                <Button type="button" variant="ghost" size="icon" onClick={() => setIsVisible(!isVisible)} disabled={disabled}>
+                    {isVisible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </Button>
+            </div>
+        </div>
+    );
+}
+
 export default function SettingsPage() {
   const { profile } = useAuth();
   const { settings, isLoading: isLoadingSettings, refreshSettings } = useUserSettings();
   const [aiProvider, setAiProvider] = useState('gemini');
   const [apiKey, setApiKey] = useState('');
+  const [isApiKeyVisible, setIsApiKeyVisible] = useState(false);
   const [agendaWebhook, setAgendaWebhook] = useState('');
   const [availabilityWebhook, setAvailabilityWebhook] = useState('');
   const [citasWebhook, setCitasWebhook] = useState('');
@@ -439,16 +462,21 @@ export default function SettingsPage() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-2">
+                 <div className="space-y-2">
                   <Label htmlFor="api-key">{aiProvider === 'gemini' ? 'Gemini' : 'OpenAI'} Clave API</Label>
-                  <Input
-                    id="api-key"
-                    type="password"
-                    placeholder="Introduce tu clave API"
-                    value={apiKey}
-                    onChange={(e) => setApiKey(e.target.value)}
-                    disabled={!isUserAdmin || isLoadingSettings}
-                  />
+                   <div className="flex items-center gap-2">
+                    <Input
+                      id="api-key"
+                      type={isApiKeyVisible ? 'text' : 'password'}
+                      placeholder="Introduce tu clave API"
+                      value={apiKey}
+                      onChange={(e) => setApiKey(e.target.value)}
+                      disabled={!isUserAdmin || isLoadingSettings}
+                    />
+                    <Button type="button" variant="ghost" size="icon" onClick={() => setIsApiKeyVisible(!isApiKeyVisible)} disabled={!isUserAdmin || isLoadingSettings}>
+                        {isApiKeyVisible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </Button>
+                   </div>
                 </div>
               </CardContent>
             </Card>
@@ -459,56 +487,41 @@ export default function SettingsPage() {
                 <CardDescription>Gestiona tus webhooks para la agenda, disponibilidad y clientes.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="agenda-webhook">URL del Webhook de Sincronización de Agenda</Label>
-                  <Input
-                    id="agenda-webhook"
-                    placeholder="https://n8n.example.com/webhook/..."
-                    value={agendaWebhook}
-                    onChange={(e) => setAgendaWebhook(e.target.value)}
-                    disabled={!isUserAdmin || isLoadingSettings}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="availability-webhook">URL del Webhook de Disponibilidad</Label>
-                  <Input
-                    id="availability-webhook"
-                    placeholder="https://n8n.example.com/webhook/..."
-                    value={availabilityWebhook}
-                    onChange={(e) => setAvailabilityWebhook(e.target.value)}
-                    disabled={!isUserAdmin || isLoadingSettings}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="citas-webhook">URL del Webhook de Crear/Eliminar Cita</Label>
-                  <Input
-                    id="citas-webhook"
-                    placeholder="https://n8n.example.com/webhook/..."
-                    value={citasWebhook}
-                    onChange={(e) => setCitasWebhook(e.target.value)}
-                    disabled={!isUserAdmin || isLoadingSettings}
-                  />
-                </div>
-                 <div className="space-y-2">
-                  <Label htmlFor="clients-webhook">URL del Webhook de Clientes y Facturas</Label>
-                  <Input
-                    id="clients-webhook"
-                    placeholder="https://n8n.example.com/webhook/..."
-                    value={clientsWebhook}
-                    onChange={(e) => setClientsWebhook(e.target.value)}
-                    disabled={!isUserAdmin || isLoadingSettings}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="pdf-webhook">URL del Webhook de PDF</Label>
-                  <Input
-                    id="pdf-webhook"
-                    placeholder="https://n8n.example.com/webhook/..."
-                    value={pdfWebhook}
-                    onChange={(e) => setPdfWebhook(e.target.value)}
-                    disabled={!isUserAdmin || isLoadingSettings}
-                  />
-                </div>
+                <WebhookInput
+                  id="agenda-webhook"
+                  label="URL del Webhook de Sincronización de Agenda"
+                  value={agendaWebhook}
+                  onChange={(e) => setAgendaWebhook(e.target.value)}
+                  disabled={!isUserAdmin || isLoadingSettings}
+                />
+                <WebhookInput
+                  id="availability-webhook"
+                  label="URL del Webhook de Disponibilidad"
+                  value={availabilityWebhook}
+                  onChange={(e) => setAvailabilityWebhook(e.target.value)}
+                  disabled={!isUserAdmin || isLoadingSettings}
+                />
+                <WebhookInput
+                  id="citas-webhook"
+                  label="URL del Webhook de Crear/Eliminar Cita"
+                  value={citasWebhook}
+                  onChange={(e) => setCitasWebhook(e.target.value)}
+                  disabled={!isUserAdmin || isLoadingSettings}
+                />
+                <WebhookInput
+                  id="clients-webhook"
+                  label="URL del Webhook de Clientes y Facturas"
+                  value={clientsWebhook}
+                  onChange={(e) => setClientsWebhook(e.target.value)}
+                  disabled={!isUserAdmin || isLoadingSettings}
+                />
+                <WebhookInput
+                  id="pdf-webhook"
+                  label="URL del Webhook de PDF"
+                  value={pdfWebhook}
+                  onChange={(e) => setPdfWebhook(e.target.value)}
+                  disabled={!isUserAdmin || isLoadingSettings}
+                />
               </CardContent>
             </Card>
           </>
@@ -573,3 +586,4 @@ export default function SettingsPage() {
     </div>
   );
 }
+
