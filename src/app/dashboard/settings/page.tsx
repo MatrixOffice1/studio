@@ -145,6 +145,7 @@ type CreateUserFormValues = z.infer<typeof createUserSchema>;
 
 function CreateUserDialog({ isOpen, onOpenChange, onUserCreated }: { isOpen: boolean, onOpenChange: (open: boolean) => void, onUserCreated: () => void }) {
     const { toast } = useToast();
+    const { session } = useAuth();
     const form = useForm<CreateUserFormValues>({
         resolver: zodResolver(createUserSchema),
         defaultValues: { email: '', password: '', full_name: '', is_admin: false },
@@ -153,12 +154,23 @@ function CreateUserDialog({ isOpen, onOpenChange, onUserCreated }: { isOpen: boo
     const { formState: { isSubmitting } } = form;
 
     const onSubmit = async (values: CreateUserFormValues) => {
+        if (!session) {
+            toast({
+                variant: 'destructive',
+                title: 'Error de Autenticación',
+                description: 'No se pudo obtener la sesión. Por favor, inicia sesión de nuevo.',
+            });
+            return;
+        }
+
         try {
             const response = await fetch('/api/create-user', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${session.access_token}`
+                },
                 body: JSON.stringify(values),
-                credentials: 'include',
             });
 
             const data = await response.json();
@@ -468,5 +480,3 @@ export default function SettingsPage() {
     </div>
   );
 }
-
-  

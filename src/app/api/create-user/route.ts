@@ -1,9 +1,12 @@
 
 import { createClient } from '@/utils/supabase/server';
 import { NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
 
 export async function POST(request: Request) {
-  const supabase = createClient();
+  // Use the server-side client that can handle cookies
+  const cookieStore = cookies();
+  const supabase = createClient(cookieStore);
 
   // 1. Check if the user making the request is authenticated
   const { data: { user } } = await supabase.auth.getUser();
@@ -13,8 +16,7 @@ export async function POST(request: Request) {
   }
 
   // 2. Create a separate, admin client with service_role to perform privileged operations
-  // Note: We are creating a new client here because the one from createClient() is a user-level client.
-  const supabaseAdmin = createClient(true);
+  const supabaseAdmin = createClient(cookieStore, true);
 
   // 3. Check if the authenticated user is an admin by querying their profile with the admin client
   const { data: profile, error: profileError } = await supabaseAdmin
@@ -79,5 +81,3 @@ export async function POST(request: Request) {
 
   return NextResponse.json(responsePayload, { status: 201 });
 }
-
-  
