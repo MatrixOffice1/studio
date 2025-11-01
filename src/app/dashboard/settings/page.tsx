@@ -48,8 +48,12 @@ function UserManagement({ isUserAdmin }: { isUserAdmin: boolean }) {
     };
 
     useEffect(() => {
-        fetchUsers();
-    }, []);
+        if(isUserAdmin){
+            fetchUsers();
+        } else {
+            setIsLoading(false);
+        }
+    }, [isUserAdmin]);
     
     const handleUpdateUser = async (updatedProfile: Partial<UserProfile>) => {
       if (!editingUser) return;
@@ -465,15 +469,14 @@ export default function SettingsPage() {
                 <CardTitle>Soporte</CardTitle>
                 <CardDescription>¿Necesitas ayuda? Contacta con nuestro equipo de soporte.</CardDescription>
             </CardHeader>
-            <CardContent className="flex flex-col items-center justify-center text-center gap-4 p-6">
+            <CardContent className="flex flex-row items-center justify-start gap-8 p-6">
                  <Image
                     src="https://i.postimg.cc/FsTSyft0/df.png"
                     alt="AirmateAI Logo"
-                    width={100}
-                    height={100}
-                    className="mb-4"
+                    width={150}
+                    height={150}
                 />
-                <div className='space-y-2'>
+                <div className='space-y-2 text-left'>
                     <p className="font-semibold text-lg">Soporte Técnico AirmateAi</p>
                     <p className="text-muted-foreground">+34 603 02 86 68</p>
                     <Button onClick={openSupportChat} className="mt-4">
@@ -498,4 +501,5 @@ export default function SettingsPage() {
         </footer>
     </div>
   );
-}
+
+    
