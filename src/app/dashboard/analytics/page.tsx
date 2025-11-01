@@ -1,12 +1,11 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { TrendingUp, MessageSquare, Users, Percent, Phone } from 'lucide-react';
-import { AnalyticsClient } from '@/components/dashboard/analytics-client';
+import { ProAnalyticsClient } from '@/components/dashboard/pro-analytics-client';
 import { TrendsChart } from '@/components/dashboard/trends-chart';
 import { supabase } from '@/lib/supabase';
 import { subDays, format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { DateTime } from 'luxon';
 
 type RawReservation = {
   "from": "whatsapp" | "telefono" | string;
@@ -39,6 +38,7 @@ async function getAnalyticsData() {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ cb: Date.now() }),
+    next: { revalidate: 300 } // Revalidate every 5 minutes
   });
   
   const reservations: RawReservation[] = reservationResponse.ok ? await reservationResponse.json() : [];
@@ -199,8 +199,10 @@ export default async function AnalyticsPage() {
         </Card>
       </div>
       
-      <AnalyticsClient />
+      <ProAnalyticsClient />
 
     </div>
   );
 }
+
+    
