@@ -1,3 +1,4 @@
+
 'use client';
 
 import { createContext, useCallback, useEffect, useState, ReactNode } from 'react';
@@ -75,5 +76,3 @@ export function UserSettingsProvider({ children, userId }: { children: ReactNode
 
   return <UserSettingsContext.Provider value={value}>{children}</UserSettingsContext.Provider>;
 }
-
-    

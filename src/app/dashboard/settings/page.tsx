@@ -28,7 +28,7 @@ const WhatsAppIcon = (props: React.SVGProps<SVGSVGElement>) => (
 );
 
 
-function UserManagement() {
+function UserManagement({ isUserAdmin }: { isUserAdmin: boolean }) {
     const { toast } = useToast();
     const [users, setUsers] = useState<UserProfile[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -76,7 +76,7 @@ function UserManagement() {
                 <CardTitle>Gestionar Usuarios</CardTitle>
                 <CardDescription>Crea y gestiona los roles de los usuarios de tu equipo.</CardDescription>
             </div>
-            <Button onClick={() => setIsCreateDialogOpen(true)}><UserPlus className="mr-2" /> Crear Usuario</Button>
+            <Button onClick={() => setIsCreateDialogOpen(true)} disabled={!isUserAdmin}><UserPlus className="mr-2" /> Crear Usuario</Button>
         </CardHeader>
         <CardContent>
           {isLoading ? (
@@ -114,7 +114,7 @@ function UserManagement() {
                             </div>
                             <div className="flex items-center gap-4">
                                 <span className={`text-sm font-medium px-2 py-1 rounded-md ${user.is_admin ? 'bg-primary/20 text-primary' : 'bg-secondary'}`}>{user.is_admin ? 'Admin' : 'Usuario'}</span>
-                                <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setEditingUser(user)}>
+                                <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setEditingUser(user)} disabled={!isUserAdmin}>
                                     <Edit />
                                 </Button>
                             </div>
@@ -353,7 +353,7 @@ export default function SettingsPage() {
       </header>
 
       <div className="space-y-8 flex-grow">
-        {isUserAdmin && <UserManagement />}
+        <UserManagement isUserAdmin={isUserAdmin} />
         
         <Card>
           <CardHeader>
@@ -491,5 +491,3 @@ export default function SettingsPage() {
     </div>
   );
 }
-
-    

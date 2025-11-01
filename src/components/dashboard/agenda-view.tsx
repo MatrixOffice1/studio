@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
@@ -128,11 +129,14 @@ export function AgendaView() {
   
   useEffect(() => {
     if (!isLoadingSettings) {
-      fetchCalendarEvents(false);
-    } else {
-      setAgendaLoading(true);
+        if(settings?.agenda_webhook_url) {
+            fetchCalendarEvents(false);
+        } else {
+            setAgendaError("No se pudieron cargar los ajustes globales para la agenda.");
+            setAgendaLoading(false);
+        }
     }
-  }, [isLoadingSettings, fetchCalendarEvents]);
+  }, [isLoadingSettings, settings, fetchCalendarEvents]);
 
 
   useEffect(() => {
@@ -442,7 +446,3 @@ export function AgendaView() {
     </div>
   );
 }
-
-    
-
-    
