@@ -8,12 +8,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, UserPlus, Users, Edit, Check, X, LifeBuoy } from 'lucide-react';
+import { Loader2, UserPlus, Users, Edit, Check, X, LifeBuoy, Trash2 } from 'lucide-react';
 import { useUserSettings } from '@/hooks/use-user-settings';
 import { supabase } from '@/lib/supabase';
 import { useAuth, type UserProfile } from '@/providers/auth-provider';
 import Image from 'next/image';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Switch } from '@/components/ui/switch';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
@@ -30,11 +31,16 @@ const WhatsAppIcon = (props: React.SVGProps<SVGSVGElement>) => (
 
 function UserManagement({ isUserAdmin }: { isUserAdmin: boolean }) {
     const { toast } = useToast();
+    const { session, profile: currentUserProfile } = useAuth();
     const [users, setUsers] = useState<UserProfile[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [editingUser, setEditingUser] = useState<UserProfile | null>(null);
+
+    const [userToDelete, setUserToDelete] = useState<UserProfile | null>(null);
+    const [isDeleting, setIsDeleting] = useState(false);
+
 
     const fetchUsers = async () => {
       setIsLoading(true);
@@ -48,12 +54,8 @@ function UserManagement({ isUserAdmin }: { isUserAdmin: boolean }) {
     };
 
     useEffect(() => {
-        if(isUserAdmin){
-            fetchUsers();
-        } else {
-            setIsLoading(false);
-        }
-    }, [isUserAdmin]);
+        fetchUsers();
+    }, []);
     
     const handleUpdateUser = async (updatedProfile: Partial<UserProfile>) => {
       if (!editingUser) return;
@@ -72,13 +74,47 @@ function UserManagement({ isUserAdmin }: { isUserAdmin: boolean }) {
       }
       setIsSubmitting(false);
     };
+
+    const handleDeleteUser = async () => {
+        if (!userToDelete || !session) {
+            toast({ variant: 'destructive', title: 'Error', description: 'No se puede eliminar el usuario.' });
+            return;
+        }
+
+        setIsDeleting(true);
+        try {
+            const response = await fetch('/api/delete-user', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${session.access_token}`
+                },
+                body: JSON.stringify({ userId: userToDelete.id }),
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.error || 'Ocurrió un error desconocido.');
+            }
+            
+            toast({ title: 'Usuario Eliminado', description: `El usuario ${userToDelete.full_name} ha sido eliminado.` });
+            fetchUsers();
+            setUserToDelete(null);
+
+        } catch (error: any) {
+            toast({ variant: 'destructive', title: 'Error al Eliminar', description: error.message });
+        } finally {
+            setIsDeleting(false);
+        }
+    };
   
     return (
       <Card>
         <CardHeader className="flex flex-row justify-between items-center">
             <div>
                 <CardTitle>Gestionar Usuarios</CardTitle>
-                <CardDescription>Crea y gestiona los roles de los usuarios de tu equipo.</CardDescription>
+                <CardDescription>Crea, edita y elimina los usuarios de tu equipo.</CardDescription>
             </div>
             <Button onClick={() => setIsCreateDialogOpen(true)} disabled={!isUserAdmin}><UserPlus className="mr-2" /> Crear Usuario</Button>
         </CardHeader>
@@ -118,10 +154,19 @@ function UserManagement({ isUserAdmin }: { isUserAdmin: boolean }) {
                                 <p className="font-semibold">{user.full_name}</p>
                                 <p className="text-sm text-muted-foreground">{user.email}</p>
                             </div>
-                            <div className="flex items-center gap-4">
+                            <div className="flex items-center gap-2">
                                 <span className={`text-sm font-medium px-2 py-1 rounded-md ${user.is_admin ? 'bg-primary/20 text-primary' : 'bg-secondary'}`}>{user.is_admin ? 'Admin' : 'Usuario'}</span>
                                 <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setEditingUser(user)} disabled={!isUserAdmin}>
                                     <Edit />
+                                </Button>
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  className="h-8 w-8 text-destructive"
+                                  onClick={() => setUserToDelete(user)}
+                                  disabled={!isUserAdmin || currentUserProfile?.id === user.id}
+                                >
+                                  <Trash2 />
                                 </Button>
                             </div>
                         </>
@@ -136,6 +181,24 @@ function UserManagement({ isUserAdmin }: { isUserAdmin: boolean }) {
             onOpenChange={setIsCreateDialogOpen}
             onUserCreated={fetchUsers}
         />
+        <AlertDialog open={!!userToDelete} onOpenChange={(open) => !open && setUserToDelete(null)}>
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                    <AlertDialogTitle>¿Estás seguro de que quieres eliminar a este usuario?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                        Esta acción es irreversible. Se eliminará permanentemente al usuario
+                         <span className="font-bold"> {userToDelete?.full_name} ({userToDelete?.email})</span>.
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                    <AlertDialogCancel onClick={() => setUserToDelete(null)} disabled={isDeleting}>Cancelar</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleDeleteUser} disabled={isDeleting} className="bg-destructive hover:bg-destructive/90">
+                        {isDeleting ? <Loader2 className="mr-2 animate-spin"/> : null}
+                        Sí, eliminar usuario
+                    </AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
       </Card>
     );
 }
@@ -284,10 +347,10 @@ export default function SettingsPage() {
       setAiProvider(settings.aiProvider || 'gemini');
       setApiKey(settings.gemini_api_key || '');
       setAgendaWebhook(settings.agenda_webhook_url || '');
-      setAvailabilityWebhook(settings.availability_webhook_url || 'https://n8n.srv1002935.hstgr.cloud/webhook/calendar-tony-airmate');
-      setCitasWebhook(settings.citas_webhook_url || 'https://n8n.srv1002935.hstgr.cloud/webhook/calendar-citas-modf');
+      setAvailabilityWebhook(settings.availability_webhook_url || '');
+      setCitasWebhook(settings.citas_webhook_url || '');
       setClientsWebhook(settings.clients_webhook_url || '');
-      setPdfWebhook(settings.pdf_webhook_url || 'https://n8n.srv1002935.hstgr.cloud/webhook/pdf');
+      setPdfWebhook(settings.pdf_webhook_url || '');
       setSyncInterval(String(settings.sync_interval || '5'));
     }
   }, [settings]);
@@ -501,5 +564,4 @@ export default function SettingsPage() {
         </footer>
     </div>
   );
-
-    
+}
