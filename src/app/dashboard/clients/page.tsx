@@ -5,7 +5,9 @@ import { useUserSettings } from '@/hooks/use-user-settings';
 import { useToast } from '@/hooks/use-toast';
 import { DateTime } from 'luxon';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Loader2, Users, Star, Repeat, Phone, Calendar as CalendarIcon, UserCheck, RefreshCw, Download } from 'lucide-react';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Loader2, Users, Star, Repeat, Phone, Calendar as CalendarIcon, UserCheck, RefreshCw, Download, Hand, Wallet } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { es } from 'date-fns/locale';
 import { format, isValid } from 'date-fns';
@@ -19,6 +21,15 @@ type RawReservation = {
   "Telefono": string | number;
   "Fecha y hora": string;
   "Profesional deseado": string;
+  "Servicio": string;
+  "Precio (€)": number | string;
+};
+
+type ClientVisit = {
+    date: DateTime;
+    service: string;
+    professional: string;
+    price: number;
 };
 
 type ClientProfile = {
@@ -28,6 +39,7 @@ type ClientProfile = {
   totalVisits: number;
   lastVisit: DateTime;
   professionals: string[];
+  visits: ClientVisit[];
 };
 
 type UserSettings = {
@@ -50,62 +62,6 @@ function KpiCard({ title, value, icon: Icon, description }: { title: string, val
   );
 }
 
-function UserManagement({ userId }: { userId: string }) {
-  const [email, setEmail] = useState('');
-  const [isInviting, setIsInviting] = useState(false);
-  const { toast } = useToast();
-
-  const handleInviteUser = async () => {
-    if (!email) {
-      toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: 'Por favor, introduce un correo electrónico.',
-      });
-      return;
-    }
-    setIsInviting(true);
-    const { error } = await supabase.auth.admin.inviteUserByEmail(email);
-    if (error) {
-      toast({
-        variant: 'destructive',
-        title: 'Error al invitar usuario',
-        description: error.message,
-      });
-    } else {
-      toast({
-        title: 'Invitación Enviada',
-        description: `Se ha enviado una invitación a ${email}.`,
-      });
-      setEmail('');
-    }
-    setIsInviting(false);
-  };
-
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Gestionar Usuarios</CardTitle>
-        <CardDescription>Invita a nuevos usuarios para que puedan acceder a la agenda.</CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="flex space-x-2">
-          <Input
-            type="email"
-            placeholder="correo@ejemplo.com"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-          />
-          <Button onClick={handleInviteUser} disabled={isInviting}>
-            {isInviting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-            Invitar Usuario
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
 export default function ClientsPage() {
   const { user } = useAuth();
   const { settings } = useUserSettings();
@@ -114,6 +70,7 @@ export default function ClientsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [selectedClient, setSelectedClient] = useState<ClientProfile | null>(null);
 
   const isAdmin = user?.email === 'tony@abbaglia.com';
   
@@ -199,6 +156,18 @@ export default function ClientsPage() {
       const processedClients: ClientProfile[] = Array.from(clientMap.entries()).map(([key, entry]) => {
         const uniqueProfessionals = [...new Set(entry.visits.map(v => v["Profesional deseado"]))];
         
+        const visits = entry.visits.map(v => {
+            const rawPrice = v["Precio (€)"];
+            const priceString = String(rawPrice || "0").replace(/[€\s]/g, '').replace(',', '.');
+            const price = parseFloat(priceString);
+            return {
+                date: parseDate(v["Fecha y hora"]),
+                service: v["Servicio"],
+                professional: v["Profesional deseado"],
+                price: isNaN(price) ? 0 : price,
+            }
+        }).sort((a,b) => b.date.toMillis() - a.date.toMillis());
+
         return {
           id: key,
           name: entry.name,
@@ -206,6 +175,7 @@ export default function ClientsPage() {
           totalVisits: entry.visits.length,
           lastVisit: entry.lastVisit,
           professionals: uniqueProfessionals,
+          visits: visits,
         };
       });
       
@@ -333,7 +303,7 @@ export default function ClientsPage() {
       <section>
           <div className="space-y-4">
               {clients.map(client => (
-                  <Card key={client.id} className="hover:shadow-md transition-shadow">
+                  <Card key={client.id} className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => setSelectedClient(client)}>
                       <CardContent className="p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                           <div className="flex items-center gap-4">
                               <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
@@ -373,8 +343,48 @@ export default function ClientsPage() {
               ))}
           </div>
       </section>
+
+      <Dialog open={!!selectedClient} onOpenChange={(isOpen) => !isOpen && setSelectedClient(null)}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Historial de Visitas de {selectedClient?.name}</DialogTitle>
+            <DialogDescription>
+              Un resumen de todas las citas pasadas de este cliente.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="mt-4 max-h-[60vh] overflow-y-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead><CalendarIcon className="inline-block mr-2 h-4 w-4" />Fecha</TableHead>
+                  <TableHead><Hand className="inline-block mr-2 h-4 w-4" />Servicio</TableHead>
+                  <TableHead><UserCheck className="inline-block mr-2 h-4 w-4" />Profesional</TableHead>
+                  <TableHead className="text-right"><Wallet className="inline-block mr-2 h-4 w-4" />Precio</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {selectedClient?.visits.map((visit, index) => (
+                  <TableRow key={index}>
+                    <TableCell className="font-medium">
+                      {visit.date.isValid ? visit.date.setLocale('es').toFormat('dd MMM yyyy, HH:mm') : 'Fecha inválida'}
+                    </TableCell>
+                    <TableCell>{visit.service}</TableCell>
+                    <TableCell>
+                      <Badge variant="secondary">{visit.professional}</Badge>
+                    </TableCell>
+                    <TableCell className="text-right font-mono">
+                      {visit.price.toLocaleString('es-ES', { style: 'currency', currency: 'EUR' })}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+          <DialogFooter className="mt-4">
+            <Button variant="outline" onClick={() => setSelectedClient(null)}>Cerrar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
-
-    
