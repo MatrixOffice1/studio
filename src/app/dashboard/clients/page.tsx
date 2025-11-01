@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { useUserSettings } from '@/hooks/use-user-settings';
 import { useToast } from '@/hooks/use-toast';
 import { DateTime } from 'luxon';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -40,10 +39,7 @@ type ClientProfile = {
   visits: ClientVisit[];
 };
 
-type UserSettings = {
-  clients_webhook_url?: string;
-  [key: string]: any;
-};
+const CLIENTS_WEBHOOK_URL = 'https://n8n.srv1002935.hstgr.cloud/webhook/sheet';
 
 function KpiCard({ title, value, icon: Icon, description }: { title: string, value: string | number, icon: React.ElementType, description?: string }) {
   return (
@@ -62,7 +58,6 @@ function KpiCard({ title, value, icon: Icon, description }: { title: string, val
 
 export default function ClientsPage() {
   const { profile } = useAuth();
-  const { settings } = useUserSettings();
   const { toast } = useToast();
   const [clients, setClients] = useState<ClientProfile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -87,10 +82,8 @@ export default function ClientsPage() {
       return;
     }
 
-    const webhookUrl = (settings as UserSettings)?.clients_webhook_url;
-
-    if (!webhookUrl) {
-      setError("Por favor, configure la URL del webhook de clientes en Ajustes.");
+    if (!CLIENTS_WEBHOOK_URL) {
+      setError("La URL del webhook de clientes no está configurada.");
       if (!isManualSync) setIsLoading(false); else setIsSyncing(false);
       return;
     }
@@ -99,7 +92,7 @@ export default function ClientsPage() {
     setError(null);
     
     try {
-      const response = await fetch(webhookUrl, {
+      const response = await fetch(CLIENTS_WEBHOOK_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ cb: Date.now() }), // Cache-busting
@@ -195,15 +188,15 @@ export default function ClientsPage() {
     } finally {
       if (!isManualSync) setIsLoading(false); else setIsSyncing(false);
     }
-  }, [settings, toast, profile]);
+  }, [toast, profile]);
   
   useEffect(() => {
-    if(settings && profile?.is_admin) {
+    if(profile?.is_admin) {
         fetchClientData(false);
     } else {
         setIsLoading(false);
     }
-  }, [settings, fetchClientData, profile]);
+  }, [fetchClientData, profile]);
   
   const kpiData = useMemo(() => {
     if (!clients || clients.length === 0) {

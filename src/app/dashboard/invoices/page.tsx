@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { useUserSettings } from '@/hooks/use-user-settings';
 import { useAuth } from '@/providers/auth-provider';
 import { useToast } from '@/hooks/use-toast';
 import { DateTime } from 'luxon';
@@ -44,6 +43,9 @@ export type Invoice = {
 };
 
 const PROFESSIONALS = ['Ana', 'Joana', 'Maria', 'Tony'];
+const CLIENTS_WEBHOOK_URL = 'https://n8n.srv1002935.hstgr.cloud/webhook/sheet';
+const PDF_WEBHOOK_URL = 'https://n8n.srv1002935.hstgr.cloud/webhook/pdf';
+
 
 function KpiCard({ title, value, icon: Icon, description }: { title:string, value: string | number, icon: React.ElementType, description?: string }) {
   return (
@@ -62,7 +64,6 @@ function KpiCard({ title, value, icon: Icon, description }: { title:string, valu
 
 export default function InvoicesPage() {
   const { profile } = useAuth();
-  const { settings } = useUserSettings();
   const { toast } = useToast();
   
   const [invoices, setInvoices] = useState<Invoice[]>([]);
@@ -98,9 +99,8 @@ export default function InvoicesPage() {
       return;
     }
 
-    const webhookUrl = settings?.clients_webhook_url;
-    if (!webhookUrl) {
-      setError("Por favor, configure la URL del webhook de clientes en Ajustes.");
+    if (!CLIENTS_WEBHOOK_URL) {
+      setError("La URL del webhook de clientes no está configurada.");
       if (!isManualSync) setIsLoading(false); else setIsSyncing(false);
       return;
     }
@@ -109,7 +109,7 @@ export default function InvoicesPage() {
     setError(null);
     
     try {
-      const response = await fetch(webhookUrl, {
+      const response = await fetch(CLIENTS_WEBHOOK_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ cb: Date.now() }),
@@ -170,19 +170,18 @@ export default function InvoicesPage() {
     } finally {
       if (!isManualSync) setIsLoading(false); else setIsSyncing(false);
     }
-  }, [settings, toast, profile]);
+  }, [toast, profile]);
   
   useEffect(() => {
-    if(settings && profile?.is_admin) {
+    if(profile?.is_admin) {
       fetchInvoiceData();
     } else {
       setIsLoading(false);
     }
-  }, [settings, fetchInvoiceData, profile]);
+  }, [fetchInvoiceData, profile]);
 
   const handleStatusToggle = async (invoiceNumber: string) => {
-    const sheetWebhookUrl = settings?.clients_webhook_url;
-    if (!sheetWebhookUrl) {
+    if (!CLIENTS_WEBHOOK_URL) {
       toast({
         variant: 'destructive',
         title: 'Error de Configuración',
@@ -204,7 +203,7 @@ export default function InvoicesPage() {
     setStatusLoading(prev => ({...prev, [invoiceNumber]: true}));
 
     try {
-        const response = await fetch(sheetWebhookUrl, {
+        const response = await fetch(CLIENTS_WEBHOOK_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -240,8 +239,7 @@ export default function InvoicesPage() {
   };
 
   const handlePdfDownload = async (invoice: Invoice) => {
-    const pdfWebhookUrl = settings?.pdf_webhook_url;
-     if (!pdfWebhookUrl) {
+     if (!PDF_WEBHOOK_URL) {
       toast({
         variant: 'destructive',
         title: 'Error de Configuración',
@@ -252,7 +250,7 @@ export default function InvoicesPage() {
 
     setPdfLoading(prev => ({...prev, [invoice.invoiceNumber]: true}));
     try {
-      const response = await fetch(pdfWebhookUrl, {
+      const response = await fetch(PDF_WEBHOOK_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
