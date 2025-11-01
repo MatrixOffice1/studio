@@ -212,12 +212,12 @@ export default function InvoicesPage() {
   }, [settings, fetchInvoiceData, isAdmin]);
 
   const handleStatusToggle = async (invoiceNumber: string) => {
-    const pdfWebhookUrl = settings?.pdf_webhook_url;
-    if (!pdfWebhookUrl) {
+    const sheetWebhookUrl = settings?.sheet_webhook_url;
+    if (!sheetWebhookUrl) {
       toast({
         variant: 'destructive',
         title: 'Error de Configuración',
-        description: 'Falta la URL del webhook de PDF en los ajustes.',
+        description: 'Falta la URL del webhook de Google Sheet en los ajustes.',
       });
       return;
     }
@@ -239,7 +239,7 @@ export default function InvoicesPage() {
 
     if (updatedInvoice) {
       try {
-        await fetch(pdfWebhookUrl, {
+        await fetch(sheetWebhookUrl, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ 
@@ -360,8 +360,10 @@ export default function InvoicesPage() {
   }, [invoices, searchTerm, statusFilter, professionalFilter]);
 
   const kpiData = useMemo(() => {
-    const now = DateTime.now();
-    const currentMonthInvoices = invoices.filter(inv => inv.date.hasSame(now, 'month'));
+    const now = DateTime.now().setZone('Europe/Madrid');
+    const currentMonthInvoices = invoices.filter(inv => 
+      inv.date.setZone('Europe/Madrid').hasSame(now, 'month') && inv.date.setZone('Europe/Madrid').hasSame(now, 'year')
+    );
     const totalBilledThisMonth = currentMonthInvoices.reduce((acc, inv) => acc + inv.totalPrice, 0);
     const pendingInvoices = invoices.filter(inv => inv.status === 'Pendiente').length;
 

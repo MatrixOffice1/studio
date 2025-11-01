@@ -13,6 +13,7 @@ export type UserSettings = {
   citas_webhook_url?: string;
   clients_webhook_url?: string;
   pdf_webhook_url?: string;
+  sheet_webhook_url?: string;
   sync_interval?: number;
   [key: string]: any; // Allow other string keys
 };
