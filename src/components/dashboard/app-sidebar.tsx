@@ -30,12 +30,11 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Logo } from "@/components/logo"
 import { useAuth } from "@/providers/auth-provider"
 import { supabase } from "@/lib/supabase"
-import { PlaceHolderImages } from "@/lib/placeholder-images"
 
 const menuItems = [
   { href: "/dashboard/messages", label: "Mensajes", icon: MessagesSquare, adminOnly: true },
@@ -60,7 +59,6 @@ export function AppSidebar() {
     return pathname.startsWith(href);
   }
   
-  const currentUserAvatar = PlaceHolderImages.find(img => img.id === 'currentUserAvatar');
   const userEmail = profile?.email || 'user@peluflow.com';
   const userName = profile?.full_name || userEmail.split('@')[0];
   
@@ -96,8 +94,9 @@ export function AppSidebar() {
               <div className="flex justify-between items-center w-full">
                 <div className="flex gap-2 items-center">
                   <Avatar className="h-8 w-8">
-                    {currentUserAvatar && <AvatarImage src={currentUserAvatar.imageUrl} alt={userName} />}
-                    <AvatarFallback>{userName.charAt(0).toUpperCase()}</AvatarFallback>
+                    <AvatarFallback>
+                      <User className="h-5 w-5" />
+                    </AvatarFallback>
                   </Avatar>
                   <span className="text-sm font-medium">{userName}</span>
                 </div>
