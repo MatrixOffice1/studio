@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { DateTime } from 'luxon';
-import { useUserSettings } from '@/hooks/use-user-settings';
 import { AgendaHeader } from './agenda-header';
 import { AgendaKpiCards } from './agenda-kpi-cards';
 import { AgendaTimeline } from './agenda-timeline';
@@ -65,7 +64,6 @@ const getAdminSettings = async () => {
 
 
 export function AgendaView() {
-  const { profile } = useAuth();
   const { toast } = useToast();
   
   const [allEvents, setAllEvents] = useState<CalendarEvent[]>([]);
@@ -93,7 +91,7 @@ export function AgendaView() {
   const fetchCalendarEvents = useCallback(async (settingsToUse: any, isManualSync = false) => {
     if (!settingsToUse) {
         setAgendaError("No se pudieron cargar los ajustes para la agenda.");
-        setAgendaLoading(false);
+        if (!isManualSync) setAgendaLoading(false);
         if (isManualSync) setIsSyncing(false);
         return;
     }
@@ -102,7 +100,7 @@ export function AgendaView() {
 
     if (!webhookUrl) {
       setAgendaError("Por favor, un administrador debe configurar la URL del Webhook para la agenda en la sección de Ajustes.");
-      setAgendaLoading(false);
+      if (!isManualSync) setAgendaLoading(false);
       if (isManualSync) setIsSyncing(false);
       return;
     }
@@ -143,6 +141,9 @@ export function AgendaView() {
           uid: ev.id,
         }));
         setAllEvents(processed);
+        if (isManualSync) {
+            toast({ title: "Sincronizado", description: "La agenda ha sido actualizada." });
+        }
       } else {
         setAllEvents([]);
       }
@@ -158,7 +159,7 @@ export function AgendaView() {
       }
     } finally {
       setIsSyncing(false);
-      setAgendaLoading(false);
+      if (!isManualSync) setAgendaLoading(false);
     }
   }, [isSyncing, toast]);
   
@@ -166,9 +167,8 @@ export function AgendaView() {
     const loadInitialData = async () => {
       setAgendaLoading(true);
       const settings = await getAdminSettings();
+      setGlobalSettings(settings); // Store settings once
       if (settings) {
-        setGlobalSettings(settings);
-        // Now that settings are loaded, fetch events
         await fetchCalendarEvents(settings, false);
       } else {
         setAgendaError("No se pudieron cargar los ajustes globales para la agenda.");
@@ -177,7 +177,10 @@ export function AgendaView() {
     };
 
     loadInitialData();
-  }, [fetchCalendarEvents]);
+    // This effect runs only once on mount to fetch settings and initial data.
+    // fetchCalendarEvents is now outside the dependency array.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
 
   useEffect(() => {
@@ -189,9 +192,13 @@ export function AgendaView() {
   useEffect(() => {
     let intervalId: NodeJS.Timeout | null = null;
     if (isAutoSyncEnabled && globalSettings?.sync_interval && globalSettings.sync_interval > 0) {
-        intervalId = setInterval(() => {
-            fetchCalendarEvents(globalSettings, false);
-        }, globalSettings.sync_interval * 60 * 1000);
+        const syncIntervalMs = globalSettings.sync_interval * 60 * 1000;
+        if (syncIntervalMs > 0) {
+            intervalId = setInterval(() => {
+                // Pass the stored globalSettings to the fetch function
+                fetchCalendarEvents(globalSettings, false);
+            }, syncIntervalMs);
+        }
     }
     return () => {
         if (intervalId) clearInterval(intervalId);
@@ -298,7 +305,7 @@ export function AgendaView() {
     }
     setIsDeleting(true);
     try {
-      await fetch(globalSettings.citas_webhook_url, {
+      const response = await fetch(globalSettings.citas_webhook_url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -313,6 +320,10 @@ export function AgendaView() {
           }
         }),
       });
+
+      if (!response.ok) {
+        throw new Error(`El servidor de webhook respondió con: ${response.status}`);
+      }
 
       setAllEvents(prev => prev.filter(e => e.uid !== selectedEvent.uid));
       toast({ title: 'Cita Eliminada', description: 'La cita se ha eliminado correctamente.' });
