@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, UserPlus, Users, Edit, Check, X, LifeBuoy } from 'lucide-react';
+import { Loader2, UserPlus, Users, Edit, Check, X } from 'lucide-react';
 import { useUserSettings } from '@/hooks/use-user-settings';
 import { supabase } from '@/lib/supabase';
 import { useAuth, type UserProfile } from '@/providers/auth-provider';
@@ -464,9 +464,13 @@ export default function SettingsPage() {
                 <CardDescription>¿Necesitas ayuda? Contacta con nuestro equipo de soporte.</CardDescription>
             </CardHeader>
             <CardContent className="flex flex-col items-center justify-center text-center gap-4 p-6">
-                <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center">
-                    <LifeBuoy className="w-10 h-10 text-muted-foreground" />
-                </div>
+                 <Image
+                    src="https://i.postimg.cc/kGtCyQCD/logo2.png"
+                    alt="AirmateAI Logo"
+                    width={100}
+                    height={100}
+                    className="mb-4"
+                />
                 <div className='space-y-2'>
                     <p className="font-semibold text-lg">Soporte Técnico AirmateAi</p>
                     <p className="text-muted-foreground">+34 603 02 86 68</p>
@@ -493,5 +497,7 @@ export default function SettingsPage() {
     </div>
   );
 }
+
+    
 
     
