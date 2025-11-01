@@ -105,7 +105,11 @@ export function AgendaView() {
       return;
     }
     
-    if(isManualSync) setIsSyncing(true);
+    if(isManualSync) {
+        setIsSyncing(true);
+    } else {
+        setAgendaLoading(true);
+    }
     setAgendaError(null);
     
     try {
@@ -154,7 +158,7 @@ export function AgendaView() {
       }
     } finally {
       if(isManualSync) setIsSyncing(false);
-      setAgendaLoading(false); // Ensure loading is false after fetch completes
+      setAgendaLoading(false);
     }
   }, [toast]);
   
@@ -230,13 +234,8 @@ export function AgendaView() {
   
   const agendaStats = useMemo(() => {
     const events = eventsForSelectedDay;
-    if (!events || events.length === 0) {
-      return { total: 0, completed: 0, pending: 0, next7Days: eventsForNext7Days.length };
-    }
-    
-    const now = DateTime.now().setZone('Europe/Madrid');
-    const completed = events.filter(ev => ev.end <= now).length;
-    const pending = events.length - completed;
+    const completed = pastEvents.length;
+    const pending = upcomingEvents.length;
     
     return {
       total: events.length,
@@ -244,7 +243,7 @@ export function AgendaView() {
       pending: pending,
       next7Days: eventsForNext7Days.length,
     };
-  }, [eventsForSelectedDay, eventsForNext7Days]);
+  }, [eventsForSelectedDay, pastEvents, upcomingEvents, eventsForNext7Days]);
 
   const handleAnalyzeWeek = async () => {
     setIsAnalyzing(true);
@@ -485,3 +484,5 @@ export function AgendaView() {
     </div>
   );
 }
+
+    
