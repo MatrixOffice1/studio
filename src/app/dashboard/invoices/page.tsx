@@ -327,12 +327,12 @@ export default function InvoicesPage() {
 
   const kpiData = useMemo(() => {
     const now = DateTime.now().setZone('Europe/Madrid');
-    const sevenDaysAgo = now.minus({ days: 7 });
+    const sevenDaysAgo = now.minus({ days: 7 }).startOf('day');
 
     const currentMonthInvoices = invoices.filter(inv => 
         inv.date.year === now.year && inv.date.month === now.month
     );
-    const last7DaysInvoices = invoices.filter(inv => inv.date >= sevenDaysAgo && inv.date <= now);
+    const last7DaysInvoices = invoices.filter(inv => inv.date >= sevenDaysAgo);
 
     const totalBilledThisMonth = currentMonthInvoices.reduce((acc, inv) => acc + inv.totalPrice, 0);
     const totalBilledLast7Days = last7DaysInvoices.reduce((acc, inv) => acc + inv.totalPrice, 0);
