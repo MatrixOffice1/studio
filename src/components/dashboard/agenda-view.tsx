@@ -97,14 +97,16 @@ export function AgendaView() {
     if (!settingsToUse) {
         setAgendaError("No se pudieron cargar los ajustes para la agenda.");
         setAgendaLoading(false);
+        if (isSyncing) setIsSyncing(false);
         return;
     }
     
     const webhookUrl = settingsToUse?.agenda_webhook_url;
 
     if (!webhookUrl) {
-      setAgendaError("Por favor, configura la URL del Webhook para la agenda en la sección de Ajustes.");
+      setAgendaError("Por favor, un administrador debe configurar la URL del Webhook para la agenda en la sección de Ajustes.");
       setAgendaLoading(false);
+      if (isSyncing) setIsSyncing(false);
       return;
     }
 
@@ -171,9 +173,9 @@ export function AgendaView() {
             setGlobalSettings(settings);
             await fetchCalendarEvents(settings, false);
         } else {
-            setAgendaError("No se pudieron cargar los ajustes de administrador.");
+            setAgendaError("No se pudieron cargar los ajustes globales para la agenda.");
+            setAgendaLoading(false);
         }
-        setAgendaLoading(false);
     };
 
     loadSettingsAndThenEvents();
