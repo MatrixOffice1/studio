@@ -14,6 +14,7 @@ import { generateConversationSummary } from '@/ai/flows/generate-conversation-su
 import { format, isToday, isYesterday, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { AnalysisParser } from './analysis-parser';
 
 type Chat = {
   chat_id: string;
@@ -359,8 +360,8 @@ export function Messages() {
                         Este es un resumen de la conversación actual generado por IA.
                     </DialogDescription>
                 </DialogHeader>
-                <div className="py-4 text-sm text-muted-foreground whitespace-pre-wrap">
-                    {summary || "No se pudo generar un resumen."}
+                <div className="py-4 text-sm">
+                    {summary ? <AnalysisParser content={summary} /> : "No se pudo generar un resumen."}
                 </div>
                  <div className="flex justify-end">
                     <Button onClick={() => setIsSummaryDialogOpen(false)}>Cerrar</Button>
@@ -370,5 +371,3 @@ export function Messages() {
     </div>
   );
 }
-
-    
