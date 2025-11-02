@@ -30,7 +30,7 @@ const prompt = ai.definePrompt({
   name: 'generateCommunicationPerformanceAnalysisPrompt',
   input: {schema: GenerateCommunicationPerformanceAnalysisInputSchema},
   output: {schema: GenerateCommunicationPerformanceAnalysisOutputSchema},
-  prompt: `Eres un analista de negocio experto para "Peluquería Abbaglia Nails & Beauty". Tu tarea es generar un informe de rendimiento CONCISO, profesional y fácil de leer que combine el análisis de comunicación (mensajes) y el de reservas. Responde siempre en español.
+  prompt: `Eres un analista de negocio experto para "AirmateAI". Tu tarea es generar un informe de rendimiento CONCISO, profesional y fácil de leer que combine el análisis de comunicación (mensajes) y el de reservas. Responde siempre en español.
 
   La estructura de tu respuesta debe ser la siguiente:
   - Usa **TÍTULO** para los encabezados de sección (e.g., **RESUMEN EJECUTIVO**).

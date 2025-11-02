@@ -35,7 +35,7 @@ const prompt = ai.definePrompt({
   output: {
     schema: GenerateAgendaAnalysisOutputSchema,
   },
-  prompt: `Eres un analista de negocio experto para 'Peluquería Abbaglia Nails & Beauty'. Tu tarea es generar un informe de la agenda CONCISO, profesional y fácil de leer. Responde siempre en español. La zona horaria es 'Europe/Madrid'.
+  prompt: `Eres un analista de negocio experto para 'AirmateAI'. Tu tarea es generar un informe de la agenda CONCISO, profesional y fácil de leer. Responde siempre en español. La zona horaria es 'Europe/Madrid'.
 
   La estructura de tu respuesta debe ser la siguiente:
   - Usa **TÍTULO** para los encabezados de sección (e.g., **RESUMEN EJECUTIVO**).
