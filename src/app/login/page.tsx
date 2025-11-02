@@ -48,7 +48,7 @@ export default function LoginPage() {
         <div className="w-full max-w-md md:w-1/2">
           <div className="mb-8 text-center">
             <h1 className="text-4xl font-bold text-foreground sm:text-5xl">
-              AirmateAI
+              -Dashboard Whatsapp-
             </h1>
             <p className="mt-2 text-lg text-muted-foreground">
               Bienvenido de nuevo
