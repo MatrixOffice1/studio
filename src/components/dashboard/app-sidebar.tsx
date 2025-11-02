@@ -59,7 +59,7 @@ export function AppSidebar() {
     return pathname.startsWith(href);
   }
   
-  const userEmail = profile?.email || 'user@peluflow.com';
+  const userEmail = profile?.email || 'user@airmateai.com';
   const userName = profile?.full_name || userEmail.split('@')[0];
   
   const visibleMenuItems = menuItems.filter(item => profile?.is_admin || !item.adminOnly);
