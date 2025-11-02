@@ -17,7 +17,6 @@ import { AppointmentDetails } from './appointment-details';
 import { AppointmentCard } from './appointment-card';
 import { ProfessionalAvailability } from './professional-availability';
 import { AppointmentForm } from './appointment-form';
-import { useAuth } from '@/providers/auth-provider';
 
 export type CalendarEvent = {
   uid: string;
@@ -34,18 +33,23 @@ export type CalendarEvent = {
 
 export const PROFESSIONALS = ['Ana', 'Joana', 'Maria'];
 
-// Hardcoded Webhook URLs as a definitive fix
-const AGENDA_WEBHOOK_URL = 'https://n8n.srv1002935.hstgr.cloud/webhook/calendar-tony';
 const CITAS_WEBHOOK_URL = 'https://n8n.srv1002935.hstgr.cloud/webhook/calendar-citas-modf';
-const SYNC_INTERVAL = 5; // Sync interval in minutes
 
-export function AgendaView() {
+type AgendaViewProps = {
+  initialEvents: CalendarEvent[];
+  error?: string | null;
+}
+
+export function AgendaView({ initialEvents, error: initialError }: AgendaViewProps) {
   const { toast } = useToast();
   
-  const [allEvents, setAllEvents] = useState<CalendarEvent[]>([]);
+  const [allEvents, setAllEvents] = useState<CalendarEvent[]>(() => initialEvents.map(ev => ({
+    ...ev,
+    start: DateTime.fromISO(ev.start as unknown as string, { zone: 'Europe/Madrid' }),
+    end: DateTime.fromISO(ev.end as unknown as string, { zone: 'Europe/Madrid' }),
+  })));
   const [currentDate, setCurrentDate] = useState(DateTime.now().setZone('Europe/Madrid'));
-  const [agendaLoading, setAgendaLoading] = useState(true);
-  const [agendaError, setAgendaError] = useState<string | null>(null);
+  const [agendaError, setAgendaError] = useState<string | null>(initialError || null);
   const [isAutoSyncEnabled, setIsAutoSyncEnabled] = useState(() => {
     if (typeof window !== 'undefined') {
       const savedState = localStorage.getItem('isAutoSyncEnabled');
@@ -61,41 +65,28 @@ export function AgendaView() {
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [isAppointmentFormOpen, setIsAppointmentFormOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-
-  const fetchCalendarEvents = useCallback(async (isManualSync = false) => {
+  
+  const fetchCalendarEvents = useCallback(async () => {
+    const AGENDA_WEBHOOK_URL = 'https://n8n.srv1002935.hstgr.cloud/webhook/calendar-tony';
     if (!AGENDA_WEBHOOK_URL) {
       setAgendaError("La URL del Webhook de la agenda no está configurada.");
-      setAgendaLoading(false);
-      if (isManualSync) setIsSyncing(false);
       return;
     }
     
-    if(isManualSync) {
-        setIsSyncing(true);
-    } else {
-        setAgendaLoading(true);
-    }
+    setIsSyncing(true);
     setAgendaError(null);
     
     try {
       const response = await fetch(AGENDA_WEBHOOK_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          day: DateTime.now().setZone('Europe/Madrid').toISODate(), 
-          cb: Date.now() 
-        })
+        body: JSON.stringify({ cb: Date.now() })
       });
       
       if (!response.ok) throw new Error(`Error de red: ${response.statusText}`);
       
       const responseText = await response.text();
-      if (!responseText) {
-          setAllEvents([]);
-          return;
-      }
-      
-      const data = JSON.parse(responseText);
+      const data = responseText ? JSON.parse(responseText) : { ok: true, items: [] };
 
       if (data.ok && Array.isArray(data.items)) {
         const processed = data.items.map((ev: any) => ({
@@ -105,31 +96,23 @@ export function AgendaView() {
           uid: ev.id,
         }));
         setAllEvents(processed);
-        if (isManualSync) {
-            toast({ title: "Sincronizado", description: "La agenda ha sido actualizada." });
-        }
+        toast({ title: "Sincronizado", description: "La agenda ha sido actualizada." });
       } else {
         setAllEvents([]);
       }
     } catch (err: any) {
-      setAgendaError(`Error al cargar la agenda: ${err.message}`);
+      const errorMessage = `Error al cargar la agenda: ${err.message}`;
+      setAgendaError(errorMessage);
       setAllEvents([]);
-      if (isManualSync) {
-        toast({
+      toast({
           variant: 'destructive',
           title: 'Error de Sincronización',
-          description: `No se pudo cargar la agenda: ${err.message}`
-        });
-      }
+          description: errorMessage
+      });
     } finally {
-      if(isManualSync) setIsSyncing(false);
-      setAgendaLoading(false);
+      setIsSyncing(false);
     }
   }, [toast]);
-  
-  useEffect(() => {
-    fetchCalendarEvents(false);
-  }, [fetchCalendarEvents]);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -139,13 +122,11 @@ export function AgendaView() {
 
   useEffect(() => {
     let intervalId: NodeJS.Timeout | null = null;
-    if (isAutoSyncEnabled && SYNC_INTERVAL > 0) {
-        const syncIntervalMs = SYNC_INTERVAL * 60 * 1000;
-        if (syncIntervalMs > 0) {
-            intervalId = setInterval(() => {
-                fetchCalendarEvents(false);
-            }, syncIntervalMs);
-        }
+    if (isAutoSyncEnabled) {
+        const syncIntervalMs = 5 * 60 * 1000;
+        intervalId = setInterval(() => {
+            fetchCalendarEvents();
+        }, syncIntervalMs);
     }
     return () => {
         if (intervalId) clearInterval(intervalId);
@@ -289,7 +270,7 @@ export function AgendaView() {
         setCurrentDate={setCurrentDate}
         isAutoSyncEnabled={isAutoSyncEnabled}
         setIsAutoSyncEnabled={setIsAutoSyncEnabled}
-        onSync={() => fetchCalendarEvents(true)}
+        onSync={fetchCalendarEvents}
         isSyncing={isSyncing}
       />
       
@@ -340,11 +321,7 @@ export function AgendaView() {
         </CardContent>
       </Card>
       
-      {agendaLoading ? (
-         <div className="flex-1 flex items-center justify-center">
-            <Loader2 className="h-12 w-12 animate-spin text-primary" />
-         </div>
-      ) : agendaError ? (
+      {agendaError ? (
         <Card className="flex-1 flex items-center justify-center bg-destructive/10 border-destructive">
             <CardContent className="text-center text-destructive p-6">
                 <CardTitle>Error</CardTitle>
