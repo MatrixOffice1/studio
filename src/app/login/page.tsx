@@ -47,7 +47,7 @@ export default function LoginPage() {
         {/* Left Column: Login Form */}
         <div className="w-full max-w-md md:w-1/2">
           <div className="mb-8 text-center">
-            <h1 className="text-4xl font-bold text-foreground sm:text-5xl">
+            <h1 className="text-4xl font-bold text-foreground sm:text-5xl whitespace-nowrap">
               -Dashboard Whatsapp-
             </h1>
             <p className="mt-2 text-lg text-muted-foreground">
@@ -91,8 +91,8 @@ export default function LoginPage() {
           <Image
             src="https://i.postimg.cc/kGtCyQCD/logo2.png"
             alt="Logo"
-            width={400}
-            height={400}
+            width={300}
+            height={300}
             className="drop-shadow-2xl"
             priority
           />
