@@ -1,6 +1,9 @@
+'use client';
 
+import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { TrendingUp, MessageSquare, Users, Percent, Phone } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { TrendingUp, MessageSquare, Users, Percent, Phone, RefreshCw, Loader2 } from 'lucide-react';
 import { ProAnalyticsClient } from '@/components/dashboard/pro-analytics-client';
 import { TrendsChart } from '@/components/dashboard/trends-chart';
 import { supabase } from '@/lib/supabase';
@@ -19,97 +22,139 @@ const WhatsAppIcon = (props: React.SVGProps<SVGSVGElement>) => (
 
 const SHEET_WEBHOOK_URL = 'https://n8n.srv1002935.hstgr.cloud/webhook/sheet';
 
-async function getAnalyticsData() {
-  const sevenDaysAgo = format(subDays(new Date(), 7), 'yyyy-MM-dd');
+const initialKpiData = {
+  totalMessages: 0,
+  avgDailyComm: 0,
+  incomingPercentage: 0,
+  last7DaysTrend: [],
+};
+const initialChannelAnalytics = { total: 0, fromWhatsapp: 0, fromTelefono: 0 };
 
-  // Fetch all daily data for all-time stats
-  const { data: allDailyData, error: allDailyError } = await supabase
-    .from('messages_daily_v')
-    .select('total');
 
-  // Fetch last 7 days for trend
-  const { data: last7Days, error: last7DaysError } = await supabase
-    .from('messages_daily_v')
-    .select('*')
-    .gte('day', sevenDaysAgo);
-    
-  // Fetch reservations for channel analytics
-  const reservationResponse = await fetch(SHEET_WEBHOOK_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ cb: Date.now() }),
-    next: { revalidate: 300 } // Revalidate every 5 minutes
-  });
+export default function AnalyticsPage() {
+  const [kpiData, setKpiData] = useState(initialKpiData);
+  const [channelAnalytics, setChannelAnalytics] = useState(initialChannelAnalytics);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const getAnalyticsData = useCallback(async () => {
+    setIsSyncing(true);
+    setError(null);
+    try {
+      const sevenDaysAgo = format(subDays(new Date(), 7), 'yyyy-MM-dd');
+
+      // Fetch all daily data for all-time stats
+      const { data: allDailyData, error: allDailyError } = await supabase
+        .from('messages_daily_v')
+        .select('total');
+
+      // Fetch last 7 days for trend
+      const { data: last7Days, error: last7DaysError } = await supabase
+        .from('messages_daily_v')
+        .select('*')
+        .gte('day', sevenDaysAgo);
+        
+      // Fetch reservations for channel analytics
+      const reservationResponse = await fetch(SHEET_WEBHOOK_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cb: Date.now() }),
+      });
+      
+      const reservations: RawReservation[] = reservationResponse.ok ? await reservationResponse.json() : [];
+      
+      let newChannelAnalytics = { total: 0, fromWhatsapp: 0, fromTelefono: 0 };
+      if (reservations.length > 0) {
+          const fromWhatsapp = reservations.filter(r => r.from?.toLowerCase() === 'whatsapp').length;
+          newChannelAnalytics = {
+              total: reservations.length,
+              fromWhatsapp,
+              fromTelefono: reservations.length - fromWhatsapp
+          };
+      }
+      setChannelAnalytics(newChannelAnalytics);
+
+      if (allDailyError || last7DaysError) {
+        throw new Error(allDailyError?.message || last7DaysError?.message || "Error fetching Supabase data");
+      }
+
+      const totalMessagesAllTime = allDailyData ? allDailyData.reduce((acc, row) => acc + (row.total || 0), 0) : 0;
+      
+      const last7DaysData = last7Days || [];
+      const totalMessages7Days = last7DaysData.reduce((acc, row) => acc + (row.total || 0), 0);
+      const totalInbound7Days = last7DaysData.reduce((acc, row) => acc + (row.inbound || 0), 0);
+      
+      const incomingPercentage = totalMessages7Days > 0 ? Math.round((totalInbound7Days / totalMessages7Days) * 100) : 0;
+      const avgDailyComm = last7DaysData.length > 0 ? Math.round(totalMessages7Days / last7DaysData.length) : 0;
+
+      const dateMap = new Map<string, number>();
+      last7DaysData.forEach(row => {
+        dateMap.set(row.day, row.total);
+      });
+
+      const last7DaysTrend = Array.from({ length: 7 }).map((_, i) => {
+        const date = subDays(new Date(), i);
+        const dayKey = format(date, 'yyyy-MM-dd');
+        const dayName = format(date, 'EEE', { locale: es });
+        return {
+          day: dayName.charAt(0).toUpperCase() + dayName.slice(1, 3),
+          messages: dateMap.get(dayKey) || 0,
+        };
+      }).reverse();
+
+      setKpiData({
+        totalMessages: totalMessagesAllTime,
+        avgDailyComm,
+        incomingPercentage,
+        last7DaysTrend,
+      });
+
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setIsLoading(false);
+      setIsSyncing(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    getAnalyticsData();
+  }, [getAnalyticsData]);
   
-  const reservations: RawReservation[] = reservationResponse.ok ? await reservationResponse.json() : [];
-  
-  let channelAnalytics = { total: 0, fromWhatsapp: 0, fromTelefono: 0 };
-  if (reservations.length > 0) {
-      const fromWhatsapp = reservations.filter(r => r.from?.toLowerCase() === 'whatsapp').length;
-      channelAnalytics = {
-          total: reservations.length,
-          fromWhatsapp,
-          fromTelefono: reservations.length - fromWhatsapp
-      };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[calc(100vh-8rem)]">
+        <Loader2 className="h-16 w-16 animate-spin text-primary" />
+      </div>
+    );
   }
 
-  if (allDailyError || last7DaysError) {
-    console.error('Error fetching Supabase data:', allDailyError || last7DaysError);
-    return {
-      kpiData: {
-        totalMessages: 0,
-        avgDailyComm: 0,
-        incomingPercentage: 0,
-        last7DaysTrend: [],
-      },
-      channelAnalytics,
-    };
+  if (error) {
+    return (
+      <div className="p-4 sm:p-6 lg:p-8">
+        <Card className="flex-1 flex items-center justify-center bg-destructive/10 border-destructive">
+          <CardContent className="text-center text-destructive p-6">
+            <CardTitle>Error de Carga</CardTitle>
+            <p>{error}</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
   }
-
-  const totalMessagesAllTime = allDailyData ? allDailyData.reduce((acc, row) => acc + (row.total || 0), 0) : 0;
-  
-  const last7DaysData = last7Days || [];
-  const totalMessages7Days = last7DaysData.reduce((acc, row) => acc + (row.total || 0), 0);
-  const totalInbound7Days = last7DaysData.reduce((acc, row) => acc + (row.inbound || 0), 0);
-  
-  const incomingPercentage = totalMessages7Days > 0 ? Math.round((totalInbound7Days / totalMessages7Days) * 100) : 0;
-  const avgDailyComm = last7DaysData.length > 0 ? Math.round(totalMessages7Days / last7DaysData.length) : 0;
-
-  const dateMap = new Map<string, number>();
-  last7DaysData.forEach(row => {
-    dateMap.set(row.day, row.total);
-  });
-
-  const last7DaysTrend = Array.from({ length: 7 }).map((_, i) => {
-    const date = subDays(new Date(), i);
-    const dayKey = format(date, 'yyyy-MM-dd');
-    const dayName = format(date, 'EEE', { locale: es });
-    return {
-      day: dayName.charAt(0).toUpperCase() + dayName.slice(1, 3),
-      messages: dateMap.get(dayKey) || 0,
-    };
-  }).reverse();
-
-  return {
-    kpiData: {
-      totalMessages: totalMessagesAllTime,
-      avgDailyComm,
-      incomingPercentage,
-      last7DaysTrend,
-    },
-    channelAnalytics,
-  };
-}
-
-
-export default async function AnalyticsPage() {
-  const { kpiData, channelAnalytics } = await getAnalyticsData();
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 space-y-8">
-      <header>
-        <h1 className="text-2xl sm:text-3xl font-headline font-bold">Analíticas</h1>
-        <p className="text-muted-foreground">Insights sobre la comunicación con tus clientes.</p>
+      <header className="flex justify-between items-start">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-headline font-bold">Analíticas</h1>
+          <p className="text-muted-foreground">Insights sobre la comunicación con tus clientes.</p>
+        </div>
+        <Button onClick={() => getAnalyticsData()} disabled={isSyncing}>
+          {isSyncing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
+          Sincronizar
+        </Button>
       </header>
 
       <section className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -204,5 +249,3 @@ export default async function AnalyticsPage() {
     </div>
   );
 }
-
-    
