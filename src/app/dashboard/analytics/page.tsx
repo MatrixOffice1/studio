@@ -38,30 +38,41 @@ export default function AnalyticsPage() {
   const [isSyncing, setIsSyncing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const getAnalyticsData = useCallback(async () => {
-    setIsSyncing(true);
+  const getAnalyticsData = useCallback(async (isManualSync = false) => {
+    if(isManualSync) setIsSyncing(true); else setIsLoading(true);
     setError(null);
     try {
       const sevenDaysAgo = format(subDays(new Date(), 7), 'yyyy-MM-dd');
-
-      // Fetch all daily data for all-time stats
-      const { data: allDailyData, error: allDailyError } = await supabase
+  
+      const allDailyDataPromise = supabase
         .from('messages_daily_v')
         .select('total');
-
-      // Fetch last 7 days for trend
-      const { data: last7Days, error: last7DaysError } = await supabase
+  
+      const last7DaysPromise = supabase
         .from('messages_daily_v')
         .select('*')
         .gte('day', sevenDaysAgo);
         
-      // Fetch reservations for channel analytics
-      const reservationResponse = await fetch(SHEET_WEBHOOK_URL, {
+      const reservationResponsePromise = fetch(SHEET_WEBHOOK_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ cb: Date.now() }),
       });
-      
+  
+      const [
+        { data: allDailyData, error: allDailyError },
+        { data: last7Days, error: last7DaysError },
+        reservationResponse
+      ] = await Promise.all([
+        allDailyDataPromise,
+        last7DaysPromise,
+        reservationResponsePromise
+      ]);
+
+      if (allDailyError || last7DaysError) {
+        throw new Error(allDailyError?.message || last7DaysError?.message || "Error fetching Supabase data");
+      }
+
       const reservations: RawReservation[] = reservationResponse.ok ? await reservationResponse.json() : [];
       
       let newChannelAnalytics = { total: 0, fromWhatsapp: 0, fromTelefono: 0 };
@@ -74,10 +85,6 @@ export default function AnalyticsPage() {
           };
       }
       setChannelAnalytics(newChannelAnalytics);
-
-      if (allDailyError || last7DaysError) {
-        throw new Error(allDailyError?.message || last7DaysError?.message || "Error fetching Supabase data");
-      }
 
       const totalMessagesAllTime = allDailyData ? allDailyData.reduce((acc, row) => acc + (row.total || 0), 0) : 0;
       
@@ -113,13 +120,12 @@ export default function AnalyticsPage() {
     } catch (err: any) {
       setError(err.message);
     } finally {
-      setIsLoading(false);
-      setIsSyncing(false);
+      if(isManualSync) setIsSyncing(false); else setIsLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    getAnalyticsData();
+    getAnalyticsData(false);
   }, [getAnalyticsData]);
   
 
@@ -151,7 +157,7 @@ export default function AnalyticsPage() {
           <h1 className="text-2xl sm:text-3xl font-headline font-bold">Analíticas</h1>
           <p className="text-muted-foreground">Insights sobre la comunicación con tus clientes.</p>
         </div>
-        <Button onClick={() => getAnalyticsData()} disabled={isSyncing}>
+        <Button onClick={() => getAnalyticsData(true)} disabled={isSyncing}>
           {isSyncing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
           Sincronizar
         </Button>
