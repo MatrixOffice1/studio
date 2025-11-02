@@ -20,24 +20,31 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
     }
 
     if (!isLoading && user && profile && pathname === '/dashboard') {
-      if (profile.is_admin) {
-        router.replace('/dashboard/messages');
-      } else {
-        router.replace('/dashboard/appointments');
-      }
+        // Redirect to the correct initial page after login
+        if (profile.is_admin) {
+            router.replace('/dashboard/messages');
+        } else {
+            router.replace('/dashboard/appointments');
+        }
     }
   }, [user, profile, isLoading, router, pathname]);
 
-  if (isLoading || (pathname === '/dashboard' && !profile)) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-background">
-        <Loader2 className="h-16 w-16 animate-spin text-primary" />
-      </div>
-    );
+  if (isLoading && !user) {
+      return (
+          <div className="flex items-center justify-center min-h-screen bg-background">
+              <Loader2 className="h-16 w-16 animate-spin text-primary" />
+          </div>
+      );
   }
 
+  // If we are not loading and there's no user, the effect will redirect.
+  // We can return null or a loader to prevent a flicker.
   if (!user) {
-    return null;
+    return (
+        <div className="flex items-center justify-center min-h-screen bg-background">
+            <Loader2 className="h-16 w-16 animate-spin text-primary" />
+        </div>
+    );
   }
 
   return (
@@ -55,7 +62,9 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { user, isLoading } = useAuth();
 
-  if (isLoading) {
+  // Show a top-level loader while auth state is initially resolving,
+  // but once the user object exists, we can proceed.
+  if (isLoading && !user) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-background">
         <Loader2 className="h-16 w-16 animate-spin text-primary" />
@@ -63,19 +72,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     );
   }
 
-  if (!user?.id) {
-    // This can be a loader too, but since the parent handles the redirect,
-    // we can show a loader until the user object is resolved.
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-background">
-        <Loader2 className="h-16 w-16 animate-spin text-primary" />
-      </div>
-    );
-  }
-  
-
+  // If a user is resolved, we can safely render the UserSettingsProvider
+  // The inner DashboardContent will handle redirects if the session is invalid
   return (
-    <UserSettingsProvider userId={user.id}>
+    <UserSettingsProvider userId={user?.id}>
       <DashboardContent>
         {children}
       </DashboardContent>

@@ -56,23 +56,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const getInitialSession = async () => {
+      // Don't set loading to true here initially, let the onAuthStateChange handle it.
       const { data: { session: initialSession } } = await supabase.auth.getSession();
+      
+      // If there's no session, we are done loading.
+      if (!initialSession) {
+        setIsLoading(false);
+      }
+      
       setUser(initialSession?.user ?? null);
       setSession(initialSession);
-      if (initialSession?.user) {
-        await fetchProfile(initialSession.user);
-      }
-      setIsLoading(false);
 
       const { data: authListener } = supabase.auth.onAuthStateChange(
         async (_event, newSession) => {
-          setUser(newSession?.user ?? null);
+          setIsLoading(true);
+          const newUser = newSession?.user ?? null;
+          setUser(newUser);
           setSession(newSession);
-          if (newSession?.user) {
-            await fetchProfile(newSession.user);
+          
+          if (newUser) {
+            await fetchProfile(newUser);
           } else {
             setProfile(null);
           }
+          setIsLoading(false);
         }
       );
 
@@ -81,11 +88,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       };
     };
 
-    const unsubscribe = getInitialSession();
-
-    return () => {
-      unsubscribe.then(cleanup => cleanup && cleanup());
-    };
+    getInitialSession();
   }, [fetchProfile]);
 
 
@@ -103,7 +106,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     refreshProfile: refreshProfileCallback,
   };
 
-  return <AuthContext.Provider value={value}>{!isLoading && children}</AuthContext.Provider>;
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth() {
